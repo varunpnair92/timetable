@@ -1,5 +1,6 @@
+from pyexpat.errors import messages
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from fisat.forms import AllocationForm
 from .models import Staff, SubjectEntry, TimetableEntry
@@ -10,23 +11,30 @@ from .models import Staff, SubjectEntry, TimetableEntry
 from django.shortcuts import render, HttpResponse
 from .forms import AllocationForm
 
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from .forms import AllocationForm
+from .models import TimetableEntry
+
 def allocate_staff(request):
     if request.method == "POST":
-        form = AllocationForm(request.POST)
+        action = request.POST.get('action')
+        form = AllocationForm(request.POST, action=action)
+        
         if form.is_valid():
-            # Get the subject_entry instance from the form
-            subject_entry = form.cleaned_data['subject_entry']
-            
-            # Create a new TimetableEntry instance with staff and subject_entry
-            TimetableEntry.objects.create(
-                staff=form.cleaned_data['staff'],
-                subject=subject_entry,
-            )
-            return HttpResponse('Allocation successful!')  # Return a success message
+            if action == 'delete':
+                delete_entry = form.cleaned_data['delete_entry']
+                if delete_entry:
+                    delete_entry.delete()
+            elif action == 'allot':
+                form.save()
+            return redirect(reverse('timetable'))  # Redirect to your timetable view or another appropriate view
     else:
-        form = AllocationForm()  # Initialize the form
+        form = AllocationForm()
 
     return render(request, 'allocate.html', {'form': form})
+
+
 
 
 
@@ -116,3 +124,8 @@ def allotted(request):
         })
 
     return render(request, 'allotted.html', {'class_data': class_data})
+
+def delete_allotment(request, entry_id):
+    entry = get_object_or_404(TimetableEntry, id=entry_id)
+    entry.delete()
+    return redirect('timetable')  

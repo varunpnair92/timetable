@@ -8,7 +8,9 @@
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Allot</button>
+        <button type="submit" name="action" value="allot">Allot</button>
+        <button type="submit" name="action" value="delete">Delete</button>
     </form>
 </body>
 </html>
+

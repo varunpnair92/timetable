@@ -1,5 +1,6 @@
+from pyexpat.errors import messages
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from fisat.forms import AllocationForm
 from .models import Staff, SubjectEntry, TimetableEntry
@@ -10,23 +11,30 @@ from .models import Staff, SubjectEntry, TimetableEntry
 from django.shortcuts import render, HttpResponse
 from .forms import AllocationForm
 
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from .forms import AllocationForm
+from .models import TimetableEntry
+
+
+
 def allocate_staff(request):
+    action = request.POST.get('action') if request.method == "POST" else None
+    form = AllocationForm(request.POST or None, action=action)
+    
     if request.method == "POST":
-        form = AllocationForm(request.POST)
         if form.is_valid():
-            # Get the subject_entry instance from the form
-            subject_entry = form.cleaned_data['subject_entry']
-            
-            # Create a new TimetableEntry instance with staff and subject_entry
-            TimetableEntry.objects.create(
-                staff=form.cleaned_data['staff'],
-                subject=subject_entry,
-            )
-            return HttpResponse('Allocation successful!')  # Return a success message
-    else:
-        form = AllocationForm()  # Initialize the form
+            if action == 'delete':
+                delete_entry = form.cleaned_data['delete_entry']
+                if delete_entry:
+                    delete_entry.delete()
+            elif action == 'allot':
+                form.save()
+            return redirect(reverse('timetable'))  # Redirect to your timetable view or another appropriate view
 
     return render(request, 'allocate.html', {'form': form})
+
+
 
 
 
@@ -52,6 +60,7 @@ def timetable(request):
 
         # Fetch TimetableEntry instances for the current staff
         timetable_entries = TimetableEntry.objects.filter(staff=staff)
+        totalhour=7
 
         # Iterate over each TimetableEntry for the current staff
         for entry in timetable_entries:
@@ -74,7 +83,7 @@ def timetable(request):
                 end_hour = int(allotted_hours[-1]) - 1
                 for col_index in range(start_hour, end_hour + 1):
                     if col_index == start_hour:
-                        timetable_slots[row_index][col_index] = {'class_name':subject_entry.class_name,'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
+                        timetable_slots[row_index][col_index] = {'totalhour':totalhour ,'class_name':subject_entry.class_name,'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
                     else:
                         timetable_slots[row_index][col_index] = None
 
@@ -84,3 +93,39 @@ def timetable(request):
     # Render the template with staff timetables data
     return render(request, 'timetable.html', {'staff_timetables': staff_timetables})
 
+
+# views.py
+
+from django.shortcuts import render
+from .models import SubjectEntry, TimetableEntry
+
+def allotted(request):
+    subjects = SubjectEntry.objects.all()
+
+    # Organize data by class
+    class_data = {}
+
+    for subject in subjects:
+        class_name = subject.class_name
+
+        if class_name not in class_data:
+            class_data[class_name] = []
+
+        timetable_entries = TimetableEntry.objects.filter(subject=subject)
+
+        staff_names = []
+        for entry in timetable_entries:
+            staff_names.append(entry.staff.name)
+
+        class_data[class_name].append({
+            'subject_name': subject.subject_name,
+            'staff_names': ', '.join(staff_names),  # Combine staff names into a string
+            'allotted_hours': subject.allotted_hours
+        })
+
+    return render(request, 'allotted.html', {'class_data': class_data})
+
+def delete_allotment(request, entry_id):
+    entry = get_object_or_404(TimetableEntry, id=entry_id)
+    entry.delete()
+    return redirect('timetable')  
