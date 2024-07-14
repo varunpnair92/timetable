@@ -50,7 +50,17 @@ class TimetableEntry(models.Model):
             if existing_entries.count() >= 2:
                 raise ValidationError('This subject already has two staff members assigned.')
 
+        # Check for overlapping hours for the same staff on the same day
+        if self.staff_id is not None and self.subject_id is not None:
+            subject_day = self.subject.day
+            subject_hours = set(map(int, self.subject.allotted_hours.split(',')))
+            existing_entries = TimetableEntry.objects.filter(staff=self.staff, subject__day=subject_day)
+
+            for entry in existing_entries:
+                existing_hours = set(map(int, entry.subject.allotted_hours.split(',')))
+                if subject_hours.intersection(existing_hours):
+                    raise ValidationError(f'Staff {self.staff.name} is already assigned to hours {existing_hours.intersection(subject_hours)} on {entry.subject.get_day_display()}.')
+
     def save(self, *args, **kwargs):
         self.full_clean()  # Ensure model passes validation before saving
         super().save(*args, **kwargs)
-
