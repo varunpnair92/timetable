@@ -59,10 +59,7 @@ class TimetableEntry(models.Model):
             for entry in existing_entries:
                 existing_hours = set(map(int, entry.subject.allotted_hours.split(',')))
                 if subject_hours.intersection(existing_hours):
-                    raise ValidationError(
-                        f'Staff {self.staff.name} is already assigned to hours {existing_hours.intersection(subject_hours)} '
-                        f'on {entry.subject.get_day_display()}. Cannot allocate overlapping hours.'
-                    )
+                    raise ValidationError(f'Staff {self.staff.name} is already assigned to hours {existing_hours.intersection(subject_hours)} on {entry.subject.get_day_display()}.')
 
     def save(self, *args, **kwargs):
         self.full_clean()  # Ensure model passes validation before saving
