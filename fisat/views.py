@@ -83,7 +83,7 @@ def timetable(request):
                 end_hour = int(allotted_hours[-1]) - 1
                 for col_index in range(start_hour, end_hour + 1):
                     if col_index == start_hour:
-                        timetable_slots[row_index][col_index] = {'totalhour':totalhour ,'class_name':subject_entry.class_name,'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
+                        timetable_slots[row_index][col_index] = {'lab':subject_entry.LAB,'totalhour':totalhour ,'class_name':subject_entry.class_name,'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
                     else:
                         timetable_slots[row_index][col_index] = None
 

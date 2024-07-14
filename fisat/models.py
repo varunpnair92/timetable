@@ -12,8 +12,22 @@ class SubjectEntry(models.Model):
         ('Th', 'Thursday'),
         ('F', 'Friday'),
     )
+    LAB_CHOICES = (
+        ('L1', 'CCF L1'),
+        ('L2', 'CCF L2'),
+        ('L3', 'CCF L3'),
+        ('L4', 'CCF L4'),
+        ('L5', 'CCF L5'),
+        ('L6', 'CCF L6'),
+        ('L7', 'CCF L7'),
+        ('L8', 'CCF L8'),
+        ('L9', 'CCF L9'),
+        ('MP LAB', 'MICRO PROCESSOR LAB'),
+        ('PG LAB', 'PG LAB'),
+    )
     
     day = models.CharField(max_length=2, choices=DAY_CHOICES)
+    LAB = models.CharField(max_length=50, choices=LAB_CHOICES)
     allotted_hours = models.CharField(max_length=10)  # e.g., '1,2,3' or '4,5,6'
 
     def __str__(self):
