@@ -1,0 +1,47 @@
+<!-- class_subject_staff.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Class, Subject, and Staff Allocation</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Class, Subject, and Staff Allocation</h1>
+
+    {% for class_name, subjects in class_data.items %}
+        <h2>{{ class_name }}</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject Name</th>
+                    <th>Allocated Staff</th>
+                    <th>Hours</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject_data in subjects %}
+                    <tr>
+                        <td>{{ subject_data.subject_name }}</td>
+                        <td>{{ subject_data.staff_names }}</td>
+                        <td>{{ subject_data.allotted_hours }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+    {% endfor %}
+
+</body>
+</html>

@@ -52,6 +52,7 @@ def timetable(request):
 
         # Fetch TimetableEntry instances for the current staff
         timetable_entries = TimetableEntry.objects.filter(staff=staff)
+        totalhour=7
 
         # Iterate over each TimetableEntry for the current staff
         for entry in timetable_entries:
@@ -74,7 +75,7 @@ def timetable(request):
                 end_hour = int(allotted_hours[-1]) - 1
                 for col_index in range(start_hour, end_hour + 1):
                     if col_index == start_hour:
-                        timetable_slots[row_index][col_index] = {'class_name':subject_entry.class_name,'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
+                        timetable_slots[row_index][col_index] = {'totalhour':totalhour ,'class_name':subject_entry.class_name,'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
                     else:
                         timetable_slots[row_index][col_index] = None
 
@@ -84,3 +85,34 @@ def timetable(request):
     # Render the template with staff timetables data
     return render(request, 'timetable.html', {'staff_timetables': staff_timetables})
 
+
+# views.py
+
+from django.shortcuts import render
+from .models import SubjectEntry, TimetableEntry
+
+def allotted(request):
+    subjects = SubjectEntry.objects.all()
+
+    # Organize data by class
+    class_data = {}
+
+    for subject in subjects:
+        class_name = subject.class_name
+
+        if class_name not in class_data:
+            class_data[class_name] = []
+
+        timetable_entries = TimetableEntry.objects.filter(subject=subject)
+
+        staff_names = []
+        for entry in timetable_entries:
+            staff_names.append(entry.staff.name)
+
+        class_data[class_name].append({
+            'subject_name': subject.subject_name,
+            'staff_names': ', '.join(staff_names),  # Combine staff names into a string
+            'allotted_hours': subject.allotted_hours
+        })
+
+    return render(request, 'allotted.html', {'class_data': class_data})
