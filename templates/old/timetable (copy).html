@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Timetable</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+            max-width: 150px; /* Maximum width of each cell */
+            word-wrap: break-word; /* Allow word wrapping */
+            overflow: hidden; /* Hide overflowed content */
+            text-overflow: ellipsis; /* Show ellipsis (...) for overflowed text */
+            font-size: 14px; /* Adjust font size as needed */
+            height: 30px; /* Fixed height for each cell */
+            vertical-align: top; /* Align content to the top */
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .subject {
+            font-size: 12px; /* Reduce font size for subject names */
+            font-weight: bold; /* Make subject names bold */
+            text-align: center; /* Center align subject names */
+        }
+        .class-name {
+            font-size: 10px; /* Reduce font size further for class names */
+            color: #666; /* Adjust color for class names */
+            font-weight: bold; /* Make sure class names are bold */
+            text-align: center; /* Center align class names */
+        }
+        .staff-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px; /* Add some spacing between rows */
+        }
+        .staff-timetable {
+            flex: 1;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Staff Timetable</h1>
+
+    {% load custom_filters %}
+
+    {% for staff_chunk in staff_timetables|chunkify:3 %}
+        <div class="staff-row">
+            {% for staff_name, timetable_slots in staff_chunk %}
+                <div class="staff-timetable">
+                    <center><h4>{{ staff_name }}</h4></center>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>H1</th>
+                                <th>H2</th>
+                                <th>H3</th>
+                                <th>H4</th>
+                                <th>H5</th>
+                                <th>H6</th>
+                                <th>H7</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th>Mon</th>
+                                {% for cell in timetable_slots.0 %}
+                                    {% if cell.subject %}
+                                        <td colspan="{{ cell.colspan }}">
+                                            <div class="subject" title="{{ cell.subject }}">
+                                                {{ cell.subject }}
+                                            </div>
+                                            <div class="class-name" title="{{ cell.class_name }}">
+                                                <strong>{{ cell.class_name }}</strong>
+                                            </div>
+                                        </td>
+                                    {% elif cell is not None %}
+                                        <td></td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th>Tue</th>
+                                {% for cell in timetable_slots.1 %}
+                                    {% if cell.subject %}
+                                        <td colspan="{{ cell.colspan }}">
+                                            <div class="subject" title="{{ cell.subject }}">
+                                                {{ cell.subject }}
+                                            </div>
+                                            <div class="class-name" title="{{ cell.class_name }}">
+                                                <strong>{{ cell.class_name }}</strong>
+                                            </div>
+                                        </td>
+                                    {% elif cell is not None %}
+                                        <td></td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th>Wed</th>
+                                {% for cell in timetable_slots.2 %}
+                                    {% if cell.subject %}
+                                        <td colspan="{{ cell.colspan }}">
+                                            <div class="subject" title="{{ cell.subject }}">
+                                                {{ cell.subject }}
+                                            </div>
+                                            <div class="class-name" title="{{ cell.class_name }}">
+                                                <strong>{{ cell.class_name }}</strong>
+                                            </div>
+                                        </td>
+                                    {% elif cell is not None %}
+                                        <td></td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th>Thu</th>
+                                {% for cell in timetable_slots.3 %}
+                                    {% if cell.subject %}
+                                        <td colspan="{{ cell.colspan }}">
+                                            <div class="subject" title="{{ cell.subject }}">
+                                                {{ cell.subject }}
+                                            </div>
+                                            <div class="class-name" title="{{ cell.class_name }}">
+                                                <strong>{{ cell.class_name }}</strong>
+                                            </div>
+                                        </td>
+                                    {% elif cell is not None %}
+                                        <td></td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th>Fri</th>
+                                {% for cell in timetable_slots.4 %}
+                                    {% if cell.subject %}
+                                        <td colspan="{{ cell.colspan }}">
+                                            <div class="subject" title="{{ cell.subject }}">
+                                                {{ cell.subject }}
+                                            </div>
+                                            <div class="class-name" title="{{ cell.class_name }}">
+                                                <strong>{{ cell.class_name }}</strong>
+                                            </div>
+                                        </td>
+                                    {% elif cell is not None %}
+                                        <td></td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+</body>
+</html>

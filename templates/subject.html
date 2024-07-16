@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Allot Subject Entry</title>
+</head>
+<body>
+    <h1>Allot Subject Entry</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Allot</button>
+    </form>
+</body>
+</html>
+

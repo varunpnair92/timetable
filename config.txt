@@ -1,0 +1,12 @@
+apt-get install python-pip apache2 libapache2-mod-wsgi
+apt-get install python3-pip apache2 libapache2-mod-wsgi-py3
+
+
+
+#add python path to apache2.conf
+WSGIPythonPath /home/varun/programs/fisatstock
+
+
+
+
+#then see the file dt.fisat.edu.conf

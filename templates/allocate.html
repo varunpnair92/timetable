@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Allocate Staff</title>
+</head>
+<body>
+    <h1>Allocate Staff to Subject</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" name="action" value="allot">Allot</button>
+        <button type="submit" name="action" value="delete">Delete</button>
+    </form>
+</body>
+</html>
+
