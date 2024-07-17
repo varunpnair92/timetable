@@ -52,9 +52,9 @@
 
     {% for staff_chunk in staff_timetables|chunkify:3 %}
         <div class="staff-row">
-            {% for staff_name, timetable_slots in staff_chunk %}
+            {% for staff_name, data in staff_chunk %}
                 <div class="staff-timetable">
-                    <center><h4>{{ staff_name }}</h4></center>
+                    <center><h4>{{ staff_name }} ({{data.total_hour}} )</h4></center>
                     <table>
                         <thead>
                             <tr>
@@ -71,7 +71,7 @@
                         <tbody>
                             <tr>
                                 <th>Mon</th>
-                                {% for cell in timetable_slots.0 %}
+                                {% for cell in data.timetable_slots.0 %}
                                     {% if cell.subject %}
                                         <td colspan="{{ cell.colspan }}">
                                             <div class="subject" title="{{ cell.subject }}">
@@ -89,7 +89,7 @@
                             </tr>
                             <tr>
                                 <th>Tue</th>
-                                {% for cell in timetable_slots.1 %}
+                                {% for cell in data.timetable_slots.1 %}
                                     {% if cell.subject %}
                                         <td colspan="{{ cell.colspan }}">
                                             <div class="subject" title="{{ cell.subject }}">
@@ -106,7 +106,7 @@
                             </tr>
                             <tr>
                                 <th>Wed</th>
-                                {% for cell in timetable_slots.2 %}
+                                {% for cell in data.timetable_slots.2 %}
                                     {% if cell.subject %}
                                         <td colspan="{{ cell.colspan }}">
                                             <div class="subject" title="{{ cell.subject }}">
@@ -123,7 +123,7 @@
                             </tr>
                             <tr>
                                 <th>Thu</th>
-                                {% for cell in timetable_slots.3 %}
+                                {% for cell in data.timetable_slots.3 %}
                                     {% if cell.subject %}
                                         <td colspan="{{ cell.colspan }}">
                                             <div class="subject" title="{{ cell.subject }}">
@@ -140,7 +140,7 @@
                             </tr>
                             <tr>
                                 <th>Fri</th>
-                                {% for cell in timetable_slots.4 %}
+                                {% for cell in data.timetable_slots.4 %}
                                     {% if cell.subject %}
                                         <td colspan="{{ cell.colspan }}">
                                             <div class="subject" title="{{ cell.subject }}">

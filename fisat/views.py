@@ -43,6 +43,8 @@ def allocate_staff(request):
 
 # views.py
 
+# views.py
+
 from django.shortcuts import render
 from .models import Staff, TimetableEntry
 
@@ -50,7 +52,7 @@ def timetable(request):
     # Fetch all staff members
     staff_members = Staff.objects.all()
 
-    # Prepare a dictionary to store staff allocations
+    # Prepare a dictionary to store staff allocations with total hours
     staff_timetables = {}
 
     # Iterate over each staff member
@@ -60,13 +62,16 @@ def timetable(request):
 
         # Fetch TimetableEntry instances for the current staff
         timetable_entries = TimetableEntry.objects.filter(staff=staff)
-        totalhour=7
+        total_hour = 0
 
         # Iterate over each TimetableEntry for the current staff
         for entry in timetable_entries:
             subject_entry = entry.subject
             allotted_hours = subject_entry.allotted_hours.split(',')  # Split hours into list
             day = subject_entry.day
+
+            # Calculate total hours for the current entry
+            total_hour += len(allotted_hours)
 
             # Determine the row index based on the day
             day_to_row = {
@@ -83,16 +88,18 @@ def timetable(request):
                 end_hour = int(allotted_hours[-1]) - 1
                 for col_index in range(start_hour, end_hour + 1):
                     if col_index == start_hour:
-                        timetable_slots[row_index][col_index] = {'lab':subject_entry.LAB,'totalhour':totalhour ,'class_name':subject_entry.class_name,'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
+                        timetable_slots[row_index][col_index] = {'lab': subject_entry.LAB, 'class_name': subject_entry.class_name, 'subject': subject_entry.subject_name, 'colspan': end_hour - start_hour + 1}
                     else:
                         timetable_slots[row_index][col_index] = None
 
-        # Store staff timetable in the dictionary
-        staff_timetables[staff.name] = timetable_slots
+        # Store staff timetable with total hours in the dictionary
+        staff_timetables[staff.name] = {
+            'timetable_slots': timetable_slots,
+            'total_hour': total_hour
+        }
 
     # Render the template with staff timetables data
     return render(request, 'timetable.html', {'staff_timetables': staff_timetables})
-
 
 # views.py
 
