@@ -80,56 +80,34 @@ def timetable(request):
             row_index = day_to_row.get(day, None)
 
             if row_index is not None:
-                # Adjust hours if '8' (LB) is present and increment hours greater than 4
-                adjusted_hours = []
-                for hour in allotted_hours:
-                    if hour == '8':
-                        adjusted_hours.append('5')
-                    elif hour== '5':
-                        #adjusted_hours.append(str(int(hour) + 1))
-                        adjusted_hours.append('6')
-                    elif hour== '6':
-                        #adjusted_hours.append(str(int(hour) + 1))
-                        adjusted_hours.append('7')
-                    elif hour== '7':
-                        #adjusted_hours.append(str(int(hour) + 1))
-                        adjusted_hours.append('8')
-                    else:
-                        adjusted_hours.append(hour)
+                start_hour = allotted_hours[0]
+                end_hour = allotted_hours[-1]
 
-                # Remove duplicates and sort the hours to handle merging
-                adjusted_hours = sorted(set(adjusted_hours), key=lambda x: int(x))
+                # Adjust the start and end hours, treating '8' as '5'
+                if start_hour == '8':
+                    start_hour = '5'
+                if end_hour == '8':
+                    end_hour = '5'
 
-                start_index = int(adjusted_hours[0]) - 1
-                end_index = int(adjusted_hours[-1]) - 1
-
-                # Ensure start_index and end_index are within valid range
-                start_index = min(start_index, 7)
-                end_index = min(end_index, 7)
-
-                # Ensure end_index is not less than start_index
-                if end_index < start_index:
-                    end_index = start_index
+                start_index = int(start_hour) - 1 if start_hour != 'LB' else 4
+                end_index = int(end_hour) - 1 if end_hour != 'LB' else 4
 
                 # Adjust for shifting hours after the 4th hour
-                
+                if start_index >= 4:
+                    start_index += 1
+                if end_index >= 4:
+                    end_index += 1
 
-                # Ensure the indices are within the valid range
-                if start_index >= 0 and end_index < 8:
-                    # Merge cells correctly
-                    for col_index in range(start_index, end_index + 1):
-                        if col_index == start_index:
-                            timetable_slots[row_index][col_index] = {
-                                'lab': subject_entry.LAB,
-                                'class_name': subject_entry.class_name,
-                                'subject': subject_entry.subject_name,
-                                'colspan': end_index - start_index + 1
-                            }
-                        else:
-                            if col_index < 8:  # Ensure col_index does not exceed the list size
-                                timetable_slots[row_index][col_index] = None
-                else:
-                    print(f"Index out of range: start_index={start_index}, end_index={end_index}")
+                for col_index in range(start_index, end_index + 1):
+                    if col_index == start_index:
+                        timetable_slots[row_index][col_index] = {
+                            'lab': subject_entry.LAB,
+                            'class_name': subject_entry.class_name,
+                            'subject': subject_entry.subject_name,
+                            'colspan': end_index - start_index + 1
+                        }
+                    else:
+                        timetable_slots[row_index][col_index] = None
 
         # Store staff timetable in the dictionary
         staff_timetables[staff.name] = {

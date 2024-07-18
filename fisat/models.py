@@ -26,7 +26,7 @@ class SubjectEntry(models.Model):
         ('PG LAB', 'PG LAB'),
     )
     
-    day = models.CharField(max_length=2, choices=DAY_CHOICES)
+    day = models.CharField(max_length=10, choices=DAY_CHOICES)
     LAB = models.CharField(max_length=50, choices=LAB_CHOICES)
     allotted_hours = models.CharField(max_length=10)  # e.g., '1,2,3' or '4,5,6'
 

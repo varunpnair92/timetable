@@ -21,8 +21,12 @@ class AllocationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         action = kwargs.pop('action', None)
         super().__init__(*args, **kwargs)
-        self.fields['subject_entry'].queryset = SubjectEntry.objects.all()
-        self.fields['delete_entry'].queryset = TimetableEntry.objects.all()
+        #self.fields['subject_entry'].queryset = SubjectEntry.objects.all()
+        # Sort SubjectEntry queryset by subject name and class name
+        self.fields['subject_entry'].queryset = SubjectEntry.objects.all().order_by('subject_name', 'class_name')
+        #self.fields['delete_entry'].queryset = TimetableEntry.objects.all()
+        # Sort TimetableEntry queryset by staff name
+        self.fields['delete_entry'].queryset = TimetableEntry.objects.all().order_by('staff__name')
 
         if action == 'allot':
             self.fields['subject_entry'].required = True
