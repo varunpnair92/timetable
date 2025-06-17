@@ -27,6 +27,7 @@
                 <tr>
                     <th>Subject Name</th>
                     <th>Allocated Staff</th>
+                    <th>Day</th>
                     <th>Hours</th>
                 </tr>
             </thead>
@@ -35,6 +36,7 @@
                     <tr>
                         <td>{{ subject_data.subject_name }}</td>
                         <td>{{ subject_data.staff_names }}</td>
+                         <td>{{ subject_data.day }}</td>
                         <td>{{ subject_data.allotted_hours }}</td>
                     </tr>
                 {% endfor %}

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from fisat.forms import AllocationForm
 from .models import Staff, SubjectEntry, TimetableEntry
-
+from django.conf import settings
 
 
 
@@ -15,6 +15,8 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from .forms import AllocationForm
 from .models import TimetableEntry
+
+DP=settings.DP
 
 def allocate_staff(request):
     if request.method == "POST":
@@ -59,7 +61,7 @@ def timetable(request):
         timetable_slots = [['' for _ in range(8)] for _ in range(5)]
 
         # Fetch TimetableEntry instances for the current staff
-        timetable_entries = TimetableEntry.objects.filter(staff=staff)
+        timetable_entries = TimetableEntry.objects.filter(staff=staff,subject__period=DP)
         workload = 0
 
         # Iterate over each TimetableEntry for the current staff
@@ -159,7 +161,7 @@ def allotted(request):
         if class_name not in class_data:
             class_data[class_name] = []
 
-        timetable_entries = TimetableEntry.objects.filter(subject=subject)
+        timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP)
 
         staff_names = []
         for entry in timetable_entries:
@@ -168,7 +170,9 @@ def allotted(request):
         class_data[class_name].append({
             'subject_name': subject.subject_name,
             'staff_names': ', '.join(staff_names),  # Combine staff names into a string
-            'allotted_hours': subject.allotted_hours
+            'allotted_hours': subject.allotted_hours,
+            'day': subject.day
+            
         })
 
     return render(request, 'allotted.html', {'class_data': class_data})
@@ -193,4 +197,193 @@ def allot_subject_entry(request):
     else:
         form = SubjectEntryForm()
     return render(request, 'subject.html', {'form': form})
+    
+    
+#timetableexcel   
+import io
+import xlsxwriter
+from django.http import HttpResponse
+from .models import SubjectEntry, TimetableEntry
+
+def timetableexcel(request):
+    # Get distinct lab names
+    labs = SubjectEntry.objects.values_list('LAB', flat=True).distinct()
+
+    # Create an in-memory output stream for storing the Excel file
+    output = io.BytesIO()
+
+    # Create a workbook
+    workbook = xlsxwriter.Workbook(output)
+
+    # Define formats for headers, data, merged cells, and empty slots
+    header_format = workbook.add_format({'bold': True, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#F2F2F2', 'border': 1})
+    data_format = workbook.add_format({'align': 'center', 'valign': 'vcenter', 'border': 1})
+    merge_format = workbook.add_format({'align': 'center', 'valign': 'vcenter', 'border': 1})
+    empty_slot_format = workbook.add_format({'bg_color': '#D3D3D3', 'border': 1})
+
+    # Define staff name abbreviations
+    staff_abbreviations = {
+        "AMBILI N MENON": "ANM",
+        "SREELALITHAMBIKA P K": "SL",
+        "SANDHYA O C": "SOC",
+        "NEEBA CHERIYACHAN": "NC",
+        "NOMA MATHEW M": "NM",
+        "AMBILY SEKAR C": "AS",
+        "VARUN P NAIR": "VPN",
+        "ARAVIND BALAN": "AB",
+        "SALINIT T R": "STR",
+        "SMIJA": "SM",
+        "JOICY": "JY"
+    }
+
+    # Define days of the week and hours
+    days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+    hours = ['H1', 'H2', 'H3', 'H4', 'LB', 'H5', 'H6', 'H7']
+
+    day_mapping = {
+        'M': 'Mon',
+        'T': 'Tue',
+        'W': 'Wed',
+        'Th': 'Thu',
+        'F': 'Fri'
+    }
+
+    # Create a worksheet for each lab
+    for lab in labs:
+        # Add a worksheet for the current lab
+        worksheet = workbook.add_worksheet(lab)
+
+        # Write headers
+        worksheet.write(0, 0, 'Day', header_format)
+        for col, hour in enumerate(hours):
+            worksheet.write(0, col + 1, hour, header_format)
+
+        # Initialize row index
+        row_index = 1
+
+        # Query SubjectEntry objects for the current lab
+        subjects = SubjectEntry.objects.filter(LAB=lab).order_by('day')
+
+        # Track merged cells to avoid overlaps
+        merged_cells = {}
+
+        # Populate timetable slots with data
+        for day in days:
+            day_key = [k for k, v in day_mapping.items() if v == day]
+            if not day_key:
+                continue  # Skip if the day is not found in the mapping
+            day_key = day_key[0]
+            day_subjects = subjects.filter(day=day_key)
+            if day_subjects:
+                # Write the day name in the first column
+                worksheet.write(row_index, 0, day, data_format)
+
+                for subject in day_subjects:
+                    # Get TimetableEntry objects for the current subject
+                    timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP)
+
+                    # Combine staff names into a single string with abbreviations
+                    staff_names = ",".join(staff_abbreviations.get(entry.staff.name, entry.staff.name) for entry in timetable_entries)
+                    details = f"{subject.subject_name} ({subject.class_name})\n{staff_names}"
+
+                    # Split allotted hours into a list
+                    allotted_hours = subject.allotted_hours.split(',')
+
+                    # Adjust hours if '8' (LB) is present and increment hours greater than 4
+                    adjusted_hours = []
+                    for hour in allotted_hours:
+                        if hour == '8':
+                            adjusted_hours.append('5')
+                        elif hour == '5':
+                            adjusted_hours.append('6')
+                        elif hour == '6':
+                            adjusted_hours.append('7')
+                        elif hour == '7':
+                            adjusted_hours.append('8')
+                        else:
+                            adjusted_hours.append(hour)
+
+                    # Remove duplicates and sort the hours to handle merging
+                    adjusted_hours = sorted(set(adjusted_hours), key=lambda x: int(x))
+
+                    start_index = int(adjusted_hours[0]) - 1
+                    end_index = int(adjusted_hours[-1]) - 1
+
+                    # Ensure the indices are within the valid range
+                    if start_index >= 0 and end_index < 8:
+                        # Check if the cells to be merged overlap with any existing merges
+                        merge_key = (row_index, start_index + 1, row_index, end_index + 1)
+                        if not any(start <= merge_key[1] <= end or start <= merge_key[3] <= end for start, end in merged_cells.get(row_index, [])):
+                            # Merge cells correctly and set values
+                            worksheet.merge_range(row_index, start_index + 1, row_index, end_index + 1, details, merge_format)
+                            merged_cells.setdefault(row_index, []).append((start_index + 1, end_index + 1))
+                        else:
+                            # Write the subject details in the respective columns
+                            for hour in adjusted_hours:
+                                worksheet.write(row_index, int(hour), details, merge_format)
+
+                row_index += 1
+
+        # Set column widths and row heights
+        worksheet.set_column('A:A', 5)  # Day column width
+        worksheet.set_column('B:I', 8)  # Hours column width
+        worksheet.set_default_row(45)  # Default row height
+
+        # Fill empty slots with grey color
+        for row in range(1, row_index):
+            for col in range(1, len(hours) + 1):
+                if worksheet.table.get(row, {}).get(col) is None:
+                    worksheet.write(row, col, '', empty_slot_format)
+
+    # Close workbook
+    workbook.close()
+
+    # Prepare response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="lab_details.xlsx"'
+    output.seek(0)
+    response.write(output.getvalue())
+
+    return response
+    
+    
+    
+#lab wise csv file
+import csv
+
+def export_lab_allotments_csv(request):
+    # Create an HTTP response with CSV content
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="lab_allotments.csv"'
+
+    # Create a CSV writer
+    writer = csv.writer(response)
+    
+    # Write header
+    writer.writerow(['Lab Name', 'Day Allotted', 'Hours Allotted', 'Subject Name', 'Class Name', 'Start Date', 'End Date'])
+
+    # Define constant start and end dates
+    start_date = '01-08-2024'
+    end_date = '31-12-2024'
+
+    # Fetch data from models
+    timetable_entries = TimetableEntry.objects.select_related('subject', 'staff')
+
+    for entry in timetable_entries:
+        subject = entry.subject
+        staff = entry.staff
+        
+        # Write data rows including constant start and end dates
+        writer.writerow([
+            subject.LAB,
+            subject.get_day_display(),
+            subject.allotted_hours,
+            subject.subject_name,
+            subject.class_name,
+            start_date,
+            end_date
+        ])
+    
+    return response
+
 

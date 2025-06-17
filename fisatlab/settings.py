@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+DP = "2025-July"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -85,7 +85,7 @@ DATABASES = {
         'NAME': 'fisatdb',  # Your database name
         'USER': 'fisat',  # Your database user
         'PASSWORD': 'pwdfisat',  # Your database password
-        'HOST': 'localhost',  # Set to empty string for localhost
+        'HOST': '172.16.22.22',  # Set to empty string for localhost
         'PORT': '',  # Set to empty string for default
     }
 }
