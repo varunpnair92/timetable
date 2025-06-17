@@ -6,7 +6,7 @@ from fisat.forms import AllocationForm
 from .models import Staff, SubjectEntry, TimetableEntry
 from django.conf import settings
 
-
+from django.contrib.auth.decorators import login_required
 
 from django.shortcuts import render, HttpResponse
 from .forms import AllocationForm
@@ -15,11 +15,12 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from .forms import AllocationForm
 from .models import TimetableEntry
+from django.contrib.auth import logout
 
 DP=settings.DP
 
 
-
+@login_required(login_url='/')
 def allocate_staff(request):
     action = request.POST.get('action') if request.method == "POST" else request.GET.get('action', 'allot')
 
@@ -50,7 +51,7 @@ def allocate_staff(request):
 
 from django.shortcuts import render
 from .models import Staff, TimetableEntry
-
+@login_required(login_url='/')
 def timetable(request):
     # Fetch all staff members
     staff_members = Staff.objects.all()
@@ -64,7 +65,7 @@ def timetable(request):
         timetable_slots = [['' for _ in range(8)] for _ in range(5)]
 
         # Fetch TimetableEntry instances for the current staff
-        timetable_entries = TimetableEntry.objects.filter(staff=staff,subject__period=DP)
+        timetable_entries = TimetableEntry.objects.filter(staff=staff,subject__period=DP,user_id=request.user)
         workload = 0
 
         # Iterate over each TimetableEntry for the current staff
@@ -151,9 +152,9 @@ def timetable(request):
 
 from django.shortcuts import render
 from .models import SubjectEntry, TimetableEntry
-
+@login_required(login_url='/')
 def allotted(request):
-    subjects = SubjectEntry.objects.all(period=DP)
+    subjects = SubjectEntry.objects.filter(period=DP)
 
     # Organize data by class
     class_data = {}
@@ -164,7 +165,7 @@ def allotted(request):
         if class_name not in class_data:
             class_data[class_name] = []
 
-        timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP)
+        timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP,user_id=request.user)
 
         staff_names = []
         for entry in timetable_entries:
@@ -180,6 +181,7 @@ def allotted(request):
 
     return render(request, 'allotted.html', {'class_data': class_data})
 
+@login_required(login_url='/')
 def delete_allotment(request, entry_id):
     entry = get_object_or_404(TimetableEntry, id=entry_id)
     entry.delete()
@@ -190,7 +192,7 @@ def delete_allotment(request, entry_id):
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from .forms import SubjectEntryForm
-
+@login_required(login_url='')
 def allot_subject_entry(request):
     if request.method == 'POST':
         form = SubjectEntryForm(request.POST)
@@ -207,10 +209,11 @@ import io
 import xlsxwriter
 from django.http import HttpResponse
 from .models import SubjectEntry, TimetableEntry
-
+@login_required(login_url='/')
 def timetableexcel(request):
     # Get distinct lab names
-    labs = SubjectEntry.objects.values_list('LAB', flat=True,period=DP).distinct()
+    labs = SubjectEntry.objects.filter(period=DP).values_list('LAB', flat=True).distinct()
+
 
     # Create an in-memory output stream for storing the Excel file
     output = io.BytesIO()
@@ -283,7 +286,7 @@ def timetableexcel(request):
 
                 for subject in day_subjects:
                     # Get TimetableEntry objects for the current subject
-                    timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP)
+                    timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP,user_id=request.user)
 
                     # Combine staff names into a single string with abbreviations
                     staff_names = ",".join(staff_abbreviations.get(entry.staff.name, entry.staff.name) for entry in timetable_entries)
@@ -353,7 +356,7 @@ def timetableexcel(request):
     
 #lab wise csv file
 import csv
-
+@login_required(login_url='/')
 def export_lab_allotments_csv(request):
     # Create an HTTP response with CSV content
     response = HttpResponse(content_type='text/csv')
@@ -392,7 +395,7 @@ def export_lab_allotments_csv(request):
 
 from django.shortcuts import render, redirect
 from .forms import DeleteSubjectEntryForm
-
+@login_required(login_url='/')
 def delete_subject_entry_view(request):
     if request.method == 'POST':
         form = DeleteSubjectEntryForm(request.POST)
@@ -451,3 +454,7 @@ from django.shortcuts import render
 def home(request):
     return render(request, 'home.html')
 
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')

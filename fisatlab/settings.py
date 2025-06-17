@@ -157,8 +157,8 @@ AUTHENTICATION_BACKENDS = (
 )
 
 LOGIN_URL = ''
-LOGOUT_URL = 'logout'
-LOGOUT_REDIRECT_URL = ''
+LOGOUT_URL = ''
+LOGOUT_REDIRECT_URL = 'login'  # Redirect after logout
 
 LOGIN_REDIRECT_URL = '/allocate/'
 
