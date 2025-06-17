@@ -18,11 +18,13 @@ from .models import TimetableEntry
 
 DP=settings.DP
 
+
+
 def allocate_staff(request):
+    action = request.POST.get('action') if request.method == "POST" else request.GET.get('action', 'allot')
+
     if request.method == "POST":
-        action = request.POST.get('action')
-        form = AllocationForm(request.POST, action=action)
-        
+        form = AllocationForm(request.POST, action=action, user=request.user)
         if form.is_valid():
             if action == 'delete':
                 delete_entry = form.cleaned_data['delete_entry']
@@ -30,11 +32,12 @@ def allocate_staff(request):
                     delete_entry.delete()
             elif action == 'allot':
                 form.save()
-            return redirect(reverse('timetable'))  # Redirect to your timetable view or another appropriate view
+            return redirect(reverse('timetable'))  # or any relevant success URL
     else:
-        form = AllocationForm()
+        form = AllocationForm(action=action, user=request.user)  # updated here ✅
 
-    return render(request, 'allocate.html', {'form': form})
+    return render(request, 'allocate.html', {'form': form, 'action': action})
+
 
 
 
@@ -150,7 +153,7 @@ from django.shortcuts import render
 from .models import SubjectEntry, TimetableEntry
 
 def allotted(request):
-    subjects = SubjectEntry.objects.all()
+    subjects = SubjectEntry.objects.all(period=DP)
 
     # Organize data by class
     class_data = {}
@@ -207,7 +210,7 @@ from .models import SubjectEntry, TimetableEntry
 
 def timetableexcel(request):
     # Get distinct lab names
-    labs = SubjectEntry.objects.values_list('LAB', flat=True).distinct()
+    labs = SubjectEntry.objects.values_list('LAB', flat=True,period=DP).distinct()
 
     # Create an in-memory output stream for storing the Excel file
     output = io.BytesIO()
@@ -262,7 +265,7 @@ def timetableexcel(request):
         row_index = 1
 
         # Query SubjectEntry objects for the current lab
-        subjects = SubjectEntry.objects.filter(LAB=lab).order_by('day')
+        subjects = SubjectEntry.objects.filter(LAB=lab,period=DP).order_by('day')
 
         # Track merged cells to avoid overlaps
         merged_cells = {}
@@ -386,4 +389,65 @@ def export_lab_allotments_csv(request):
     
     return response
 
+
+from django.shortcuts import render, redirect
+from .forms import DeleteSubjectEntryForm
+
+def delete_subject_entry_view(request):
+    if request.method == 'POST':
+        form = DeleteSubjectEntryForm(request.POST)
+        if form.is_valid():
+            form.delete_entry()
+            return HttpResponse('sucess')  # Replace with your desired URL
+    else:
+        form = DeleteSubjectEntryForm()
+    return render(request, 'delete_subject_entry.html', {'form': form})
+
+
+#google signin
+import requests
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.shortcuts import redirect
+import json
+
+GOOGLE_CLIENT_ID = "84125902506-9jqucnbkpegphqn5ku1g63au6l9hchiv.apps.googleusercontent.com"
+
+@csrf_exempt
+def google_auth_callback(request):
+    print("haiiiiiiiiiiii")
+    if request.method == "POST":
+        data = json.loads(request.body)
+        token = data.get("id_token")
+
+        # Verify token with Google
+        verify_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={token}"
+        response = requests.get(verify_url)
+
+        if response.status_code == 200:
+            user_info = response.json()
+            if user_info["aud"] != GOOGLE_CLIENT_ID:
+                return JsonResponse({"error": "Invalid client ID"}, status=400)
+
+            # Save user info in session
+            request.session["user_email"] = user_info["email"]
+            request.session["user_name"] = user_info.get("name", "")
+            return JsonResponse({"redirect": "/allot/"})  # your dashboard or landing page
+        else:
+            return JsonResponse({"error": "Invalid token"}, status=400)
+    return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+
+
+#signinpage
+def show_google_login_page(request):
+    return render(request, 'google_login.html')
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+
+@login_required
+def home(request):
+    return render(request, 'home.html')
 

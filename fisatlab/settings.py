@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-DP = "2025-July"
+DP = "2025-Jul"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -28,7 +28,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
+CSRF_TRUSTED_ORIGINS = ["http://localhost:8888"]
 # Application definition
 
 INSTALLED_APPS = [
@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'fisat',
+    'social_django',
+    'corsheaders',
     
 ]
 
@@ -50,6 +52,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'fisatlab.urls'
@@ -137,7 +141,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
+CORS_ORIGIN_ALLOW_ALL = True #this only need
 
 #STATIC_URL = 'static/'
 
@@ -145,3 +149,22 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.google.GoogleOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+LOGIN_URL = ''
+LOGOUT_URL = 'logout'
+LOGOUT_REDIRECT_URL = ''
+
+LOGIN_REDIRECT_URL = '/allocate/'
+
+# Google credentials (replace these)
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '84125902506-9jqucnbkpegphqn5ku1g63au6l9hchiv.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
+
+# Optional (store extra fields)
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']

@@ -1,7 +1,7 @@
 from django.db import models
 from django.forms import ValidationError
 from django.conf import settings
-
+from django.contrib.auth.models import User
 
 DP=settings.DP
 class SubjectEntry(models.Model):
@@ -41,12 +41,12 @@ class SubjectEntry(models.Model):
     
     class Meta:
         db_table = 'subjectentry'
-        unique_together = (('day', 'LAB','allotted_hours'),)
+        unique_together = (('day', 'LAB','allotted_hours','period'),)
         
         
     def clean(self):
         if self.pk is None:  # Check if this is a new instance (not updating)
-            existing_entries = SubjectEntry.objects.filter(day=self.day, LAB=self.LAB)
+            existing_entries = SubjectEntry.objects.filter(day=self.day, LAB=self.LAB,period=DP)
             for entry in existing_entries:
                 existing_hours = set(map(int, entry.allotted_hours.split(',')))
                 new_hours = set(map(int, self.allotted_hours.split(',')))
@@ -67,7 +67,7 @@ class TimetableEntry(models.Model):
     _id = models.AutoField(primary_key=True, db_column="tid")
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, db_column="staffid")
     subject = models.ForeignKey(SubjectEntry, on_delete=models.CASCADE, db_column="subjectid")
-    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"{self.staff.name} - {self.subject.subject_name} "

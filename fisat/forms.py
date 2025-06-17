@@ -1,5 +1,8 @@
 from django import forms
 from .models import Staff, SubjectEntry, TimetableEntry
+from django.conf import settings
+
+DP=settings.DP
 
 class SubjectEntryChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
@@ -19,13 +22,11 @@ class AllocationForm(forms.ModelForm):
         fields = ['staff', 'subject_entry']
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)  # ✅ capture logged-in user
         action = kwargs.pop('action', None)
         super().__init__(*args, **kwargs)
-        #self.fields['subject_entry'].queryset = SubjectEntry.objects.all()
-        # Sort SubjectEntry queryset by subject name and class name
+
         self.fields['subject_entry'].queryset = SubjectEntry.objects.all().order_by('subject_name', 'class_name')
-        #self.fields['delete_entry'].queryset = TimetableEntry.objects.all()
-        # Sort TimetableEntry queryset by staff name
         self.fields['delete_entry'].queryset = TimetableEntry.objects.all().order_by('staff__name')
 
         if action == 'allot':
@@ -38,9 +39,15 @@ class AllocationForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
         instance.subject = self.cleaned_data['subject_entry']
+        
+        if self.user:  # ✅ Save logged-in user to TimetableEntry.user field
+            instance.user = self.user
+
         if commit:
             instance.save()
         return instance
+
+
 
 
 
@@ -89,3 +96,21 @@ class SubjectEntryForm(forms.ModelForm):
         return created_instances
 
 
+from django import forms
+from .models import SubjectEntry
+
+class DeleteSubjectEntryForm(forms.Form):
+    subject_entry = forms.ModelChoiceField(
+        queryset=SubjectEntry.objects.filter(period=DP).order_by('subject_name'),
+        label="Select Subject Allotment"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(DeleteSubjectEntryForm, self).__init__(*args, **kwargs)
+        self.fields['subject_entry'].label_from_instance = lambda obj: (
+            f"{obj.subject_name} - {obj.class_name} | Day: {obj.get_day_display()} | Hours: {obj.allotted_hours} | Lab: {obj.LAB}"
+        )
+
+    def delete_entry(self):
+        subject = self.cleaned_data['subject_entry']
+        subject.delete()

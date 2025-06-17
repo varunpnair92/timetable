@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login with Google</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Sign-In JavaScript -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <script>
+      // CSRF token fetcher for Django
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      // Handle the Google ID token
+      function handleCredentialResponse(response) {
+        fetch("/google-auth-callback/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken")
+          },
+          body: JSON.stringify({
+            id_token: response.credential
+          })
+        })
+        .then(res => {
+          if (res.redirected) {
+            window.location.href = res.url; // Redirect to home or dashboard
+          } else {
+            return res.json();
+          }
+        })
+        .then(data => {
+          if (data && data.error) {
+            alert("Login failed: " + data.error);
+          }
+        })
+        .catch(error => {
+          console.error("Login error", error);
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <h1>Login with Google</h1>
+
+    <!-- Google Sign-In Button Container -->
+    <div id="g_id_onload"
+         data-client_id="84125902506-9jqucnbkpegphqn5ku1g63au6l9hchiv.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+    </div>
+
+    <div class="g_id_signin"
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-size="large"
+         data-logo_alignment="left">
+    </div>
+  </body>
+</html>
