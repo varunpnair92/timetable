@@ -1,7 +1,7 @@
 from django.urls import path,include
 from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback
 from django.contrib.auth import views as auth_views
-from .views import logout_view
+from .views import logout_view,dashboard_view
 
 urlpatterns = [
     path('timetable/', timetable, name='timetable'),
@@ -17,7 +17,7 @@ urlpatterns = [
     path('', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout_old/', auth_views.LogoutView.as_view(template_name='login.html'), name='logout'),
     path('logout/', logout_view ,name='logout'),
-    
+   path('dashboard/', dashboard_view, name='dashboard'),
     path('pwd/', auth_views.PasswordChangeView.as_view(
         template_name='password_change.html',
         success_url='/password-change-done/'

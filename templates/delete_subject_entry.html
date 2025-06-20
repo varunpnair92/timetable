@@ -1,4 +1,7 @@
 <h2>Delete Subject Allotment</h2>
+<div style="position: absolute; top: 20px; right: 30px;">
+    <a href="{% url 'dashboard' %}" style="text-decoration: none; padding: 8px 12px; background-color: #007BFF; color: white; border-radius: 5px;">Dashboard</a>
+</div>
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}

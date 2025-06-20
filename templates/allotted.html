@@ -18,6 +18,9 @@
     </style>
 </head>
 <body>
+    <div style="position: absolute; top: 20px; right: 30px;">
+        <a href="{% url 'dashboard' %}" style="text-decoration: none; padding: 8px 12px; background-color: #007BFF; color: white; border-radius: 5px;">Dashboard</a>
+    </div>
     <h1>Class, Subject, and Staff Allocation</h1>
 
     {% for class_name, subjects in class_data.items %}

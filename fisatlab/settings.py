@@ -160,7 +160,7 @@ LOGIN_URL = ''
 LOGOUT_URL = ''
 LOGOUT_REDIRECT_URL = 'login'  # Redirect after logout
 
-LOGIN_REDIRECT_URL = '/allocate/'
+LOGIN_REDIRECT_URL = '/dashboard/'
 
 # Google credentials (replace these)
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '84125902506-9jqucnbkpegphqn5ku1g63au6l9hchiv.apps.googleusercontent.com'

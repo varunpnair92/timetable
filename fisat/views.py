@@ -458,3 +458,10 @@ def home(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+    
+    
+@login_required
+def dashboard_view(request):
+    return render(request, 'dashboard.html')
+
+    
