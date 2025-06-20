@@ -13,9 +13,33 @@
         {{ form.as_p }}
         <button type="submit" name="action" value="allot">Allot</button>
         <button type="submit" name="action" value="delete">Delete</button>
-        <p><a href="{% url 'dashboard' %}">Change Password</a></p>
+       
         
     </form>
+    {% load static %}
+    <script src="{% static 'admin/js/jquery-3.6.0.min.js' %}"></script>
+    <script>
+        $(document).ready(function () {
+            alert("hai");
+            $('#id_staff').change(function () {
+                const staffId = $(this).val();
+                $.ajax({
+                    url: "{% url 'get_allotments' %}",
+                    data: { staff_id: staffId },
+                    success: function (data) {
+                        const deleteSelect = $('#id_delete_entry');
+                        deleteSelect.empty();
+                        deleteSelect.append('<option value="">---------</option>');
+                        data.forEach(item => {
+                            deleteSelect.append(`<option value="${item.id}">${item.label}</option>`);
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+    
+
 </body>
 </html>
 

@@ -465,3 +465,18 @@ def dashboard_view(request):
     return render(request, 'dashboard.html')
 
     
+
+
+@login_required
+def get_allotments_by_staff(request):
+    staff_id = request.GET.get('staff_id')
+    data = []
+
+    if staff_id:
+        entries = TimetableEntry.objects.filter(staff_id=staff_id).select_related('subject')
+        data = [{
+            'id': entry.id,
+            'label': f"{entry.staff.name} - {entry.subject.subject_name} - {entry.subject.class_name} ({entry.subject.get_day_display()})"
+        } for entry in entries]
+
+    return JsonResponse(data, safe=False)

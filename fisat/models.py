@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 DP=settings.DP
 class SubjectEntry(models.Model):
-    _id = models.AutoField(primary_key=True,db_column="tid")
+    id = models.AutoField(primary_key=True,db_column="tid")
     subject_name = models.CharField(max_length=100)
     class_name = models.CharField(max_length=100)
     DAY_CHOICES = (
@@ -54,7 +54,7 @@ class SubjectEntry(models.Model):
                     raise ValidationError(_('Overlapping hours are not allowed within the same day and lab.'))
     
 class Staff(models.Model):
-    _id = models.AutoField(primary_key=True,db_column="sid")
+    id = models.AutoField(primary_key=True,db_column="sid")
     name = models.CharField(max_length=100)
     
     def __str__(self):
@@ -64,7 +64,7 @@ class Staff(models.Model):
 
 
 class TimetableEntry(models.Model):
-    _id = models.AutoField(primary_key=True, db_column="tid")
+    id = models.AutoField(primary_key=True, db_column="tid")
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, db_column="staffid")
     subject = models.ForeignKey(SubjectEntry, on_delete=models.CASCADE, db_column="subjectid")
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
