@@ -1,5 +1,5 @@
 from django.urls import path,include
-from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback
+from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff
 from django.contrib.auth import views as auth_views
 from .views import logout_view,dashboard_view,get_allotments_by_staff
 
@@ -28,5 +28,11 @@ urlpatterns = [
     path('password-change-done/', auth_views.PasswordChangeDoneView.as_view(
         template_name='password_change_done.html'
     ), name='password_change_done'),
+
+path("allotted/", allotted, name="allotted"),
+
+    path("quick_allocate/<int:subject_id>/<int:staff_id>/", quick_allocate, name="quick_allocate"),
+path("quick_delete/<int:staff_id>/<int:subject_id>/", quick_delete_staff, name="quick_delete_staff"),
+
 
 ]

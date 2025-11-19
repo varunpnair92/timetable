@@ -1,52 +1,132 @@
-<!-- class_subject_staff.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Class, Subject, and Staff Allocation</title>
+
     <style>
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 40px;
         }
         th, td {
             border: 1px solid black;
             padding: 8px;
-            text-align: left;
+        }
+        th {
+            background: #e7e7e7;
+        }
+        button {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div style="position: absolute; top: 20px; right: 30px;">
-        <a href="{% url 'dashboard' %}" style="text-decoration: none; padding: 8px 12px; background-color: #007BFF; color: white; border-radius: 5px;">Dashboard</a>
-    </div>
-    <h1>Class, Subject, and Staff Allocation</h1>
 
-    {% for class_name, subjects in class_data.items %}
-        <h2>{{ class_name }}</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Subject Name</th>
-                    <th>Allocated Staff</th>
-                    <th>Day</th>
-                    <th>Hours</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for subject_data in subjects %}
-                    <tr>
-                        <td>{{ subject_data.subject_name }}</td>
-                        <td>{{ subject_data.staff_names }}</td>
-                         <td>{{ subject_data.day }}</td>
-                        <td>{{ subject_data.allotted_hours }}</td>
-                    </tr>
+<div style="position: absolute; top: 20px; right: 30px;">
+    <a href="{% url 'dashboard' %}"
+       style="text-decoration: none; padding: 8px 12px; background-color: #007BFF; color: white; border-radius: 5px;">
+        Dashboard
+    </a>
+</div>
+
+<h1>Class, Subject, and Staff Allocation</h1>
+
+{% for class_name, subjects in class_data.items %}
+<h2>{{ class_name }}</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Subject Name</th>
+            <th>Day</th>
+            <th>Hours</th>
+            <th>Allocated Staff</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for subject in subjects %}
+        <tr>
+
+            <!-- SUBJECT -->
+            <td>{{ subject.subject_name }}</td>
+
+            <!-- DAY -->
+            <td>{{ subject.day }}</td>
+
+            <!-- HOURS -->
+            <td>{{ subject.allotted_hours }}</td>
+
+            <!-- ALLOCATED STAFF + ADD/REMOVE -->
+            <td>
+                <!-- Already Allocated Staff -->
+                {% for st in subject.allocated_staff %}
+                    <span style="margin-right:10px;">
+                        {{ st.name }}
+                        <a href="{% url 'quick_delete_staff' st.id subject.subject_id %}"
+                           style="color:red; font-weight:bold; margin-left:4px;">–</a>
+                    </span>
                 {% endfor %}
-            </tbody>
-        </table>
-        <br>
-    {% endfor %}
+
+                <!-- ADD NEW STAFF BUTTON -->
+                <button onclick="showStaff({{ subject.subject_id }})"
+                        style="margin-left:10px; font-weight:bold;">+</button>
+
+                <!-- HIDDEN STAFF SELECTION -->
+                <div id="staff_box_{{ subject.subject_id }}"
+                     style="display:none; margin-top:10px;">
+
+                    {% for st in subject.all_staff %}
+                        <label style="display:inline-block; margin-right:12px;">
+                            <input type="radio" name="staff_{{ subject.subject_id }}" value="{{ st.id }}">
+                            {{ st.name }}
+                        </label>
+                    {% endfor %}
+
+                </div>
+            </td>
+
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endfor %}
+
+<!-- FLOATING ALLOCATE BUTTON -->
+<button onclick="allocateStaff()"
+        style="position:fixed; bottom:20px; right:20px; background:green; color:white;
+               padding:15px 22px; border:none; border-radius:50px; font-size:16px;">
+    Allocate
+</button>
+
+<script>
+let selectedSubject = null;
+
+function showStaff(id) {
+    selectedSubject = id;
+    document.getElementById("staff_box_" + id).style.display = "block";
+}
+
+function allocateStaff() {
+    if (!selectedSubject) {
+        alert("Click + on a subject to select a staff.");
+        return;
+    }
+
+    let staff = document.querySelector(`input[name='staff_${selectedSubject}']:checked`);
+
+    if (!staff) {
+        alert("Select a staff member to allocate.");
+        return;
+    }
+
+    // Redirect to allocation link
+    window.location.href = `/quick_allocate/${selectedSubject}/${staff.value}/`;
+}
+</script>
 
 </body>
 </html>

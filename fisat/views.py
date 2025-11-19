@@ -152,11 +152,39 @@ def timetable(request):
 
 from django.shortcuts import render
 from .models import SubjectEntry, TimetableEntry
+# @login_required(login_url='/')
+# def allotted(request):
+#     subjects = SubjectEntry.objects.filter(period=DP)
+
+#     # Organize data by class
+#     class_data = {}
+
+#     for subject in subjects:
+#         class_name = subject.class_name
+
+#         if class_name not in class_data:
+#             class_data[class_name] = []
+
+#         timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP,user_id=request.user)
+
+#         staff_names = []
+#         for entry in timetable_entries:
+#             staff_names.append(entry.staff.name)
+
+#         class_data[class_name].append({
+#             'subject_name': subject.subject_name,
+#             'staff_names': ', '.join(staff_names),  # Combine staff names into a string
+#             'allotted_hours': subject.allotted_hours,
+#             'day': subject.day
+            
+#         })
+
+#     return render(request, 'allotted.html', {'class_data': class_data})
 @login_required(login_url='/')
 def allotted(request):
     subjects = SubjectEntry.objects.filter(period=DP)
+    staff_list = Staff.objects.all()
 
-    # Organize data by class
     class_data = {}
 
     for subject in subjects:
@@ -165,21 +193,28 @@ def allotted(request):
         if class_name not in class_data:
             class_data[class_name] = []
 
-        timetable_entries = TimetableEntry.objects.filter(subject=subject,subject__period=DP,user_id=request.user)
+        # Already allotted staff
+        allocations = TimetableEntry.objects.filter(
+            subject=subject,
+            subject__period=DP
+        )
 
-        staff_names = []
-        for entry in timetable_entries:
-            staff_names.append(entry.staff.name)
+        allocated_staff = [a.staff for a in allocations]
 
         class_data[class_name].append({
+            'subject_id': subject.id,
             'subject_name': subject.subject_name,
-            'staff_names': ', '.join(staff_names),  # Combine staff names into a string
+            'allocated_staff': allocated_staff,
+            'all_staff': staff_list,  # used when clicking +
+            'day': subject.day,
             'allotted_hours': subject.allotted_hours,
-            'day': subject.day
-            
         })
 
-    return render(request, 'allotted.html', {'class_data': class_data})
+    return render(request, 'allotted.html', {
+        'class_data': class_data
+    })
+
+
 
 @login_required(login_url='/')
 def delete_allotment(request, entry_id):
@@ -474,3 +509,25 @@ def get_allotments_by_staff(request):
         } for entry in entries]
 
     return JsonResponse(data, safe=False)
+
+@login_required
+def quick_allocate(request, subject_id, staff_id):
+    subject = SubjectEntry.objects.get(id=subject_id)
+    staff = Staff.objects.get(id=staff_id)
+
+    TimetableEntry.objects.create(
+        staff=staff,
+        subject=subject,
+        user=request.user
+    )
+
+    return redirect("allotted")
+
+@login_required
+def quick_delete_staff(request, staff_id, subject_id):
+    TimetableEntry.objects.filter(
+        staff_id=staff_id,
+        subject_id=subject_id
+    ).delete()
+
+    return redirect("allotted")
