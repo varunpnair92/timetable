@@ -358,28 +358,21 @@ def timetableexcel(request):
 import csv
 @login_required(login_url='/')
 def export_lab_allotments_csv(request):
-    # Create an HTTP response with CSV content
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="lab_allotments.csv"'
 
-    # Create a CSV writer
     writer = csv.writer(response)
     
-    # Write header
-    writer.writerow(['Lab Name', 'Day Allotted', 'Hours Allotted', 'Subject Name', 'Class Name', 'Start Date', 'End Date'])
+    writer.writerow(['Lab Name', 'Day Allotted', 'Hours Allotted',
+                     'Subject Name', 'Class Name', 'Start Date', 'End Date'])
 
-    # Define constant start and end dates
-    start_date = '01-08-2024'
-    end_date = '31-12-2024'
+    start_date = '01-06-2025'
+    end_date   = '31-12-2026'
 
-    # Fetch data from models
-    timetable_entries = TimetableEntry.objects.select_related('subject', 'staff')
+    # ✅ Export ALL subject entries – not timetable entries
+    subjects = SubjectEntry.objects.filter(period=DP)
 
-    for entry in timetable_entries:
-        subject = entry.subject
-        staff = entry.staff
-        
-        # Write data rows including constant start and end dates
+    for subject in subjects:
         writer.writerow([
             subject.LAB,
             subject.get_day_display(),
@@ -391,6 +384,7 @@ def export_lab_allotments_csv(request):
         ])
     
     return response
+
 
 
 from django.shortcuts import render, redirect

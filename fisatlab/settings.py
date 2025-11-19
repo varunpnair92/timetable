@@ -89,7 +89,7 @@ DATABASES = {
         'NAME': 'fisatdb',  # Your database name
         'USER': 'fisat',  # Your database user
         'PASSWORD': 'pwdfisat',  # Your database password
-        'HOST': '172.16.22.22',  # Set to empty string for localhost
+        'HOST': 'localhost',  # Set to empty string for localhost
         'PORT': '',  # Set to empty string for default
     }
 }
