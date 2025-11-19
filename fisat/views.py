@@ -216,6 +216,45 @@ def allotted(request):
 
 
 
+from django.http import JsonResponse
+
+@login_required
+def get_free_staff(request, subject_id):
+    subject = SubjectEntry.objects.get(id=subject_id)
+
+    # Day & hours of selected subject
+    target_day = subject.day
+    target_hours = set(map(int, subject.allotted_hours.split(',')))
+
+    # All staff
+    staff_list = Staff.objects.all()
+    free_staff = []
+
+    for st in staff_list:
+        # Get all entries for this staff on same day/period
+        entries = TimetableEntry.objects.filter(
+            staff=st,
+            subject__day=target_day,
+            subject__period=DP
+        )
+
+        # Check if staff is free
+        busy = False
+        for e in entries:
+            entry_hours = set(map(int, e.subject.allotted_hours.split(',')))
+            if target_hours.intersection(entry_hours):
+                busy = True
+                break
+
+        if not busy:
+            free_staff.append({"id": st.id, "name": st.name})
+
+    return JsonResponse(free_staff, safe=False)
+
+
+
+
+
 @login_required(login_url='/')
 def delete_allotment(request, entry_id):
     entry = get_object_or_404(TimetableEntry, id=entry_id)
