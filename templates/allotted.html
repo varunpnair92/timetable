@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Class, Subject, and Staff Allocation</title>
+    <title>Class, Subject and Staff Allocation</title>
 
     <style>
         table {
@@ -22,6 +22,7 @@
         }
     </style>
 </head>
+
 <body>
 
 <div style="position: absolute; top: 20px; right: 30px;">
@@ -31,7 +32,7 @@
     </a>
 </div>
 
-<h1>Class, Subject, and Staff Allocation</h1>
+<h1>Class, Subject and Staff Allocation</h1>
 
 {% for class_name, subjects in class_data.items %}
 <h2>{{ class_name }}</h2>
@@ -59,14 +60,19 @@
             <!-- HOURS -->
             <td>{{ subject.allotted_hours }}</td>
 
-            <!-- ALLOCATED STAFF + ADD/REMOVE -->
+            <!-- ALLOCATED STAFF -->
             <td>
+
                 <!-- Already Allocated Staff -->
                 {% for st in subject.allocated_staff %}
                     <span style="margin-right:10px;">
                         {{ st.name }}
+                        <!-- Delete with confirmation -->
                         <a href="{% url 'quick_delete_staff' st.id subject.subject_id %}"
-                           style="color:red; font-weight:bold; margin-left:4px;">–</a>
+                           onclick="return confirmDelete()"
+                           style="color:red; font-weight:bold; margin-left:4px;">
+                           –
+                        </a>
                     </span>
                 {% endfor %}
 
@@ -86,6 +92,7 @@
                     {% endfor %}
 
                 </div>
+
             </td>
 
         </tr>
@@ -95,6 +102,7 @@
 
 {% endfor %}
 
+
 <!-- FLOATING ALLOCATE BUTTON -->
 <button onclick="allocateStaff()"
         style="position:fixed; bottom:20px; right:20px; background:green; color:white;
@@ -102,17 +110,21 @@
     Allocate
 </button>
 
+
 <script>
+// Track selected subject
 let selectedSubject = null;
 
+// Show staff list when + clicked
 function showStaff(id) {
     selectedSubject = id;
     document.getElementById("staff_box_" + id).style.display = "block";
 }
 
+// Allocate selected staff to subject
 function allocateStaff() {
     if (!selectedSubject) {
-        alert("Click + on a subject to select a staff.");
+        alert("Click the + button on a subject to select a staff.");
         return;
     }
 
@@ -123,8 +135,13 @@ function allocateStaff() {
         return;
     }
 
-    // Redirect to allocation link
+    // Redirect to allocation URL
     window.location.href = `/quick_allocate/${selectedSubject}/${staff.value}/`;
+}
+
+// Confirmation for delete
+function confirmDelete() {
+    return confirm("Are you sure you want to remove this staff?");
 }
 </script>
 
