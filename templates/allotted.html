@@ -75,11 +75,11 @@
                     </span>
                 {% endfor %}
 
-                <!-- PLUS BUTTON to show free staff -->
+                <!-- PLUS BUTTON -->
                 <button onclick="loadFreeStaff({{ subject.subject_id }})"
                         style="margin-left:10px; font-weight:bold;">+</button>
 
-                <!-- Staff selection box -->
+                <!-- FREE STAFF BOX -->
                 <div id="staff_box_{{ subject.subject_id }}"
                      style="display:none; margin-top:10px;">
                 </div>
@@ -104,6 +104,15 @@
 
 <script>
 let selectedSubject = null;
+
+// Restore scroll position on page load
+document.addEventListener("DOMContentLoaded", function () {
+    let scrollPos = localStorage.getItem("scrollPos");
+    if (scrollPos !== null) {
+        window.scrollTo(0, parseInt(scrollPos));
+        localStorage.removeItem("scrollPos");
+    }
+});
 
 // Load free staff using AJAX
 function loadFreeStaff(subjectId) {
@@ -135,7 +144,7 @@ function loadFreeStaff(subjectId) {
         });
 }
 
-// Allocate selected staff
+// Allocate selected staff (Save scroll)
 function allocateStaff() {
     if (!selectedSubject) {
         alert("Click the + button to choose a subject first.");
@@ -149,11 +158,15 @@ function allocateStaff() {
         return;
     }
 
+    // Save scroll before redirect
+    localStorage.setItem("scrollPos", window.scrollY);
+
     window.location.href = `/quick_allocate/${selectedSubject}/${staff.value}/`;
 }
 
-// Delete confirmation
+// Delete confirmation (Save scroll)
 function confirmDelete() {
+    localStorage.setItem("scrollPos", window.scrollY);
     return confirm("Are you sure you want to remove this staff?");
 }
 </script>
