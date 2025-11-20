@@ -425,6 +425,120 @@ def timetableexcel(request):
     response.write(output.getvalue())
 
     return response
+
+
+#all in one excel
+@login_required(login_url='/')
+def timetableexcel_combined(request):
+    import io
+    import xlsxwriter
+
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    ws = workbook.add_worksheet("Combined Labs")
+
+    # Formats
+    header_format = workbook.add_format({'bold': True, 'align': 'center',
+                                         'valign': 'vcenter', 'bg_color': '#F2F2F2', 'border': 1})
+    data_format = workbook.add_format({'align': 'center', 'valign': 'vcenter', 'border': 1})
+    merge_format = workbook.add_format({'align': 'center', 'valign': 'vcenter', 'border': 1})
+    empty_slot_format = workbook.add_format({'bg_color': '#D3D3D3', 'border': 1})
+
+    # Staff abbreviation
+    staff_abbr = {
+        "AMBILI N MENON": "ANM", "SREELALITHAMBIKA P K": "SL",
+        "SANDHYA O C": "SOC", "NEEBA CHERIYACHAN": "NC",
+        "NOMA MATHEW M": "NM", "AMBILY SEKAR C": "AS",
+        "VARUN P NAIR": "VPN", "ARAVIND BALAN": "AB",
+        "SALINIT T R": "STR", "SMIJA": "SM", "JOICY": "JY"
+    }
+
+    days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+    hours = ['H1', 'H2', 'H3', 'H4', 'LB', 'H5', 'H6', 'H7']
+    day_map = {'M': 'Mon', 'T': 'Tue', 'W': 'Wed', 'Th': 'Thu', 'F': 'Fri'}
+
+    # LAB grouping order
+    lab_groups = [
+        ['L1', 'L2', 'L3'],
+        ['L5', 'L7', 'L8'],
+        ['L4', 'L6'],
+        ['L9', 'PG LAB']
+    ]
+
+    start_row = 0
+
+    for group in lab_groups:
+        col_offset = 0
+
+        for lab in group:
+
+            col = col_offset
+            subjects = SubjectEntry.objects.filter(LAB=lab, period=DP).order_by("day")
+
+            # Write headers
+            ws.write(start_row, col, lab, header_format)
+            ws.write(start_row+1, col, "Day", header_format)
+            for i, hr in enumerate(hours):
+                ws.write(start_row+1, col+1+i, hr, header_format)
+
+            # Track merged cells per row
+            merged_cells = {}
+
+            row = start_row + 2
+            for day in days:
+                ws.write(row, col, day, data_format)
+
+                day_key = [k for k, v in day_map.items() if v == day][0]
+                day_subjects = subjects.filter(day=day_key)
+
+                for sub in day_subjects:
+
+                    # Staff list
+                    entries = TimetableEntry.objects.filter(subject=sub, user_id=request.user)
+                    staff_names = ",".join(staff_abbr.get(e.staff.name, e.staff.name) for e in entries)
+                    details = f"{sub.subject_name} ({sub.class_name})\n{staff_names}"
+
+                    # Hours adjust
+                    ah = []
+                    for h in sub.allotted_hours.split(','):
+                        ah.append({'8': '5', '5': '6', '6': '7', '7': '8'}.get(h, h))
+
+                    ah = sorted(set(ah), key=lambda x: int(x))
+                    s = int(ah[0]) - 1
+                    e = int(ah[-1]) - 1
+
+                    merge_key = (col+1+s, col+1+e)
+
+                    # Check overlap
+                    overlaps = False
+                    if row in merged_cells:
+                        for (ms, me) in merged_cells[row]:
+                            if not (merge_key[1] < ms or merge_key[0] > me):
+                                overlaps = True
+                                break
+
+                    # Write either merged or single cells
+                    if not overlaps:
+                        ws.merge_range(row, col+1+s, row, col+1+e, details, merge_format)
+                        merged_cells.setdefault(row, []).append((merge_key[0], merge_key[1]))
+                    else:
+                        for h in range(s, e+1):
+                            ws.write(row, col+1+h, details, merge_format)
+
+                row += 1
+
+            # Next lab block
+            col_offset += len(hours) + 3
+
+        start_row += 12
+
+    workbook.close()
+    response = HttpResponse(output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="labs_combined.xlsx"'
+    return response
+
+
     
     
     
