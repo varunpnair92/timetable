@@ -684,3 +684,288 @@ def quick_delete_staff(request, staff_id, subject_id):
     ).delete()
 
     return redirect("allotted")
+
+
+
+#ai allot
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.conf import settings
+from .models import Staff, SubjectEntry
+
+DP = settings.DP
+
+# ------------------------------------------------------------
+# ★ 1. SENIORITY ORDER (Your Correct List)
+# ------------------------------------------------------------
+SENIORITY_ORDER = [
+    "AMBILY N MENON",
+    "SREELALITHAMBIKA P K",
+    "NEEBA CHERIYACHAN",
+    "AMBILY SEKAR C",
+    "NOMA MATHEW",
+    "SANDYA O C",
+    "VARUN P NAIR",
+    "ARAVIND BALAN",
+    "SALINI T R",
+    "JOICY",
+    "SMIJA"
+]
+
+# ------------------------------------------------------------
+# ★ 2. STAFF PREFERENCES (Option B)
+# ------------------------------------------------------------
+STAFF_PREF = {
+    "AMBILY N MENON": ["OS", "NW"],
+    "SREELALITHAMBIKA P K": ["OS", "NW"],
+    "SANDYA O C": ["DBMS", "OS"],
+    "NEEBA CHERIYACHAN": ["NW", "DBMS"],
+    "AMBILY SEKAR C": ["OS", "DBMS"],
+    "NOMA MATHEW": ["DBMS", "NW"],
+    "VARUN P NAIR": ["DBMS", "OS"],
+    "SALINI T R": ["NW", "DBMS"],
+    "ARAVIND BALAN": ["OS", "DBMS"],
+    "SMIJA": ["CASE", "DBMS"],
+    "JOICY": ["OS", "NW"],
+}
+
+# ------------------------------------------------------------
+# ★ 3. SUBJECT RULES
+# ------------------------------------------------------------
+SUBJECT_RULES = {
+    "OS": 4,
+    "CASE": 1,
+    "DBMS": 1,
+    "COA": 1,
+    "NW": 1,
+    "C": 2,
+    "MP": 1,
+    "IT": 2
+}
+
+# ------------------------------------------------------------
+# ★ 4. WORKLOAD LIMITS
+# ------------------------------------------------------------
+MAX_WORKLOAD = {
+    "ARAVIND BALAN": 24,
+    "VARUN P NAIR": 24,
+    "AMBILY N MENON": 24,
+    "SREELALITHAMBIKA P K": 22,
+    "NEEBA CHERIYACHAN": 24,
+    "NOMA MATHEW": 20,
+    "SANDYA O C": 24,
+    "SMIJA": 24,
+    "JOICY": 24,
+}
+
+DEFAULT_MAX_WORKLOAD = 22
+
+# ------------------------------------------------------------
+# ★ 5. PER-SUBJECT LIMITS
+# ------------------------------------------------------------
+MAX_SUBJECT_ALLOTMENT = {
+    "C": 4,
+    "OS": 2,
+    "DBMS": 2,
+    "CASE": 2,
+    "COA": 1,
+    "NW": 2,
+    "MP": 2,
+    "IT": 4
+}
+
+SAME_BATCH_PREF = 2
+
+# ------------------------------------------------------------
+# ★ 6. Helper functions
+# ------------------------------------------------------------
+def adjusted_hour(h):
+    h = str(h)
+    if h == '8': return 5
+    if h == '5': return 6
+    if h == '6': return 7
+    if h == '7': return 8
+    return int(h)
+
+def adjusted_range(hours):
+    adj = [adjusted_hour(h) for h in hours]
+    return min(adj), max(adj)
+
+def intervals_overlap(a1, a2, b1, b2):
+    return not (a2 < b1 or a1 > b2)
+
+# Check if staff can take the slot
+def can_assign_staff_to_interval(staff_stats, staff_avail, staff, day, pmin, pmax, subj, cls):
+    sid = staff.id
+
+    # time conflict
+    for (a, b) in staff_avail[sid][day]:
+        if intervals_overlap(a, b, pmin, pmax):
+            return False
+
+    # workload
+    slot_hours = (pmax - pmin + 1)
+    max_hours = MAX_WORKLOAD.get(staff.name, DEFAULT_MAX_WORKLOAD)
+    if staff_stats[sid]["hours"] + slot_hours > max_hours:
+        return False
+
+    # per subject limit
+    scount = staff_stats[sid]["subject_counts"].get(subj, 0)
+    if scount + 1 > MAX_SUBJECT_ALLOTMENT.get(subj, 99):
+        return False
+
+    return True
+
+# ------------------------------------------------------------
+# ★ 7. MAIN SELECTION ALGORITHM (FINAL FIXED VERSION)
+# ------------------------------------------------------------
+def select_staff_for_subject(subject, staff_list, staff_avail, staff_stats):
+    subj = subject.subject_name.upper()
+    cls = subject.class_name
+    key_batch = f"{subj}__{cls}"
+
+    hours = [int(x) for x in subject.allotted_hours.split(',')]
+    pmin, pmax = adjusted_range(hours)
+    day = subject.day
+    required = SUBJECT_RULES.get(subj, 1)
+
+    selected = []
+
+    def can_pick(staff):
+        return can_assign_staff_to_interval(staff_stats, staff_avail, staff, day, pmin, pmax, subj, cls)
+
+    # ------------------------------------------------------------
+    # RULE A: For required=2, try giving BOTH to senior FIRST-PREFERENCE staff
+    # ------------------------------------------------------------
+    if required == 2:
+        for staff in staff_list:
+            prefs = STAFF_PREF.get(staff.name, ["",""])
+            if prefs[0].upper() == subj:
+                if can_pick(staff):
+                    slot_hours = (pmax - pmin + 1)
+                    t = staff_stats[staff.id]["hours"]
+                    scount = staff_stats[staff.id]["subject_counts"].get(subj,0)
+
+                    if t + 2*slot_hours <= MAX_WORKLOAD.get(staff.name, DEFAULT_MAX_WORKLOAD) \
+                       and scount + 2 <= MAX_SUBJECT_ALLOTMENT.get(subj,99):
+                        return [staff, staff]  # assign both to same senior
+
+    # ------------------------------------------------------------
+    # RULE B: First preference staff (senior order)
+    # ------------------------------------------------------------
+    for staff in staff_list:
+        if len(selected) >= required:
+            break
+        prefs = STAFF_PREF.get(staff.name, ["",""])
+        if prefs[0].upper() == subj and can_pick(staff):
+            selected.append(staff)
+
+    # ------------------------------------------------------------
+    # RULE C: Same-batch preference
+    # ------------------------------------------------------------
+    for staff in staff_list:
+        if len(selected) >= required:
+            break
+        bcount = staff_stats[staff.id]["batch_counts"].get(key_batch, 0)
+        if 0 < bcount < SAME_BATCH_PREF and can_pick(staff):
+            selected.append(staff)
+
+    # ------------------------------------------------------------
+    # RULE D: Second preference
+    # ------------------------------------------------------------
+    for staff in staff_list:
+        if len(selected) >= required:
+            break
+        prefs = STAFF_PREF.get(staff.name, ["",""])
+        if len(prefs) > 1 and prefs[1].upper() == subj and can_pick(staff):
+            selected.append(staff)
+
+    # ------------------------------------------------------------
+    # RULE E: Any eligible staff (seniority)
+    # ------------------------------------------------------------
+    for staff in staff_list:
+        if len(selected) >= required:
+            break
+        if can_pick(staff):
+            selected.append(staff)
+
+    return selected
+
+# ------------------------------------------------------------
+# ★ 8. MAIN VIEW
+# ------------------------------------------------------------
+@login_required(login_url='/')
+def timetable2(request):
+
+    # load staff and reorder according to CORRECT SENIORITY
+    staff_all = list(Staff.objects.all())
+    staff_list = sorted(staff_all, key=lambda s: SENIORITY_ORDER.index(s.name))
+
+    subjects = list(SubjectEntry.objects.filter(period=DP)
+                    .order_by("class_name", "LAB", "day"))
+
+    # initial data structures
+    staff_avail = {s.id: {'M':[], 'T':[], 'W':[], 'Th':[], 'F':[]} for s in staff_list}
+    staff_stats = {
+        s.id: {"hours":0, "subject_counts":{}, "batch_counts":{}} for s in staff_list
+    }
+    assigned_map = {s.id: [] for s in staff_list}
+
+    # ------------------------------------------------------------
+    # ★ ALLOCATION LOOP
+    # ------------------------------------------------------------
+    for subject in subjects:
+        selected = select_staff_for_subject(subject, staff_list, staff_avail, staff_stats)
+
+        if selected:
+            hours = [int(x) for x in subject.allotted_hours.split(',')]
+            pmin, pmax = adjusted_range(hours)
+            slot_hours = pmax - pmin + 1
+
+            subj = subject.subject_name.upper()
+            key_batch = f"{subj}__{subject.class_name}"
+
+            for staff in selected:
+                sid = staff.id
+                staff_avail[sid][subject.day].append((pmin,pmax))
+                staff_stats[sid]["hours"] += slot_hours
+                staff_stats[sid]["subject_counts"][subj] = staff_stats[sid]["subject_counts"].get(subj,0)+1
+                staff_stats[sid]["batch_counts"][key_batch] = staff_stats[sid]["batch_counts"].get(key_batch,0)+1
+                assigned_map[sid].append(subject)
+
+    # ------------------------------------------------------------
+    # ★ BUILD TIMETABLE MATRIX
+    # ------------------------------------------------------------
+    staff_timetables = {}
+    for staff in staff_list:
+        slots = [["" for _ in range(8)] for _ in range(5)]
+        workload = staff_stats[staff.id]["hours"]
+
+        for subj in assigned_map[staff.id]:
+            hours = [int(x) for x in subj.allotted_hours.split(',')]
+            row = {"M":0,"T":1,"W":2,"Th":3,"F":4}[subj.day]
+            adj = sorted(set(adjusted_hour(h) for h in hours))
+            start = adj[0] - 1
+            end = adj[-1] - 1
+
+            for c in range(start, end+1):
+                if c == start:
+                    slots[row][c] = {
+                        "subject": subj.subject_name,
+                        "class_name": subj.class_name,
+                        "lab": subj.LAB,
+                        "colspan": end-start+1
+                    }
+                else:
+                    slots[row][c] = None
+
+        staff_timetables[staff.name] = {
+            "timetable_slots": slots,
+            "total_hour": workload
+        }
+
+    return render(
+        request,
+        "timetable_auto.html",
+        {"staff_timetables": staff_timetables}
+    )

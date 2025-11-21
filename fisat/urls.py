@@ -1,10 +1,12 @@
 from django.urls import path,include
 from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff,get_free_staff
 from django.contrib.auth import views as auth_views
-from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined
+from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,timetable2
 
 urlpatterns = [
     path('timetable/', timetable, name='timetable'),
+    path("timetable2/", timetable2, name="timetable_auto"),
+
     path('allocate/', allocate_staff, name='allocate'),
     path('allotted/', allotted, name='alloctted_staff'),
     path('delete_entry/<int:entry_id>/', delete_allotment, name='delete_entry'),

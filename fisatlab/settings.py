@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-DP = "2025-Jul"
+DP = "2025-dec"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -84,12 +84,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'OPTIONS': {
-            'options': '-c search_path=timetable'
+            'options': '-c search_path=timetableweb'
         },
-        'NAME': 'fisatdb',  # Your database name
-        'USER': 'fisat',  # Your database user
-        'PASSWORD': 'pwdfisat',  # Your database password
-        'HOST': 'localhost',  # Set to empty string for localhost
+        'NAME': 'pscdb',  # Your database name
+        'USER': 'psc',  # Your database user
+        'PASSWORD': 'psc',  # Your database password
+        'HOST': '13.61.184.75',  # Set to empty string for localhost
         'PORT': '',  # Set to empty string for default
     }
 }
