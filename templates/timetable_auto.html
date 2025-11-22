@@ -51,12 +51,23 @@
 
 {% load custom_filters %}
 
+<!-- ⭐ FIXED BUTTON — OUTSIDE LOOP -->
+<div style="text-align:right; margin-bottom:20px;">
+    <a href="{% url 'apply_ai_allocation' %}"
+       style="background:green; color:white; padding:10px 20px; border-radius:8px; text-decoration:none;"
+       onclick="return confirm('This will overwrite ALL manual allocations. Continue?')">
+       Apply AI Allocation to Database
+    </a>
+</div>
+
+<!-- START LOOP -->
 {% for staff_chunk in staff_timetables|chunkify:3 %}
+
     <div class="staff-row">
 
         {% for staff_name, data in staff_chunk %}
             <div class="staff-timetable">
-                
+
                 <center>
                     <h4>{{ staff_name }} ({{ data.total_hour }})</h4>
                 </center>
@@ -160,7 +171,9 @@
         {% endfor %}
 
     </div>
+
 {% endfor %}
 
 </body>
 </html>
+

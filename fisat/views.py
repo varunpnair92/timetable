@@ -716,6 +716,84 @@ def edit_staff_config(request):
         })
 
     return render(request, "staff_config.html", {"content": data})
+    
+    
+#ai push to database
+from django.contrib import messages
+from django.shortcuts import redirect
+from .models import TimetableEntry, Staff, SubjectEntry
+
+@login_required
+def apply_ai_allocation(request):
+
+    # 1️⃣ DELETE ALL OLD TIMETABLE ENTRIES FOR THIS USER
+    deleted_count, _ = TimetableEntry.objects.filter(user=request.user).delete()
+    print("Deleted old entries:", deleted_count)
+
+    # 2️⃣ REBUILD STAFF LIST BASED ON SENIORITY
+    staff_all = list(Staff.objects.all())
+    staff_list = sorted(
+        staff_all,
+        key=lambda s: SENIORITY_ORDER.index(s.name.strip())
+    )
+
+    # 3️⃣ LOAD SUBJECTS FOR ALLOCATION
+    subjects = list(
+        SubjectEntry.objects.filter(period=DP)
+        .order_by("class_name", "LAB", "day")
+    )
+
+    # 4️⃣ INITIALIZE TRACKERS
+    staff_avail = {s.id: {'M': [], 'T': [], 'W': [], 'Th': [], 'F': []} for s in staff_list}
+    staff_stats = {
+        s.id: {
+            "hours": 0,
+            "subject_slots": {},
+            "batch_counts": {}
+        } for s in staff_list
+    }
+
+    final_entries = []   # will hold (staff, subject)
+
+    # 5️⃣ RUN AI ENGINE (same logic as timetable2)
+    for sub in subjects:
+        selected = select_staff(sub, staff_list, staff_avail, staff_stats)
+        if not selected:
+            continue
+
+        hours = [int(x) for x in sub.allotted_hours.split(',')]
+        pmin, pmax = adjusted_range(hours)
+        slot_count = (pmax - pmin + 1)
+
+        subj = sub.subject_name.upper()
+        batch_key = f"{subj}__{sub.class_name}"
+
+        for staff in selected:
+            sid = staff.id
+
+            staff_avail[sid][sub.day].append((pmin, pmax))
+            staff_stats[sid]["hours"] += slot_count
+            staff_stats[sid]["subject_slots"][subj] = staff_stats[sid]["subject_slots"].get(subj, 0) + slot_count
+            staff_stats[sid]["batch_counts"][batch_key] = staff_stats[sid]["batch_counts"].get(batch_key, 0) + 1
+
+            final_entries.append((staff, sub))
+
+    # 6️⃣ BULK INSERT WITHOUT VALIDATIONS
+    entries_to_insert = [
+        TimetableEntry(
+            staff=staff,
+            subject=sub,
+            user=request.user
+        )
+        for staff, sub in final_entries
+    ]
+
+    TimetableEntry.objects.bulk_create(entries_to_insert, ignore_conflicts=True)
+
+    messages.success(request, "AI allocation successfully applied!")
+    return redirect("timetable_auto")
+
+    
 
 
 #ai allot
