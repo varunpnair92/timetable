@@ -1,0 +1,13 @@
+<h2>Edit Staff Configuration</h2>
+
+{% if message %}
+<p style="color:green;">{{ message }}</p>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <textarea name="content" style="width:100%; height:600px;">{{ content }}</textarea>
+    <br><br>
+    <button type="submit" style="padding:10px; background:green; color:white;">Save</button>
+</form>
+

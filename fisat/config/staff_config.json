@@ -1,0 +1,68 @@
+{
+    "SENIORITY_ORDER": [
+        "AMBILY N MENON",
+        "SREELALITHAMBIKA P K",
+        "NEEBA CHERIYACHAN",
+        "AMBILY SEKAR C",
+        "NOMA MATHEW",
+        "SANDYA O C",
+        "VARUN P NAIR",
+        "ARAVIND BALAN",
+        "SALINI T R",
+        "JOYCY",
+        "SMIJA M B"
+    ],
+
+    "PREFERENCES": {
+        "AMBILY N MENON": ["OS", "NW"],
+        "SREELALITHAMBIKA P K": ["OS", "NW"],
+        "SANDYA O C": ["DBMS", "OS"],
+        "NEEBA CHERIYACHAN": ["DBMS", "OS"],
+        "AMBILY SEKAR C": ["OS", "DBMS"],
+        "NOMA MATHEW": ["DBMS", "NW"],
+        "VARUN P NAIR": ["OS", "DBMS"],
+        "SALINI T R": ["NW", "DBMS"],
+        "ARAVIND BALAN": ["DBMS", "NW"],
+        "SMIJA M B": ["CASE", "DBMS"],
+        "JOYCY": ["OS", "NW"]
+    },
+
+    "WORKLOAD": {
+        "ARAVIND BALAN": 24,
+        "VARUN P NAIR": 24,
+        "AMBILY N MENON": 24,
+        "SREELALITHAMBIKA P K": 22,
+        "NEEBA CHERIYACHAN": 24,
+        "NOMA MATHEW": 20,
+        "SANDYA O C": 24,
+        "SMIJA M B": 24,
+        "JOYCY": 24
+    },
+
+    "SUBJECT_RULES": {
+        "OS": 2,
+        "CASE": 1,
+        "DBMS": 1,
+        "COA": 1,
+        "NW": 1,
+        "C": 2,
+        "MP": 1,
+        "IT": 2
+    },
+
+    "MAX_SUBJECT_ALLOTMENT": {
+        "C": 4,
+        "OS": 2,
+        "DBMS": 2,
+        "CASE": 2,
+        "COA": 1,
+        "NW": 2,
+        "MP": 2,
+        "IT": 4
+    },
+
+    "SAME_BATCH_PREF": 2,
+
+    "COMMON_SUBJECTS": ["C", "IT", "COA"]
+}
+
