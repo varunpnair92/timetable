@@ -845,15 +845,16 @@ def edit_staff_config(request):
 def apply_ai_allocation(request):
     """
     Run AI allocation fresh and push directly into TimetableEntry.
-    Ignores old DB data (deletes then re-creates).
+    Shows final summary: inserted, duplicates skipped, overlaps skipped.
     Uses SAME AI LOGIC as timetable2.
-    Also reloads RULES dynamically.
     """
-    global RULES, SENIORITY_ORDER, STAFF_PREF, MAX_WORKLOAD
+
+    # 🔄 RELOAD RULES FRESH
+    RULES = load_rules()
+
+    global SENIORITY_ORDER, STAFF_PREF, MAX_WORKLOAD
     global SUBJECT_RULES, MAX_SUBJECT_ALLOTMENT, SAME_BATCH_PREF, COMMON_SUBJECTS
 
-    # Reload rules
-    RULES = load_rules()
     SENIORITY_ORDER = RULES["SENIORITY_ORDER"]
     STAFF_PREF = RULES["PREFERENCES"]
     MAX_WORKLOAD = RULES["WORKLOAD"]
@@ -862,22 +863,25 @@ def apply_ai_allocation(request):
     SAME_BATCH_PREF = RULES["SAME_BATCH_PREF"]
     COMMON_SUBJECTS = set(RULES["COMMON_SUBJECTS"])
 
-    # 1️⃣ DELETE ALL OLD TimetableEntry FOR THIS USER + PERIOD
-    deleted_count, _ = TimetableEntry.objects.filter(
-        user=request.user, subject__period=DP
+    # 1️⃣ CLEAR OLD RECORDS FOR THIS USER + PERIOD
+    old_deleted, _ = TimetableEntry.objects.filter(
+        user=request.user,
+        subject__period=DP
     ).delete()
-    print("Deleted old entries:", deleted_count)
 
-    # 2️⃣ STAFF LIST BY SENIORITY
+    inserted = 0
+    duplicate_skipped = 0
+    overlap_skipped = 0
+
+    # 2️⃣ STAFF ORDER
     staff_all = list(Staff.objects.all())
     staff_list = sorted(
         staff_all,
         key=lambda s: SENIORITY_ORDER.index(s.name.strip())
-        if s.name.strip() in SENIORITY_ORDER
-        else 999,
+        if s.name.strip() in SENIORITY_ORDER else 999
     )
 
-    # 3️⃣ SUBJECTS (SAME ORDER AS timetable2)
+    # 3️⃣ SUBJECTS SORTED
     subjects = list(SubjectEntry.objects.filter(period=DP))
 
     def subj_sort_key(sub):
@@ -891,50 +895,81 @@ def apply_ai_allocation(request):
 
     subjects.sort(key=subj_sort_key)
 
-    # 4️⃣ INIT
-    staff_avail = {s.id: {"M": [], "T": [], "W": [], "Th": [], "F": []} for s in staff_list}
+    # 4️⃣ INIT tracking
+    staff_avail = {s.id: {'M': [], 'T': [], 'W': [], 'Th': [], 'F': []} for s in staff_list}
     staff_stats = {
-        s.id: {"hours": 0, "subject_slots": {}, "batch_counts": {}} for s in staff_list
+        s.id: {"hours": 0, "subject_slots": {}, "batch_counts": {}}
+        for s in staff_list
     }
 
-    final_entries = []
-
-    # 5️⃣ AI ENGINE
+    # 5️⃣ RUN AI ENGINE
     for sub in subjects:
-        selected = select_staff(sub, staff_list, staff_avail, staff_stats)
-        if not selected:
+        selected_staff = select_staff(sub, staff_list, staff_avail, staff_stats)
+        if not selected_staff:
             continue
 
-        hours = [int(x) for x in sub.allotted_hours.split(",")]
+        hours = list(map(int, sub.allotted_hours.split(',')))
         pmin, pmax = adjusted_range(hours)
-        slot_count = pmax - pmin + 1
+        subj_key = sub.subject_name.upper()
 
-        subj_name = sub.subject_name.upper()
-        batch_key = f"{subj_name}__{sub.class_name}"
-
-        for staff in selected:
+        for staff in selected_staff:
             sid = staff.id
 
+            # CHECK DUPLICATE
+            if TimetableEntry.objects.filter(
+                user=request.user,
+                staff=staff,
+                subject=sub
+            ).exists():
+                duplicate_skipped += 1
+                continue
+
+            # CHECK TIME OVERLAP
+            existing = TimetableEntry.objects.filter(
+                user=request.user,
+                staff=staff,
+                subject__period=DP,
+                subject__day=sub.day
+            )
+
+            adj_hours = set(adjusted_hour(h) for h in hours)
+            clash = False
+            for e in existing:
+                ex_hours = set(adjusted_hour(int(h)) for h in e.subject.allotted_hours.split(','))
+                if adj_hours.intersection(ex_hours):
+                    clash = True
+                    break
+
+            if clash:
+                overlap_skipped += 1
+                continue
+
+            # SAVE ENTRY
+            TimetableEntry.objects.create(
+                user=request.user,
+                staff=staff,
+                subject=sub
+            )
+            inserted += 1
+
+            # UPDATE tracking for next allocations
             staff_avail[sid][sub.day].append((pmin, pmax))
-            staff_stats[sid]["hours"] += slot_count
-            staff_stats[sid]["subject_slots"][subj_name] = (
-                staff_stats[sid]["subject_slots"].get(subj_name, 0) + 1
-            )
-            staff_stats[sid]["batch_counts"][batch_key] = (
-                staff_stats[sid]["batch_counts"].get(batch_key, 0) + 1
-            )
+            staff_stats[sid]["hours"] += (pmax - pmin + 1)
+            staff_stats[sid]["subject_slots"][subj_key] = \
+                staff_stats[sid]["subject_slots"].get(subj_key, 0) + 1
 
-            final_entries.append((staff, sub))
-
-    # 6️⃣ BULK INSERT
-    entries_to_insert = [
-        TimetableEntry(staff=staff, subject=sub, user=request.user)
-        for staff, sub in final_entries
-    ]
-    TimetableEntry.objects.bulk_create(entries_to_insert, ignore_conflicts=True)
-
-    messages.success(request, "AI allocation successfully applied!")
-    return redirect("timetable_auto")
+    # 6️⃣ RETURN RESULT PAGE
+    return HttpResponse(f"""
+        <h2>AI Allocation Completed</h2>
+        <p><strong>Old Records Deleted:</strong> {old_deleted}</p>
+        <p><strong>Inserted:</strong> {inserted}</p>
+        <p><strong>Duplicates Skipped:</strong> {duplicate_skipped}</p>
+        <p><strong>Overlaps Skipped:</strong> {overlap_skipped}</p>
+        <br>
+        <a href="/timetable2/" style="padding:10px; background:green; color:white; text-decoration:none;">Back to AI Preview</a>
+        &nbsp;
+        <a href="/timetable/" style="padding:10px; background:blue; color:white; text-decoration:none;">View My Timetable</a>
+    """)
 
 
 # ============================================================

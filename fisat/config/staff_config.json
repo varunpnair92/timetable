@@ -23,8 +23,8 @@
         "VARUN P NAIR": ["OS", "DBMS"],
         "SALINI T R": ["NW", "DBMS"],
         "ARAVIND BALAN": ["DBMS", "NW"],
-        "SMIJA M B": ["CASE", "DBMS"],
-        "JOYCY": ["OS", "NW"]
+        "SMIJA M B": ["OS", "DBMS"],
+        "JOYCY": ["CASE", "NW"]
     },
 
     "WORKLOAD": {
@@ -58,7 +58,7 @@
         "COA": 1,
         "NW": 2,
         "MP": 2,
-        "IT": 2
+        "IT": 4
     },
 
     "SAME_BATCH_PREF": 2,
