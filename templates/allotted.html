@@ -17,7 +17,41 @@
         th {
             background: #e7e7e7;
         }
-        button {
+        button { cursor: pointer; }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: rgba(60,60,60,0.95);
+            color: #fff;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+
+        .staff-item {
+            display: inline-block;
+            margin-right: 12px;
+            margin-top: 6px;
+        }
+        .staff-label {
+            padding: 4px 6px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .staff-count {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .alloc-staff {
+            margin-right: 10px;
             cursor: pointer;
         }
     </style>
@@ -35,141 +69,177 @@
 <h1>Class, Subject and Staff Allocation</h1>
 
 {% for class_name, subjects in class_data.items %}
-<h2>{{ class_name }}</h2>
+  <h2>{{ class_name }}</h2>
 
-<table>
+  <table>
     <thead>
-        <tr>
-            <th>Subject Name</th>
-            <th>Day</th>
-            <th>Hours</th>
-            <th>Allocated Staff</th>
-        </tr>
+      <tr>
+        <th>Subject Name</th>
+        <th>Day</th>
+        <th>Hours</th>
+        <th>Allocated Staff</th>
+      </tr>
     </thead>
 
     <tbody>
-        {% for subject in subjects %}
-        <tr>
+      {% for subject in subjects %}
+      <tr>
+        <td>{{ subject.subject_name }}</td>
+        <td>{{ subject.day }}</td>
+        <td>{{ subject.allotted_hours }}</td>
 
-            <!-- SUBJECT -->
-            <td>{{ subject.subject_name }}</td>
+        <td>
+          {% for st in subject.allocated_staff %}
+            <span class="alloc-staff"
+                  data-staff-id="{{ st.id }}"
+                  data-subject-name="{{ subject.subject_name }}">
+                {{ st.name }}
+                <a href="{% url 'quick_delete_staff' st.id subject.subject_id %}"
+                   onclick="return confirmDelete()"
+                   style="color:red; font-weight:bold; margin-left:4px;">
+                   –
+                </a>
+            </span>
+          {% endfor %}
 
-            <!-- DAY -->
-            <td>{{ subject.day }}</td>
+          <button onclick="loadFreeStaff({{ subject.subject_id }})"
+                  style="margin-left:10px; font-weight:bold;">+</button>
 
-            <!-- HOURS -->
-            <td>{{ subject.allotted_hours }}</td>
-
-            <!-- STAFF SECTION -->
-            <td>
-
-                <!-- Already Allocated Staff -->
-                {% for st in subject.allocated_staff %}
-                    <span style="margin-right:10px;">
-                        {{ st.name }}
-                        <a href="{% url 'quick_delete_staff' st.id subject.subject_id %}"
-                           onclick="return confirmDelete()"
-                           style="color:red; font-weight:bold; margin-left:4px;">
-                           –
-                        </a>
-                    </span>
-                {% endfor %}
-
-                <!-- PLUS BUTTON -->
-                <button onclick="loadFreeStaff({{ subject.subject_id }})"
-                        style="margin-left:10px; font-weight:bold;">+</button>
-
-                <!-- FREE STAFF BOX -->
-                <div id="staff_box_{{ subject.subject_id }}"
-                     style="display:none; margin-top:10px;">
-                </div>
-
-            </td>
-
-        </tr>
-        {% endfor %}
+          <div id="staff_box_{{ subject.subject_id }}"
+               data-subject-id="{{ subject.subject_id }}"
+               data-subject-name="{{ subject.subject_name }}"
+               style="display:none; margin-top:10px;"></div>
+        </td>
+      </tr>
+      {% endfor %}
     </tbody>
-</table>
-
+  </table>
 {% endfor %}
 
-
-<!-- FLOATING ALLOCATE BUTTON -->
-<button onclick="allocateStaff()"
+<button id="allocateBtn"
+        onclick="allocateStaff()"
         style="position:fixed; bottom:20px; right:20px; background:green; color:white;
                padding:15px 22px; border:none; border-radius:50px; font-size:16px;">
     Allocate
 </button>
 
+<div id="tooltip" class="tooltip"></div>
 
 <script>
 let selectedSubject = null;
 
-// Restore scroll position on page load
 document.addEventListener("DOMContentLoaded", function () {
     let scrollPos = localStorage.getItem("scrollPos");
     if (scrollPos !== null) {
         window.scrollTo(0, parseInt(scrollPos));
         localStorage.removeItem("scrollPos");
     }
+
+    // Attach hover listeners to allocated staff
+    document.querySelectorAll(".alloc-staff").forEach(el => {
+        el.addEventListener("mouseenter", allocatedEnter);
+        el.addEventListener("mousemove", allocatedMove);
+        el.addEventListener("mouseleave", allocatedLeave);
+    });
 });
 
-// Load free staff using AJAX
-function loadFreeStaff(subjectId) {
-    selectedSubject = subjectId;
+// ================= TOOLTIP ===================
+const tooltip = document.getElementById("tooltip");
 
-    let box = document.getElementById("staff_box_" + subjectId);
-    box.style.display = "block";
-    box.innerHTML = "<p>Loading available staff...</p>";
+function allocatedEnter(e) {
+    const el = e.currentTarget;
+    const staffId = el.dataset.staffId;
+    const subj = el.dataset.subjectName;
 
-    fetch(`/get_free_staff/${subjectId}/`)
-        .then(response => response.json())
+    fetch(`/staff_subject_count?staff_id=${staffId}&subject=${subj}`)
+        .then(res => res.json())
         .then(data => {
-            if (data.length === 0) {
-                box.innerHTML = "<p style='color:red;'>No free staff available for this slot.</p>";
-                return;
-            }
-
-            let html = "";
-            data.forEach(st => {
-                html += `
-                    <label style="display:inline-block; margin-right:12px; margin-top:6px;">
-                        <input type="radio" name="staff_${subjectId}" value="${st.id}">
-                        ${st.name}
-                    </label>
-                `;
-            });
-
-            box.innerHTML = html;
+            tooltip.innerText = `${el.textContent.trim()}  ${data.count} slot(s) for ${subj}`;
+            tooltip.style.display = "block";
         });
 }
 
-// Allocate selected staff (Save scroll)
-function allocateStaff() {
-    if (!selectedSubject) {
-        alert("Click the + button to choose a subject first.");
-        return;
-    }
-
-    let staff = document.querySelector(`input[name='staff_${selectedSubject}']:checked`);
-
-    if (!staff) {
-        alert("Select a staff member to allocate.");
-        return;
-    }
-
-    // Save scroll before redirect
-    localStorage.setItem("scrollPos", window.scrollY);
-
-    window.location.href = `/quick_allocate/${selectedSubject}/${staff.value}/`;
+function allocatedMove(e) {
+    tooltip.style.left = e.clientX + 15 + "px";
+    tooltip.style.top = e.clientY + 15 + "px";
 }
 
-// Delete confirmation (Save scroll)
+function allocatedLeave() {
+    tooltip.style.display = "none";
+}
+
+// ========== FREE STAFF (inside + button) ==============
+function buildStaffHTML(st, subjName, subjectId) {
+    return `
+      <label class="staff-item staff-label"
+             data-staff-id="${st.id}"
+             data-subject-name="${subjName}"
+             data-count="${st.count}">
+         <input type="radio" name="staff_${subjectId}" value="${st.id}">
+         <span class="staff-name">${st.name}</span>
+         <span class="staff-count">(${st.count})</span>
+      </label>
+    `;
+}
+
+function loadFreeStaff(subjectId) {
+    selectedSubject = subjectId;
+    let box = document.getElementById("staff_box_" + subjectId);
+    box.style.display = "block";
+    box.innerHTML = "<p>Loading...</p>";
+
+    fetch(`/get_free_staff/${subjectId}/`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.length) {
+                box.innerHTML = "<p style='color:red;'>No free staff available.</p>";
+                return;
+            }
+
+            let subjName = box.dataset.subjectName;
+            let html = "";
+            data.forEach(st => html += buildStaffHTML(st, subjName, subjectId));
+            box.innerHTML = html;
+
+            // Attach hover events to free staff
+            box.querySelectorAll(".staff-item").forEach(lbl => {
+                lbl.addEventListener("mouseenter", staffEnter);
+                lbl.addEventListener("mousemove", staffMove);
+                lbl.addEventListener("mouseleave", staffLeave);
+            });
+        });
+}
+
+// Tooltip for free staff
+function staffEnter(e) {
+    const lbl = e.currentTarget;
+    const name = lbl.querySelector(".staff-name").textContent;
+    const count = lbl.dataset.count;
+    const subj = lbl.dataset.subjectName;
+
+    tooltip.innerText = `${name}  ${count} slot(s) for ${subj}`;
+    tooltip.style.display = "block";
+}
+function staffMove(e) { allocatedMove(e); }
+function staffLeave() { tooltip.style.display = "none"; }
+
+// Allocate
+function allocateStaff() {
+    if (!selectedSubject) { alert("Choose a subject!"); return; }
+
+    let sel = document.querySelector(`input[name='staff_${selectedSubject}']:checked`);
+    if (!sel) { alert("Select a staff."); return; }
+
+    localStorage.setItem("scrollPos", window.scrollY);
+    window.location.href = `/quick_allocate/${selectedSubject}/${sel.value}/`;
+}
+
 function confirmDelete() {
     localStorage.setItem("scrollPos", window.scrollY);
-    return confirm("Are you sure you want to remove this staff?");
+    return confirm("Are you sure?");
 }
 </script>
 
 </body>
 </html>
+

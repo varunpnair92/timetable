@@ -32,7 +32,7 @@ class SubjectEntry(models.Model):
     day = models.CharField(max_length=10, choices=DAY_CHOICES)
     LAB = models.CharField(max_length=50, choices=LAB_CHOICES)
     allotted_hours = models.CharField(max_length=10)  # e.g., '1,2,3' or '4,5,6'
-    period = models.CharField(max_length=20, default='2025-Jul')
+    period = models.CharField(max_length=20, default='2025-dec')
 
 
     

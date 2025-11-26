@@ -1,7 +1,7 @@
 from django.urls import path,include
 from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff,get_free_staff
 from django.contrib.auth import views as auth_views
-from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,timetable2,edit_staff_config,apply_ai_allocation
+from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,timetable2,edit_staff_config,apply_ai_allocation,staff_subject_count,get_subject_load
 
 urlpatterns = [
     path('timetable/', timetable, name='timetable'),
@@ -40,6 +40,10 @@ path("get_free_staff/<int:subject_id>/", get_free_staff, name="get_free_staff"),
 path("quick_delete/<int:staff_id>/<int:subject_id>/", quick_delete_staff, name="quick_delete_staff"),
 path("edit_config/", edit_staff_config, name="staff_config"),
 path('apply_ai_allocation/', apply_ai_allocation, name='apply_ai_allocation'),
+
+    path('staff_subject_count/', staff_subject_count, name='staff_subject_count'),
+    path('get_subject_load/<int:staff_id>/<int:subject_id>/', get_subject_load),
+
 
 
 

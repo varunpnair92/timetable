@@ -19,12 +19,12 @@
         "SANDYA O C": ["DBMS", "OS"],
         "NEEBA CHERIYACHAN": ["DBMS", "OS"],
         "AMBILY SEKAR C": ["OS", "DBMS"],
-        "NOMA MATHEW": ["DBMS", "NW"],
+        "NOMA MATHEW": ["OS", "NW"],
         "VARUN P NAIR": ["OS", "DBMS"],
         "SALINI T R": ["NW", "DBMS"],
         "ARAVIND BALAN": ["DBMS", "NW"],
-        "SMIJA M B": ["OS", "DBMS"],
-        "JOYCY": ["CASE", "NW"]
+        "SMIJA M B": ["CASE", "DBMS"],
+        "JOYCY": ["OS", "DBMS"]
     },
 
     "WORKLOAD": {
@@ -42,27 +42,32 @@
     "SUBJECT_RULES": {
         "OS": 2,
         "CASE": 1,
-        "DBMS": 1,
-        "COA": 1,
+        "DBMS": 2,
+        "COA": 0,
         "NW": 1,
         "C": 2,
-        "MP": 1,
-        "IT": 2
+        "MP": 0,
+        "IT": 2,
+        "DBMSM": 0,
+        "NSA": 0,
+        "OOPS": 0
     },
 
     "MAX_SUBJECT_ALLOTMENT": {
-        "C": 4,
+        "C": 3,
         "OS": 2,
         "DBMS": 2,
         "CASE": 2,
-        "COA": 1,
+        "COA": 0,
         "NW": 2,
-        "MP": 2,
-        "IT": 4
+        "MP": 0,
+        "IT": 3,
+        "DBMSM": 0,
+        "NSA": 0,
+        "OOPS": 0
     },
 
     "SAME_BATCH_PREF": 2,
 
-    "COMMON_SUBJECTS": ["C", "IT", "COA"]
+    "COMMON_SUBJECTS": ["C", "IT", "COA", "DBMSM", "NSA", "OOPS"]
 }
-

@@ -340,32 +340,79 @@ def allotted(request):
 # ============================================================
 
 
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+# make sure these are imported at top of file
+# from .models import SubjectEntry, Staff, TimetableEntry
+# from django.conf import settings
+# DP = settings.DP
+
 @login_required
 def get_free_staff(request, subject_id):
-    subject = SubjectEntry.objects.get(id=subject_id)
-    target_day = subject.day
-    target_hours = set(map(int, subject.allotted_hours.split(",")))
+    """
+    Returns list of staff free for the subject's slot, plus the number of
+    slots that staff already has for the same subject (subject name) in this period.
+    JSON: [{id, name, count}, ...]
+    """
+    subject = get_object_or_404(SubjectEntry, id=subject_id, period=DP)
 
-    staff_list = Staff.objects.all()
+    # target info
+    target_day = subject.day
+    # parse hours safely (ignore empty parts)
+    try:
+        target_hours = set(int(x) for x in subject.allotted_hours.split(',') if x.strip() != '')
+    except Exception:
+        target_hours = set()
+
+    staff_qs = Staff.objects.all().order_by('name')
     free_staff = []
 
-    for st in staff_list:
+    for st in staff_qs:
+        # all timetable entries for this staff on the same day & period
         entries = TimetableEntry.objects.filter(
-            staff=st, subject__day=target_day, subject__period=DP
+            staff=st,
+            subject__day=target_day,
+            subject__period=DP
         )
 
         busy = False
         for e in entries:
-            entry_hours = set(map(int, e.subject.allotted_hours.split(",")))
+            try:
+                entry_hours = set(int(x) for x in e.subject.allotted_hours.split(',') if x.strip() != '')
+            except Exception:
+                entry_hours = set()
             if target_hours.intersection(entry_hours):
                 busy = True
                 break
 
-        if not busy:
-            free_staff.append({"id": st.id, "name": st.name})
+        if busy:
+            continue
+
+        # count how many slots this staff already has for the SAME subject name
+        # (case-insensitive match on subject_name) within same period
+        same_subject_entries = TimetableEntry.objects.filter(
+            staff=st,
+            subject__subject_name__iexact=subject.subject_name,
+            subject__period=DP
+        )
+
+        # count total hours/slots for those entries (we count "slots" as the number of hours)
+        slot_count = 0
+        for ent in same_subject_entries:
+            try:
+                slot_count += sum(1 for x in ent.subject.allotted_hours.split(',') if x.strip() != '')
+            except Exception:
+                pass
+
+        free_staff.append({
+            "id": st.id,
+            "name": st.name,
+            "count": slot_count
+        })
 
     return JsonResponse(free_staff, safe=False)
-
 
 # ============================================================
 #  DELETE A SINGLE TIMETABLE ENTRY
@@ -766,6 +813,55 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     return render(request, "dashboard.html")
+
+
+#staff count for hover
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import TimetableEntry
+from django.conf import settings
+
+DP = settings.DP
+
+@login_required
+def staff_subject_count(request):
+    """
+    Returns JSON: { "count": <int> }
+    Query params: staff_id, subject (subject_name)
+    """
+    staff_id = request.GET.get("staff_id")
+    subject = request.GET.get("subject", "").strip()
+
+    # basic validation
+    if not staff_id or not subject:
+        return JsonResponse({"count": 0})
+
+    try:
+        count = TimetableEntry.objects.filter(
+            staff_id=staff_id,
+            subject__subject_name__iexact=subject,
+            subject__period=DP,
+            user_id=request.user
+        ).count()
+    except Exception:
+        count = 0
+
+    return JsonResponse({"count": count})
+
+
+
+#staff count get
+
+def get_subject_load(request, staff_id, subject_id):
+    count = TimetableEntry.objects.filter(
+        staff_id=staff_id,
+        subject_id=subject_id
+    ).count()
+
+    return JsonResponse({"count": count})
+
+
+
 
 
 # ============================================================
