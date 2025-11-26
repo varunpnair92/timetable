@@ -5,55 +5,39 @@
     <title>Class, Subject and Staff Allocation</title>
 
     <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 40px;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 8px;
-        }
-        th {
-            background: #e7e7e7;
-        }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+        th, td { border: 1px solid black; padding: 8px; }
+        th { background: #e7e7e7; }
         button { cursor: pointer; }
 
         /* Tooltip */
         .tooltip {
             position: fixed;
-            background: rgba(60,60,60,0.95);
+            background: rgba(40,40,40,0.95);
             color: #fff;
-            padding: 6px 8px;
-            border-radius: 4px;
+            padding: 8px 10px;
+            border-radius: 6px;
             font-size: 13px;
             pointer-events: none;
             z-index: 9999;
             display: none;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            max-width: 380px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            line-height: 1.3;
         }
 
-        .staff-item {
-            display: inline-block;
-            margin-right: 12px;
-            margin-top: 6px;
-        }
+        .staff-item { display: inline-block; margin-right: 12px; margin-top: 6px; }
         .staff-label {
             padding: 4px 6px;
             border-radius: 4px;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            background: #f6f6f6;
         }
-        .staff-count {
-            font-size: 11px;
-            opacity: 0.8;
-        }
-
-        .alloc-staff {
-            margin-right: 10px;
-            cursor: pointer;
-        }
+        .staff-count { font-size: 11px; opacity: 0.85; color: #333; }
+        .alloc-staff { margin-right: 10px; cursor: pointer; display:inline-block; padding:2px 6px; border-radius:4px; }
+        .alloc-staff:hover { background:#f0f8ff; }
     </style>
 </head>
 
@@ -92,11 +76,11 @@
           {% for st in subject.allocated_staff %}
             <span class="alloc-staff"
                   data-staff-id="{{ st.id }}"
-                  data-subject-name="{{ subject.subject_name }}">
+                  data-subject-name="{{ subject.subject_name }}"
+                  data-subject-day="{{ subject.day }}">
                 {{ st.name }}
                 <a href="{% url 'quick_delete_staff' st.id subject.subject_id %}"
-                   onclick="return confirmDelete()"
-                   style="color:red; font-weight:bold; margin-left:4px;">
+                   onclick="return confirmDelete()" style="color:red; font-weight:bold; margin-left:6px;">
                    –
                 </a>
             </span>
@@ -108,6 +92,7 @@
           <div id="staff_box_{{ subject.subject_id }}"
                data-subject-id="{{ subject.subject_id }}"
                data-subject-name="{{ subject.subject_name }}"
+               data-subject-day="{{ subject.day }}"
                style="display:none; margin-top:10px;"></div>
         </td>
       </tr>
@@ -128,6 +113,7 @@
 <script>
 let selectedSubject = null;
 
+// Restore scroll position
 document.addEventListener("DOMContentLoaded", function () {
     let scrollPos = localStorage.getItem("scrollPos");
     if (scrollPos !== null) {
@@ -135,103 +121,149 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.removeItem("scrollPos");
     }
 
-    // Attach hover listeners to allocated staff
+    // Attach hover events to allocated staff
     document.querySelectorAll(".alloc-staff").forEach(el => {
         el.addEventListener("mouseenter", allocatedEnter);
-        el.addEventListener("mousemove", allocatedMove);
-        el.addEventListener("mouseleave", allocatedLeave);
+        el.addEventListener("mousemove", moveTooltip);
+        el.addEventListener("mouseleave", hideTooltip);
     });
 });
 
-// ================= TOOLTIP ===================
 const tooltip = document.getElementById("tooltip");
 
+// ------------ ALLOCATED STAFF TOOLTIP -------------
 function allocatedEnter(e) {
     const el = e.currentTarget;
     const staffId = el.dataset.staffId;
     const subj = el.dataset.subjectName;
+    const day = el.dataset.subjectDay;
 
-    fetch(`/staff_subject_count?staff_id=${staffId}&subject=${subj}`)
-        .then(res => res.json())
-        .then(data => {
-            tooltip.innerText = `${el.textContent.trim()}  ${data.count} slot(s) for ${subj}`;
-            tooltip.style.display = "block";
-        });
+    tooltip.innerHTML = "Loading...";
+    tooltip.style.display = "block";
+
+    Promise.all([
+        fetch(`/staff_subject_count/?staff_id=${staffId}&subject=${subj}`).then(r=>r.json()),
+        fetch(`/staff_day_load/${staffId}/${day}/`).then(r=>r.json())
+    ]).then(([subCount, dayLoad]) => {
+        let html = `<strong>${el.textContent.trim()}</strong><br>`;
+        html += `${subCount.count} slot(s) for ${subj}<br>`;
+
+        if (dayLoad.entries.length) {
+            html += `<hr><strong>Same day allocations:</strong><br>`;
+            dayLoad.entries.forEach(x => {
+                html += `• ${x.subject} (${x.hours})<br>`;
+            });
+        } else {
+            html += `<hr>No allocations on this day`;
+        }
+        tooltip.innerHTML = html;
+    });
 }
 
-function allocatedMove(e) {
-    tooltip.style.left = e.clientX + 15 + "px";
-    tooltip.style.top = e.clientY + 15 + "px";
+// ------------ MOVE TOOLTIP -------------
+function moveTooltip(e) {
+    tooltip.style.left = e.clientX + 20 + "px";
+    tooltip.style.top = e.clientY + 20 + "px";
 }
 
-function allocatedLeave() {
+// ------------ HIDE TOOLTIP -------------
+function hideTooltip() {
     tooltip.style.display = "none";
 }
 
-// ========== FREE STAFF (inside + button) ==============
-function buildStaffHTML(st, subjName, subjectId) {
-    return `
-      <label class="staff-item staff-label"
-             data-staff-id="${st.id}"
-             data-subject-name="${subjName}"
-             data-count="${st.count}">
-         <input type="radio" name="staff_${subjectId}" value="${st.id}">
-         <span class="staff-name">${st.name}</span>
-         <span class="staff-count">(${st.count})</span>
-      </label>
-    `;
-}
-
+// ------------ FREE STAFF BOX -------------
 function loadFreeStaff(subjectId) {
     selectedSubject = subjectId;
+
     let box = document.getElementById("staff_box_" + subjectId);
     box.style.display = "block";
     box.innerHTML = "<p>Loading...</p>";
 
+    const subjName = box.dataset.subjectName;
+    const subjDay = box.dataset.subjectDay;
+
     fetch(`/get_free_staff/${subjectId}/`)
-        .then(res => res.json())
+        .then(r => r.json())
         .then(data => {
             if (!data.length) {
                 box.innerHTML = "<p style='color:red;'>No free staff available.</p>";
                 return;
             }
 
-            let subjName = box.dataset.subjectName;
             let html = "";
-            data.forEach(st => html += buildStaffHTML(st, subjName, subjectId));
+            data.forEach(st => {
+                html += `
+                  <label class="staff-item staff-label"
+                         data-staff-id="${st.id}"
+                         data-subject-name="${subjName}"
+                         data-subject-day="${subjDay}">
+                     <input type="radio" name="staff_${subjectId}" value="${st.id}">
+                     <span class="staff-name">${st.name}</span>
+                     <span class="staff-count">(loading)</span>
+                  </label>
+                `;
+            });
+
             box.innerHTML = html;
 
-            // Attach hover events to free staff
+            // Now fetch counts and attach hover
             box.querySelectorAll(".staff-item").forEach(lbl => {
-                lbl.addEventListener("mouseenter", staffEnter);
-                lbl.addEventListener("mousemove", staffMove);
-                lbl.addEventListener("mouseleave", staffLeave);
+                const sid = lbl.dataset.staffId;
+
+                // Load subject count
+                fetch(`/staff_subject_count/?staff_id=${sid}&subject=${subjName}`)
+                    .then(r=>r.json())
+                    .then(obj=>{
+                        lbl.querySelector(".staff-count").innerHTML = `(${obj.count})`;
+                    });
+
+                lbl.addEventListener("mouseenter", freeStaffEnter);
+                lbl.addEventListener("mousemove", moveTooltip);
+                lbl.addEventListener("mouseleave", hideTooltip);
             });
         });
 }
 
-// Tooltip for free staff
-function staffEnter(e) {
+// ------------ FREE STAFF TOOLTIP -------------
+function freeStaffEnter(e) {
     const lbl = e.currentTarget;
-    const name = lbl.querySelector(".staff-name").textContent;
-    const count = lbl.dataset.count;
+    const staffId = lbl.dataset.staffId;
     const subj = lbl.dataset.subjectName;
+    const day = lbl.dataset.subjectDay;
 
-    tooltip.innerText = `${name}  ${count} slot(s) for ${subj}`;
     tooltip.style.display = "block";
+    tooltip.innerHTML = "Loading...";
+
+    Promise.all([
+        fetch(`/staff_subject_count/?staff_id=${staffId}&subject=${subj}`).then(r=>r.json()),
+        fetch(`/staff_day_load/${staffId}/${day}/`).then(r=>r.json())
+    ]).then(([sc, dayLoad])=>{
+        let html = `<strong>${lbl.querySelector(".staff-name").textContent}</strong><br>`;
+        html += `${sc.count} slot(s) for ${subj}<br>`;
+
+        if (dayLoad.entries.length) {
+            html += `<hr><strong>Same day allocations:</strong><br>`;
+            dayLoad.entries.forEach(x => {
+                html += `• ${x.subject} (${x.hours})<br>`;
+            });
+        } else {
+            html += `<hr>No allocations on ${day}`;
+        }
+
+        tooltip.innerHTML = html;
+    });
 }
-function staffMove(e) { allocatedMove(e); }
-function staffLeave() { tooltip.style.display = "none"; }
 
-// Allocate
+// ------------ ALLOCATE STAFF -------------
 function allocateStaff() {
-    if (!selectedSubject) { alert("Choose a subject!"); return; }
+    if (!selectedSubject) return alert("Click + first");
 
-    let sel = document.querySelector(`input[name='staff_${selectedSubject}']:checked`);
-    if (!sel) { alert("Select a staff."); return; }
+    const chosen = document.querySelector(`input[name='staff_${selectedSubject}']:checked`);
+    if (!chosen) return alert("Select a staff");
 
     localStorage.setItem("scrollPos", window.scrollY);
-    window.location.href = `/quick_allocate/${selectedSubject}/${sel.value}/`;
+
+    window.location.href = `/quick_allocate/${selectedSubject}/${chosen.value}/`;
 }
 
 function confirmDelete() {

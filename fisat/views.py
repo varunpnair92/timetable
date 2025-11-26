@@ -849,7 +849,6 @@ def staff_subject_count(request):
     return JsonResponse({"count": count})
 
 
-
 #staff count get
 
 def get_subject_load(request, staff_id, subject_id):
@@ -860,7 +859,31 @@ def get_subject_load(request, staff_id, subject_id):
 
     return JsonResponse({"count": count})
 
+#staff day slot
+from django.http import JsonResponse
+from django.conf import settings
+from .models import TimetableEntry
 
+DP = settings.DP
+
+def get_staff_day_load(request, staff_id, day):
+    """
+    Returns staff's allocated hours on a given day.
+    """
+    entries = TimetableEntry.objects.filter(
+        staff_id=staff_id,
+        subject__day=day,
+        subject__period=DP
+    ).select_related("subject")
+
+    result = []
+    for e in entries:
+        result.append({
+            "subject": e.subject.subject_name,
+            "hours": e.subject.allotted_hours
+        })
+
+    return JsonResponse({"entries": result})
 
 
 
