@@ -743,6 +743,40 @@ def export_lab_allotments_csv(request):
         )
 
     return response
+#exportstaff allotment
+import csv
+from django.http import HttpResponse
+from .models import TimetableEntry
+from django.conf import settings
+
+DP = settings.DP
+
+def download_staff_allotment_csv(request):
+    # Response settings
+    response = HttpResponse(content_type="text/csv")
+    response['Content-Disposition'] = 'attachment; filename="staff_allotment.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(["Staff Name", "Subject", "Class", "Lab", "Day", "Hours"])
+
+    entries = (
+        TimetableEntry.objects
+        .filter(subject__period=DP)
+        .select_related("staff", "subject")
+        .order_by("staff__name", "subject__subject_name")
+    )
+
+    for e in entries:
+        writer.writerow([
+            e.staff.name,
+            e.subject.subject_name,
+            e.subject.class_name,
+            e.subject.LAB,
+            e.subject.get_day_display(),
+            e.subject.allotted_hours
+        ])
+
+    return response
 
 
 # ============================================================
