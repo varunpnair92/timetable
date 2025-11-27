@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Staff Timetable</title>
+
     <style>
         table {
             width: 100%;
@@ -11,159 +12,222 @@
         th, td {
             border: 1px solid black;
             padding: 8px;
-            text-align: left;
-            max-width: 150px; /* Maximum width of each cell */
-            word-wrap: break-word; /* Allow word wrapping */
-            overflow: hidden; /* Hide overflowed content */
-            text-overflow: ellipsis; /* Show ellipsis (...) for overflowed text */
-            font-size: 14px; /* Adjust font size as needed */
-            height: 30px; /* Fixed height for each cell */
-            vertical-align: top; /* Align content to the top */
+            text-align: left;                 /* original alignment */
+            max-width: 150px;
+            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            height: 30px;                     /* original cell height */
+            vertical-align: top;              /* original vertical alignment */
         }
         th {
             background-color: #f2f2f2;
         }
         .subject {
-            font-size: 12px; /* Reduce font size for subject names */
-            font-weight: bold; /* Make subject names bold */
-            text-align: center; /* Center align subject names */
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;               /* original */
+            cursor: pointer;                  /* for delete popup */
         }
         .class-name {
-            font-size: 10px; /* Reduce font size further for class names */
-            color: #666; /* Adjust color for class names */
-            font-weight: bold; /* Make sure class names are bold */
-            text-align: center; /* Center align class names */
+            font-size: 10px;
+            color: #666;
+            font-weight: bold;
+            text-align: center;               /* original */
         }
         .staff-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px; /* Add some spacing between rows */
+            margin-bottom: 20px;              /* original */
         }
         .staff-timetable {
             flex: 1;
             margin: 0 10px;
         }
+
+        /* Delete popup */
+        #deletePopup {
+            display: none;
+            position: fixed;
+            top: 35%;
+            left: 40%;
+            background: white;
+            padding: 20px;
+            border: 2px solid black;
+            z-index: 9999;
+            width: 240px;
+            text-align: center;
+            border-radius: 8px;
+        }
+        #deletePopup a {
+            background: red;
+            color: white;
+            padding: 8px 12px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        #deletePopup button {
+            padding: 6px 12px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
     </style>
-    <!-- <div style="position: absolute; top: 20px; right: 30px;">
-        <a href="{% url 'dashboard' %}" style="text-decoration: none; padding: 8px 12px; background-color: #007BFF; color: white; border-radius: 5px;">Dashboard</a>
-    </div> -->
+
 </head>
 <body>
-    
 
-    {% load custom_filters %}
+{% load custom_filters %}
 
-    {% for staff_chunk in staff_timetables|chunkify:3 %}
-        <div class="staff-row">
-            {% for staff_name, data in staff_chunk %}
-                <div class="staff-timetable">
-                    <center><h4>{{ staff_name }} ({{data.total_hour}})</h4></center>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>H1</th>
-                                <th>H2</th>
-                                <th>H3</th>
-                                <th>H4</th>
-                                <th>LB</th>
-                                <th>H5</th>
-                                <th>H6</th>
-                                <th>H7</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th>Mon</th>
-                                {% for cell in data.timetable_slots.0 %}
-                                    {% if cell.subject %}
-                                        <td colspan="{{ cell.colspan }}">
-                                            <div class="subject" title="{{ cell.subject }}">
-                                                {{ cell.subject }}
-                                            </div>
-                                            <div class="class-name" title="{{ cell.class_name }}">
-                                                <strong>{{cell.lab}}-{{ cell.class_name }}</strong>
-                                            </div>
-                                            
-                                        </td>
-                                    {% elif cell is not None %}
-                                        <td></td>
-                                    {% endif %}
-                                {% endfor %}
-                            </tr>
-                            <tr>
-                                <th>Tue</th>
-                                {% for cell in data.timetable_slots.1 %}
-                                    {% if cell.subject %}
-                                        <td colspan="{{ cell.colspan }}">
-                                            <div class="subject" title="{{ cell.subject }}">
-                                                {{ cell.subject }}
-                                            </div>
-                                            <div class="class-name" title="{{ cell.class_name }}">
-                                                <strong>{{cell.lab}}-{{ cell.class_name }}</strong>
-                                            </div>
-                                        </td>
-                                    {% elif cell is not None %}
-                                        <td></td>
-                                    {% endif %}
-                                {% endfor %}
-                            </tr>
-                            <tr>
-                                <th>Wed</th>
-                                {% for cell in data.timetable_slots.2 %}
-                                    {% if cell.subject %}
-                                        <td colspan="{{ cell.colspan }}">
-                                            <div class="subject" title="{{ cell.subject }}">
-                                                {{ cell.subject }}
-                                            </div>
-                                            <div class="class-name" title="{{ cell.class_name }}">
-                                                <strong>{{cell.lab}}-{{ cell.class_name }}</strong>
-                                            </div>
-                                        </td>
-                                    {% elif cell is not None %}
-                                        <td></td>
-                                    {% endif %}
-                                {% endfor %}
-                            </tr>
-                            <tr>
-                                <th>Thu</th>
-                                {% for cell in data.timetable_slots.3 %}
-                                    {% if cell.subject %}
-                                        <td colspan="{{ cell.colspan }}">
-                                            <div class="subject" title="{{ cell.subject }}">
-                                                {{ cell.subject }}
-                                            </div>
-                                            <div class="class-name" title="{{ cell.class_name }}">
-                                                <strong>{{cell.lab}}-{{ cell.class_name }}</strong>
-                                            </div>
-                                        </td>
-                                    {% elif cell is not None %}
-                                        <td></td>
-                                    {% endif %}
-                                {% endfor %}
-                            </tr>
-                            <tr>
-                                <th>Fri</th>
-                                {% for cell in data.timetable_slots.4 %}
-                                    {% if cell.subject %}
-                                        <td colspan="{{ cell.colspan }}">
-                                            <div class="subject" title="{{ cell.subject }}">
-                                                {{ cell.subject }}
-                                            </div>
-                                            <div class="class-name" title="{{ cell.class_name }}">
-                                                <strong>{{cell.lab}}-{{ cell.class_name }}</strong>
-                                            </div>
-                                        </td>
-                                    {% elif cell is not None %}
-                                        <td></td>
-                                    {% endif %}
-                                {% endfor %}
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            {% endfor %}
-        </div>
+<!-- Delete Confirmation Popup -->
+<div id="deletePopup">
+    <p><strong>Delete this allotment?</strong></p>
+    <a id="deleteLink" href="#">Delete</a>
+    <button onclick="hidePopup()">Cancel</button>
+</div>
+
+<script>
+function showDelete(entryId) {
+    document.getElementById("deleteLink").href = "/delete_entry/" + entryId + "/";
+    document.getElementById("deletePopup").style.display = "block";
+}
+function hidePopup() {
+    document.getElementById("deletePopup").style.display = "none";
+}
+</script>
+
+
+<!-- LOOP START -->
+{% for staff_chunk in staff_timetables|chunkify:3 %}
+<div class="staff-row">
+
+    {% for staff_name, data in staff_chunk %}
+    <div class="staff-timetable">
+
+        <center><h4>{{ staff_name }} ({{ data.total_hour }})</h4></center>
+
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>H1</th>
+                    <th>H2</th>
+                    <th>H3</th>
+                    <th>H4</th>
+                    <th>LB</th>
+                    <th>H5</th>
+                    <th>H6</th>
+                    <th>H7</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <!-- MONDAY -->
+                <tr>
+                    <th>Mon</th>
+                    {% for cell in data.timetable_slots.0 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
+                                    {{ cell.subject }}
+                                </div>
+                                <div class="class-name">
+                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
+                                </div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+                <!-- TUESDAY -->
+                <tr>
+                    <th>Tue</th>
+                    {% for cell in data.timetable_slots.1 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
+                                    {{ cell.subject }}
+                                </div>
+                                <div class="class-name">
+                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
+                                </div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+                <!-- WEDNESDAY -->
+                <tr>
+                    <th>Wed</th>
+                    {% for cell in data.timetable_slots.2 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
+                                    {{ cell.subject }}
+                                </div>
+                                <div class="class-name">
+                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
+                                </div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+                <!-- THURSDAY -->
+                <tr>
+                    <th>Thu</th>
+                    {% for cell in data.timetable_slots.3 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
+                                    {{ cell.subject }}
+                                </div>
+                                <div class="class-name">
+                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
+                                </div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+                <!-- FRIDAY -->
+                <tr>
+                    <th>Fri</th>
+                    {% for cell in data.timetable_slots.4 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
+                                    {{ cell.subject }}
+                                </div>
+                                <div class="class-name">
+                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
+                                </div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+            </tbody>
+        </table>
+
+    </div>
     {% endfor %}
+
+</div>
+{% endfor %}
+
 </body>
 </html>
+

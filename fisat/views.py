@@ -233,62 +233,72 @@ def timetable(request):
     staff_timetables = {}
 
     for staff in staff_members:
+
+        # 5 days × 8 hours grid
         timetable_slots = [["" for _ in range(8)] for _ in range(5)]
+
+        # get staff timetable entries for this user + period
         timetable_entries = TimetableEntry.objects.filter(
-            staff=staff, subject__period=DP, user_id=request.user
+            staff=staff,
+            subject__period=DP,
+            user=request.user
         )
+
         workload = 0
+
+        # Map day letters to row index
+        day_to_row = {"M": 0, "T": 1, "W": 2, "Th": 3, "F": 4}
 
         for entry in timetable_entries:
             subject_entry = entry.subject
-            allotted_hours = subject_entry.allotted_hours.split(",")
+
+            hours = subject_entry.allotted_hours.split(",")
+            workload += len(hours)
+
             day = subject_entry.day
-            workload += len(allotted_hours)
-
-            day_to_row = {"M": 0, "T": 1, "W": 2, "Th": 3, "F": 4}
             row_index = day_to_row.get(day, None)
+            if row_index is None:
+                continue
 
-            if row_index is not None:
-                adjusted_hours = []
-                for hour in allotted_hours:
-                    if hour == "8":
-                        adjusted_hours.append("5")
-                    elif hour == "5":
-                        adjusted_hours.append("6")
-                    elif hour == "6":
-                        adjusted_hours.append("7")
-                    elif hour == "7":
-                        adjusted_hours.append("8")
-                    else:
-                        adjusted_hours.append(hour)
-
-                adjusted_hours = sorted(set(adjusted_hours), key=lambda x: int(x))
-
-                start_index = int(adjusted_hours[0]) - 1
-                end_index = int(adjusted_hours[-1]) - 1
-
-                start_index = min(start_index, 7)
-                end_index = min(end_index, 7)
-
-                if end_index < start_index:
-                    end_index = start_index
-
-                if start_index >= 0 and end_index < 8:
-                    for col_index in range(start_index, end_index + 1):
-                        if col_index == start_index:
-                            timetable_slots[row_index][col_index] = {
-                                "lab": subject_entry.LAB,
-                                "class_name": subject_entry.class_name,
-                                "subject": subject_entry.subject_name,
-                                "colspan": end_index - start_index + 1,
-                            }
-                        else:
-                            if col_index < 8:
-                                timetable_slots[row_index][col_index] = None
+            # Adjust hours: 8→5, 5→6, 6→7, 7→8
+            adjusted_hours = []
+            for hour in hours:
+                if hour == "8":
+                    adjusted_hours.append("5")
+                elif hour == "5":
+                    adjusted_hours.append("6")
+                elif hour == "6":
+                    adjusted_hours.append("7")
+                elif hour == "7":
+                    adjusted_hours.append("8")
                 else:
-                    print(
-                        f"Index out of range: start_index={start_index}, end_index={end_index}"
-                    )
+                    adjusted_hours.append(hour)
+
+            adjusted_hours = sorted(set(adjusted_hours), key=lambda x: int(x))
+
+            # Compute column start/end
+            start_index = int(adjusted_hours[0]) - 1
+            end_index = int(adjusted_hours[-1]) - 1
+
+            if start_index < 0: 
+                start_index = 0
+            if end_index > 7:
+                end_index = 7
+
+            # Fill timetable grid
+            for col_index in range(start_index, end_index + 1):
+                if col_index == start_index:
+                    # ⭐ MAIN SLOT – We store entry_id here
+                    timetable_slots[row_index][col_index] = {
+                        "lab": subject_entry.LAB,
+                        "class_name": subject_entry.class_name,
+                        "subject": subject_entry.subject_name,
+                        "entry_id": entry.id,     # ⭐ IMPORTANT
+                        "colspan": end_index - start_index + 1,
+                    }
+                else:
+                    # Fill skipped cells with None
+                    timetable_slots[row_index][col_index] = None
 
         staff_timetables[staff.name] = {
             "timetable_slots": timetable_slots,

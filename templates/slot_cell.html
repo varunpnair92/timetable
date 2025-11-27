@@ -1,0 +1,13 @@
+{% if cell.subject %}
+<td colspan="{{ cell.colspan }}">
+    <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
+        {{ cell.subject }}
+    </div>
+    <div class="class-name">
+        {{cell.lab}} - {{cell.class_name}}
+    </div>
+</td>
+{% elif cell is not None %}
+<td></td>
+{% endif %}
+
