@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subject Wise Allotment</title>
+
+    <style>
+        table {
+            width: 95%;
+            border-collapse: collapse;
+            margin: 20px auto;
+            font-size: 15px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background: #cfcfcf;
+        }
+
+        /* EVEN / ODD row colors  */
+        .even-row { background: #f2f2f2; }
+        .odd-row  { background: #ffffff; }
+
+        h2 { text-align:center; }
+    </style>
+</head>
+
+<body>
+
+<h2>Subject Wise Staff Allotment</h2>
+
+<table>
+    <tr>
+        <th>Subject</th>
+        <th>Day</th>
+        <th>Hours</th>
+        <th>Lab</th>
+        <th>Staff</th>
+    </tr>
+
+    {% for subject, slots in data.items %}
+        {% with slots_len=slots|length %}
+            {% for s in slots %}
+                <tr class="{% cycle 'even-row' 'odd-row' %}">
+                    {% if forloop.first %}
+                        <td rowspan="{{ slots_len }}"><b>{{ subject }}</b></td>
+                    {% endif %}
+
+                    <td>{{ s.day }}</td>
+                    <td>{{ s.hours }}</td>
+                    <td>{{ s.lab }}</td>
+                    <td>{{ s.staff }}</td>
+                </tr>
+            {% endfor %}
+        {% endwith %}
+    {% endfor %}
+</table>
+
+</body>
+</html>
+

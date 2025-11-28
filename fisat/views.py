@@ -710,6 +710,52 @@ def timetableexcel_combined(request):
     response["Content-Disposition"] = 'attachment; filename="labs_combined.xlsx"'
     return response
 
+#download staff entry details
+import csv
+from django.http import HttpResponse
+from django.conf import settings
+from .models import SubjectEntry
+
+DP = settings.DP
+
+def download_subject_entries_csv(request):
+    # Create the HTTP response for CSV
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="subject_entries_{DP}.csv"'
+
+    writer = csv.writer(response)
+    
+    # CSV Header
+    writer.writerow([
+        "ID",
+        "Subject Name",
+        "Class",
+        "Day",
+        "Hours",
+        "Lab",
+        "Period"
+    ])
+
+    # Query Subjects only for current period DP
+    subjects = SubjectEntry.objects.filter(period=DP).order_by("class_name", "subject_name")
+
+    # Write data rows
+    for s in subjects:
+        writer.writerow([
+            s.id,
+            s.subject_name,
+            s.class_name,
+            s.get_day_display(),
+            s.allotted_hours,
+            s.LAB,
+            s.period
+        ])
+
+    return response
+
+
+
+
 
 # ============================================================
 #  LAB ALLOTMENTS CSV (SUBJECT ENTRY EXPORT)
@@ -787,6 +833,168 @@ def download_staff_allotment_csv(request):
         ])
 
     return response
+
+#its download select * fro timetable for backup
+import csv
+from django.http import HttpResponse
+from .models import TimetableEntry
+
+def download_timetable_csv(request):
+    # Create HTTP response with CSV content
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="timetableentry_dump.csv"'
+
+    writer = csv.writer(response)
+
+    # Header row (same as database columns)
+    writer.writerow(["tid", "staffid", "subjectid", "user_id"])
+
+    # SELECT * FROM timetableentry
+    for row in TimetableEntry.objects.all().order_by("id"):
+        writer.writerow([
+            row.id,
+            row.staff_id,
+            row.subject_id,
+            row.user_id,
+        ])
+
+    return response
+
+
+#download timetable each staff allotment image
+'''
+# views.py
+from django.http import HttpResponse
+from django.conf import settings
+from django.shortcuts import render
+from django.utils.text import slugify
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
+import zipfile
+from .models import Staff, TimetableEntry
+
+
+def generate_staff_image(staff_name, timetable_text):
+
+    img = Image.new("RGB", (1400, 1800), "white")
+    draw = ImageDraw.Draw(img)
+
+    # --------- USE DEFAULT FONT (WORKS ON ALL SERVERS) ----------
+    title_font = ImageFont.load_default()
+    text_font = ImageFont.load_default()
+
+    # Fake bold by drawing multiple times slightly offset
+    def draw_bold_text(x, y, text, font):
+        draw.text((x, y), text, fill="black", font=font)
+        draw.text((x+1, y), text, fill="black", font=font)
+        draw.text((x, y+1), text, fill="black", font=font)
+        draw.text((x+1, y+1), text, fill="black", font=font)
+
+    # --------- TITLE ---------
+    draw_bold_text(50, 40, f"Staff Timetable - {staff_name}", title_font)
+
+    # --------- BODY TEXT ---------
+    y = 150
+    for line in timetable_text.split("\n"):
+        draw.text((50, y), line, fill="black", font=text_font)
+        y += 40
+
+    return img
+
+
+def download_all_staff_jpegs(request):
+    buffer = BytesIO()
+    zip_file = zipfile.ZipFile(buffer, "w")
+
+    staff_list = Staff.objects.all().order_by("name")
+
+    for staff in staff_list:
+        entries = TimetableEntry.objects.filter(staff=staff).select_related("subject")
+
+        text_lines = []
+        for e in entries:
+            text_lines.append(
+                f"{e.subject.subject_name} | {e.subject.class_name} | "
+                f"{e.subject.get_day_display()} | Hours: {e.subject.allotted_hours} | Lab: {e.subject.LAB}"
+            )
+
+        timetable_text = "\n".join(text_lines) if text_lines else "No allotments."
+
+        image = generate_staff_image(staff.name, timetable_text)
+
+        img_bytes = BytesIO()
+        image.save(img_bytes, format="JPEG")
+        img_bytes.seek(0)
+
+        filename = f"{slugify(staff.name)}.jpg"
+        zip_file.writestr(filename, img_bytes.getvalue())
+
+    zip_file.close()
+
+    response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+    response["Content-Disposition"] = 'attachment; filename=\"staff_timetables.zip\"'
+    return response
+'''
+
+#subject wise view
+from django.shortcuts import render
+from django.db.models import Prefetch
+from collections import OrderedDict
+from .models import SubjectEntry, TimetableEntry, Staff
+from django.conf import settings
+
+DP = settings.DP
+
+# Custom sorting for class names
+def class_sort_key(name):
+    name = name.upper()
+    priority = ["S2", "S3", "S4", "S5", "S6", "MCA", "IMCA", "MBA"]
+    for i, p in enumerate(priority):
+        if name.startswith(p):
+            return i, name
+    return len(priority), name  # Others go last
+
+def subject_sort_key(name):
+    return name.upper()
+
+def subject_wise_allocation(request):
+
+    # Fetch all subject entries for current period
+    subjects = SubjectEntry.objects.filter(period=DP).order_by("class_name", "subject_name")
+
+    # Prefetch staff for each subject
+    timetable_map = {}
+    tt = TimetableEntry.objects.select_related("staff", "subject").filter(subject__period=DP)
+    for t in tt:
+        timetable_map.setdefault(t.subject_id, []).append(t.staff.name)
+
+    # Prepare final data → grouped as SUBJECT : [{day,hours,lab,staff}]
+    combined = {}
+
+    for sub in subjects:
+        key = f"{sub.subject_name} ({sub.class_name})"
+
+        if key not in combined:
+            combined[key] = []
+
+        combined[key].append({
+            "day": sub.get_day_display(),
+            "hours": sub.allotted_hours,
+            "lab": sub.LAB,
+            "staff": ", ".join(timetable_map.get(sub.id, [])) or "—"
+        })
+
+    # Sort by class (S2/S4/MCA/IMCA) then subject
+    sorted_data = OrderedDict(
+        sorted(
+            combined.items(),
+            key=lambda x: (class_sort_key(x[0].split("(")[1].replace(")", "")), subject_sort_key(x[0]))
+        )
+    )
+
+    return render(request, "subject_wise_allocation.html", {"data": sorted_data})
+
+
 
 
 # ============================================================

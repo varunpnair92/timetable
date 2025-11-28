@@ -9,44 +9,65 @@
             width: 100%;
             border-collapse: collapse;
         }
+
         th, td {
             border: 1px solid black;
             padding: 8px;
-            text-align: left;                 /* original alignment */
+            text-align: left;
             max-width: 150px;
             word-wrap: break-word;
             overflow: hidden;
             text-overflow: ellipsis;
             font-size: 14px;
-            height: 30px;                     /* original cell height */
-            vertical-align: top;              /* original vertical alignment */
+            height: 30px;
+            vertical-align: top;
         }
-        th {
-            background-color: #f2f2f2;
+
+        /* ⭐ HOUR HEADER (H1–H7, LB) → DARK GREY */
+        thead th {
+            background-color: #b3b3b3;   /* DARK GREY */
+            color: black;
+            text-align: center;
         }
+
+        /* ⭐ DAY (Mon–Fri) COLUMN → DARK GREY */
+        tbody th {
+            background-color: #b3b3b3;   /* DARK GREY */
+            color: black;
+            width: 50px;
+            text-align: center;
+        }
+
+        /* ⭐ EMPTY CELLS → LIGHT GREY */
+        .empty-cell {
+            background-color: #e6e6e6 !important; /* LIGHT GREY */
+        }
+
+        /* NORMAL SUBJECT CELLS → WHITE */
         .subject {
             font-size: 12px;
             font-weight: bold;
-            text-align: center;               /* original */
-            cursor: pointer;                  /* for delete popup */
+            text-align: center;
+            cursor: pointer;
         }
         .class-name {
             font-size: 10px;
             color: #666;
             font-weight: bold;
-            text-align: center;               /* original */
+            text-align: center;
         }
+
         .staff-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;              /* original */
+            margin-bottom: 20px;
         }
         .staff-timetable {
             flex: 1;
             margin: 0 10px;
         }
 
-        /* Delete popup */
+        /* ===== DELETE POPUP ===== */
         #deletePopup {
             display: none;
             position: fixed;
@@ -73,6 +94,7 @@
             margin-left: 10px;
             font-weight: bold;
         }
+
     </style>
 
 </head>
@@ -80,7 +102,7 @@
 
 {% load custom_filters %}
 
-<!-- Delete Confirmation Popup -->
+<!-- Delete Popup -->
 <div id="deletePopup">
     <p><strong>Delete this allotment?</strong></p>
     <a id="deleteLink" href="#">Delete</a>
@@ -98,7 +120,6 @@ function hidePopup() {
 </script>
 
 
-<!-- LOOP START -->
 {% for staff_chunk in staff_timetables|chunkify:3 %}
 <div class="staff-row">
 
@@ -124,97 +145,77 @@ function hidePopup() {
 
             <tbody>
 
-                <!-- MONDAY -->
+                <!-- ⭐ MONDAY -->
                 <tr>
                     <th>Mon</th>
                     {% for cell in data.timetable_slots.0 %}
                         {% if cell.subject %}
                             <td colspan="{{ cell.colspan }}">
-                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
-                                    {{ cell.subject }}
-                                </div>
-                                <div class="class-name">
-                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
-                                </div>
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td></td>
+                            <td class="empty-cell"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
 
-                <!-- TUESDAY -->
+                <!-- ⭐ TUESDAY -->
                 <tr>
                     <th>Tue</th>
                     {% for cell in data.timetable_slots.1 %}
                         {% if cell.subject %}
                             <td colspan="{{ cell.colspan }}">
-                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
-                                    {{ cell.subject }}
-                                </div>
-                                <div class="class-name">
-                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
-                                </div>
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td></td>
+                            <td class="empty-cell"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
 
-                <!-- WEDNESDAY -->
+                <!-- ⭐ WEDNESDAY -->
                 <tr>
                     <th>Wed</th>
                     {% for cell in data.timetable_slots.2 %}
                         {% if cell.subject %}
                             <td colspan="{{ cell.colspan }}">
-                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
-                                    {{ cell.subject }}
-                                </div>
-                                <div class="class-name">
-                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
-                                </div>
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td></td>
+                            <td class="empty-cell"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
 
-                <!-- THURSDAY -->
+                <!-- ⭐ THURSDAY -->
                 <tr>
                     <th>Thu</th>
                     {% for cell in data.timetable_slots.3 %}
                         {% if cell.subject %}
                             <td colspan="{{ cell.colspan }}">
-                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
-                                    {{ cell.subject }}
-                                </div>
-                                <div class="class-name">
-                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
-                                </div>
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td></td>
+                            <td class="empty-cell"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
 
-                <!-- FRIDAY -->
+                <!-- ⭐ FRIDAY -->
                 <tr>
                     <th>Fri</th>
                     {% for cell in data.timetable_slots.4 %}
                         {% if cell.subject %}
                             <td colspan="{{ cell.colspan }}">
-                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">
-                                    {{ cell.subject }}
-                                </div>
-                                <div class="class-name">
-                                    <strong>{{ cell.lab }} - {{ cell.class_name }}</strong>
-                                </div>
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td></td>
+                            <td class="empty-cell"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>

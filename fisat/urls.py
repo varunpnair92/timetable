@@ -1,7 +1,7 @@
 from django.urls import path,include
 from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff,get_free_staff
 from django.contrib.auth import views as auth_views
-from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,timetable2,edit_staff_config,apply_ai_allocation,staff_subject_count,get_subject_load,get_staff_day_load,download_staff_allotment_csv
+from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,download_subject_entries_csv,timetable2, download_timetable_csv,edit_staff_config,apply_ai_allocation,staff_subject_count,get_subject_load,get_staff_day_load,download_staff_allotment_csv,subject_wise_allocation
 
 urlpatterns = [
     path('timetable/', timetable, name='timetable'),
@@ -15,6 +15,13 @@ urlpatterns = [
     path('labdfull/',  timetableexcel_combined, name='Lab Download Combined'),
     path('labd2/',  export_lab_allotments_csv, name='Lab Download 2'),
     path("download_staff_allotment/", download_staff_allotment_csv, name="download_staff_allotment"),
+    path("download_subject_entries/", download_subject_entries_csv, name="download_subject_entries"),
+    path("download-timetable/", download_timetable_csv, name="download_timetable"),
+   
+		#path('download_all_staff_jpegs/', download_all_staff_jpegs, name='download_all_staff_jpegs'),
+		path("subject_wise/", subject_wise_allocation, name="subject_wise_allocation"),
+
+
 
     path('dsubject/', delete_subject_entry_view, name='delete_subject'),
     #path('', show_google_login_page, name='login_page'),  # home page = login
