@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Subject Wise Allotment</title>
+    <title>Subject Wise Staff Allotment</title>
 
     <style>
         table {
@@ -19,19 +19,18 @@
             background: #cfcfcf;
         }
 
-        /* EVEN / ODD row colors  */
-        .even-row { background: #f2f2f2; }
-        .odd-row  { background: #ffffff; }
-
-        h2 { text-align:center; }
+        /* Highlight clicked subject rows */
+        .selected-row {
+            background: #2AAA8A !important;   /* Yellow highlight */
+        }
     </style>
 </head>
 
 <body>
 
-<h2>Subject Wise Staff Allotment</h2>
+<h2 style="text-align:center;">Subject Wise Staff Allotment</h2>
 
-<table>
+<table id="subjectTable">
     <tr>
         <th>Subject</th>
         <th>Day</th>
@@ -42,21 +41,46 @@
 
     {% for subject, slots in data.items %}
         {% with slots_len=slots|length %}
-            {% for s in slots %}
-                <tr class="{% cycle 'even-row' 'odd-row' %}">
-                    {% if forloop.first %}
-                        <td rowspan="{{ slots_len }}"><b>{{ subject }}</b></td>
-                    {% endif %}
+            <tr class="sub-row" data-sub="{{ subject }}">
+                <td rowspan="{{ slots_len }}"><b>{{ subject }}</b></td>
+                <td>{{ slots.0.day }}</td>
+                <td>{{ slots.0.hours }}</td>
+                <td>{{ slots.0.lab }}</td>
+                <td>{{ slots.0.staff }}</td>
+            </tr>
 
-                    <td>{{ s.day }}</td>
-                    <td>{{ s.hours }}</td>
-                    <td>{{ s.lab }}</td>
-                    <td>{{ s.staff }}</td>
-                </tr>
+            {% for s in slots|slice:"1:" %}
+            <tr class="sub-row" data-sub="{{ subject }}">
+                <td>{{ s.day }}</td>
+                <td>{{ s.hours }}</td>
+                <td>{{ s.lab }}</td>
+                <td>{{ s.staff }}</td>
+            </tr>
             {% endfor %}
+
         {% endwith %}
     {% endfor %}
 </table>
+
+
+<script>
+// remove highlight from all rows
+function clearSelection() {
+    document.querySelectorAll(".sub-row").forEach(r => {
+        r.classList.remove("selected-row");
+    });
+}
+
+// when clicking any subject row
+document.querySelectorAll(".sub-row").forEach(row => {
+    row.addEventListener("click", () => {
+        let subject = row.dataset.sub;
+        clearSelection();  // clear all
+        document.querySelectorAll(`.sub-row[data-sub="${subject}"]`)
+                .forEach(r => r.classList.add("selected-row"));
+    });
+});
+</script>
 
 </body>
 </html>
