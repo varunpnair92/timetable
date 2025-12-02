@@ -479,17 +479,17 @@ def timetableexcel(request):
     empty_slot_format = workbook.add_format({"bg_color": "#D3D3D3", "border": 1})
 
     staff_abbreviations = {
-        "AMBILI N MENON": "ANM",
+        "AMBILY N MENON": "ANM",
         "SREELALITHAMBIKA P K": "SL",
-        "SANDHYA O C": "SOC",
+        "SANDYA O C": "SOC",
         "NEEBA CHERIYACHAN": "NC",
-        "NOMA MATHEW M": "NM",
+        "NOMA MATHEW": "NM",
         "AMBILY SEKAR C": "AS",
         "VARUN P NAIR": "VPN",
         "ARAVIND BALAN": "AB",
-        "SALINIT T R": "STR",
-        "SMIJA": "SM",
-        "JOICY": "JY",
+        "SALINI T R": "STR",
+        "SMIJA M B": "SM",
+        "JOYCY": "JY",
     }
 
     days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
@@ -605,31 +605,40 @@ def timetableexcel_combined(request):
     workbook = xlsxwriter.Workbook(output)
     ws = workbook.add_worksheet("Combined Labs")
 
+    # ================= FORMATTERS ==================
     header_format = workbook.add_format(
-        {"bold": True, "align": "center", "valign": "vcenter", "bg_color": "#F2F2F2", "border": 1}
+        {"bold": True, "align": "center", "valign": "vcenter",
+         "bg_color": "#F2F2F2", "border": 1}
     )
-    data_format = workbook.add_format({"align": "center", "valign": "vcenter", "border": 1})
-    merge_format = workbook.add_format({"align": "center", "valign": "vcenter", "border": 1})
+    data_format = workbook.add_format(
+        {"align": "center", "valign": "vcenter", "border": 1}
+    )
+    merge_format = workbook.add_format(
+        {"align": "center", "valign": "vcenter", "border": 1}
+    )
+
+    # ⭐ FREE SLOT GREY COLOR
     empty_slot_format = workbook.add_format({"bg_color": "#D3D3D3", "border": 1})
 
     staff_abbr = {
-        "AMBILI N MENON": "ANM",
+        "AMBILY N MENON": "ANM",
         "SREELALITHAMBIKA P K": "SL",
-        "SANDHYA O C": "SOC",
+        "SANDYA O C": "SOC",
         "NEEBA CHERIYACHAN": "NC",
-        "NOMA MATHEW M": "NM",
+        "NOMA MATHEW": "NM",
         "AMBILY SEKAR C": "AS",
         "VARUN P NAIR": "VPN",
         "ARAVIND BALAN": "AB",
-        "SALINIT T R": "STR",
-        "SMIJA": "SM",
-        "JOICY": "JY",
+        "SALINI T R": "STR",
+        "SMIJA M B": "SM",
+        "JOYCY": "JY",
     }
 
     days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
     hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
     day_map = {"M": "Mon", "T": "Tue", "W": "Wed", "Th": "Thu", "F": "Fri"}
 
+    # Lab groups layout
     lab_groups = [
         ["L1", "L2", "L3"],
         ["L5", "L7", "L8"],
@@ -644,40 +653,53 @@ def timetableexcel_combined(request):
 
         for lab in group:
             col = col_offset
-            subjects = SubjectEntry.objects.filter(LAB=lab, period=DP).order_by("day")
 
+            subjects = SubjectEntry.objects.filter(
+                LAB=lab, period=DP
+            ).order_by("day")
+
+            # Headers
             ws.write(start_row, col, lab, header_format)
             ws.write(start_row + 1, col, "Day", header_format)
+
             for i, hr in enumerate(hours):
                 ws.write(start_row + 1, col + 1 + i, hr, header_format)
 
-            merged_cells = {}
+            merged_cells = {}   # track merged hour spans per row
             row = start_row + 2
 
+            # ========== FILL DAY ROWS ==========
             for day in days:
                 ws.write(row, col, day, data_format)
+
                 day_key = [k for k, v in day_map.items() if v == day][0]
                 day_subjects = subjects.filter(day=day_key)
 
+                # -------- PLACE SUBJECTS --------
                 for sub in day_subjects:
                     entries = TimetableEntry.objects.filter(
-                        subject=sub, user_id=request.user
+                        subject=sub,
+                        user_id=request.user
                     )
+
                     staff_names = ",".join(
-                        staff_abbr.get(e.staff.name, e.staff.name) for e in entries
+                        staff_abbr.get(e.staff.name, e.staff.name)
+                        for e in entries
                     )
+
                     details = f"{sub.subject_name} ({sub.class_name})\n{staff_names}"
 
-                    ah = []
-                    for h in sub.allotted_hours.split(","):
-                        ah.append({"8": "5", "5": "6", "6": "7", "7": "8"}.get(h, h))
-
+                    # Adjust hours 8→5 mapping
+                    adj = {"8": "5", "5": "6", "6": "7", "7": "8"}
+                    ah = [adj.get(h, h) for h in sub.allotted_hours.split(",")]
                     ah = sorted(set(ah), key=lambda x: int(x))
-                    s = int(ah[0]) - 1
-                    e = int(ah[-1]) - 1
+
+                    s = int(ah[0]) - 1      # start hour index
+                    e = int(ah[-1]) - 1     # end hour index
 
                     merge_key = (col + 1 + s, col + 1 + e)
 
+                    # Check if overlap
                     overlaps = False
                     if row in merged_cells:
                         for (ms, me) in merged_cells[row]:
@@ -685,10 +707,10 @@ def timetableexcel_combined(request):
                                 overlaps = True
                                 break
 
+                    # Draw merged or separate cells
                     if not overlaps:
-                        ws.merge_range(
-                            row, col + 1 + s, row, col + 1 + e, details, merge_format
-                        )
+                        ws.merge_range(row, col + 1 + s, row, col + 1 + e,
+                                       details, merge_format)
                         merged_cells.setdefault(row, []).append(
                             (merge_key[0], merge_key[1])
                         )
@@ -696,19 +718,31 @@ def timetableexcel_combined(request):
                         for h in range(s, e + 1):
                             ws.write(row, col + 1 + h, details, merge_format)
 
+                # --------- ⭐ FILL FREE SLOTS IN GREY ---------
+                for hour_col in range(col + 1, col + 1 + len(hours)):
+                    if not any(
+                        start <= hour_col <= end
+                        for (start, end) in merged_cells.get(row, [])
+                    ):
+                        ws.write(row, hour_col, "", empty_slot_format)
+
                 row += 1
 
             col_offset += len(hours) + 3
 
         start_row += 12
 
+    # Finalize
     workbook.close()
     response = HttpResponse(
         output.getvalue(),
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response["Content-Disposition"] = 'attachment; filename="labs_combined.xlsx"'
     return response
+
+
+
 
 #download staff entry details
 import csv
