@@ -99,3 +99,13 @@ class TimetableEntry(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()  # Ensure model passes validation before saving
         super().save(*args, **kwargs)
+        
+class SubjectFacultyMap(models.Model):
+    subject = models.ForeignKey(SubjectEntry, on_delete=models.CASCADE)
+    faculty_names = models.TextField()
+    period = models.CharField(max_length=10)
+
+    def __str__(self):
+        return f"{self.subject.subject_name} → {self.faculty_names}"
+
+        

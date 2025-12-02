@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Faculty Assignment</title>
+    <style>
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #dcdcdc;
+            text-align: center;
+        }
+        .row-even { background: #f7f7f7; }
+        .row-odd { background: #ffffff; }
+        input[type=text] {
+            width: 95%;
+            padding: 6px;
+        }
+        button {
+            padding: 6px 12px;
+            background: green;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h2 style="text-align:center;">Faculty Assignment for All Subjects</h2>
+
+<table>
+    <tr>
+        <th>Class</th>
+        <th>Subject</th>
+        <th>Faculty (comma separated)</th>
+        <th>Save</th>
+    </tr>
+
+    {% for sub in subjects %}
+    <tr class="row-{% cycle 'even' 'odd' %}">
+        <form method="POST">
+            {% csrf_token %}
+            <td>{{ sub.class_name }}</td>
+            <td>{{ sub.subject_name }}</td>
+
+            <td>
+                <input type="hidden" name="subject_name" value="{{ sub.subject_name }}">
+                <input type="hidden" name="class_name" value="{{ sub.class_name }}">
+                <input type="text"
+                       name="faculty"
+                       value="{{ saved.sub.subject_name|default:'' }}">
+            </td>
+
+            <td>
+                <button type="submit">Save</button>
+            </td>
+        </form>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
+

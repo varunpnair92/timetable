@@ -1492,3 +1492,37 @@ def timetable2(request):
         {"staff_timetables": staff_timetables},
     )
 
+
+from .models import SubjectFacultyMap
+@login_required
+def subject_faculty_mapping(request):
+    subjects = SubjectEntry.objects.filter(period=DP).order_by("class_name", "subject_name", "id")
+
+    # Load existing mappings
+    mapping = {m.subject_id: m for m in SubjectFacultyMap.objects.filter(period=DP)}
+
+    if request.method == "POST":
+        for sub in subjects:
+            field_name = f"faculty_{sub.id}"
+            faculty_val = request.POST.get(field_name, "").strip()
+
+            if faculty_val == "":
+                continue  # skip empty
+
+            # update OR create
+            obj, created = SubjectFacultyMap.objects.update_or_create(
+                subject=sub,
+                period=DP,
+                defaults={"faculty_names": faculty_val},
+            )
+
+        messages.success(request, "Faculty mapping updated successfully.")
+        return redirect("subject_faculty_mapping")
+
+    return render(request, "subject_faculty_mapping.html", {
+        "subjects": subjects,
+        "mapping": mapping
+    })
+
+
+

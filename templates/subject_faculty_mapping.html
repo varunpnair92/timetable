@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Faculty Mapping</title>
+
+    <style>
+        body { font-family: Arial; }
+        table {
+            width: 95%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #888;
+            text-align: left;
+        }
+        th {
+            background: #e6e6e6;
+        }
+        tr:nth-child(even) {
+            background: #f7f7f7;
+        }
+        input[type=text] {
+            width: 98%;
+            padding: 5px;
+            font-size: 14px;
+        }
+        .btn-submit {
+            margin: 20px auto;
+            display: block;
+            background: green;
+            padding: 10px 25px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+
+</head>
+<body>
+
+<h2 style="text-align:center;">Faculty Mapping for Subjects</h2>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <table>
+        <tr>
+            <th>Class</th>
+            <th>Subject</th>
+            <th>Day</th>
+            <th>Hours</th>
+            <th>Lab</th>
+            <th>Faculty Names (comma separated)</th>
+        </tr>
+
+        {% for sub in subjects %}
+        <tr>
+            <td>{{ sub.class_name }}</td>
+            <td>{{ sub.subject_name }}</td>
+            <td>{{ sub.get_day_display }}</td>
+            <td>{{ sub.allotted_hours }}</td>
+            <td>{{ sub.LAB }}</td>
+
+            <td>
+                <input type="text"
+                       name="faculty_{{ sub.id }}"
+                       value="{{ mapping.sub.id.faculty_names|default:'' }}">
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <button type="submit" class="btn-submit">Save Mapping</button>
+</form>
+
+</body>
+</html>
+
