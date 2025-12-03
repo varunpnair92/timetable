@@ -516,6 +516,12 @@ def timetableexcel(request):
 
     for lab in labs:
         ws = workbook.add_worksheet(lab)
+        ws.set_paper(9)                # A4
+        ws.set_landscape()             # Landscape orientation
+        ws.center_horizontally()
+        ws.center_vertically()
+        ws.fit_to_pages(1, 1)          # Fit on one A4 sheet
+        ws.set_margins(left=0.3, right=0.3, top=0.5, bottom=0.5)
 
         # ========== LOGO ==========
         try:
@@ -525,16 +531,17 @@ def timetableexcel(request):
 
         # ========== INSTITUTE HEADER ==========
         ws.merge_range("A1:I1",
-                       "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)",
-                       institute_fmt)
+                       """FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)
+                        (Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)
+                        LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)""",institute_fmt)
 
-        ws.merge_range("B2:I2",
+        '''ws.merge_range("B2:I2",
                        "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)",
                        address_fmt)
 
-        ws.merge_range("B3:I3",
+        #ws.merge_range("B3:I3",
                        "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)",
-                       title_fmt)
+                       title_fmt)'''
 
         # ⭐⭐⭐ LAB NAME HEADER MERGED ABOVE HOURS ⭐⭐⭐
         ws.merge_range("A4:I4", f"LAB : {lab}", lab_header_fmt)
