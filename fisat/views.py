@@ -461,7 +461,9 @@ def allot_subject_entry(request):
 @login_required(login_url="/")
 def timetableexcel(request):
     import xlsxwriter
-    from .models import SubjectFacultyMap  # <-- IMPORTANT
+    from .models import SubjectFacultyMap
+
+    logo_path = "/home/varun/fisatlab/static/fisat_logo.png"
 
     labs = (
         SubjectEntry.objects.filter(period=DP)
@@ -472,19 +474,33 @@ def timetableexcel(request):
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
 
-    header_format = workbook.add_format(
-        {"bold": True, "align": "center", "valign": "vcenter",
-         "bg_color": "#F2F2F2", "border": 1}
-    )
-    data_format = workbook.add_format(
-        {"align": "center", "valign": "vcenter", "border": 1}
-    )
-    merge_format = workbook.add_format(
-        {"align": "center", "valign": "vcenter", "border": 1}
-    )
-    empty_slot_format = workbook.add_format(
-        {"bg_color": "#D3D3D3", "border": 1}
-    )
+    # ======= FORMATS =======
+    institute_fmt = workbook.add_format({
+        "bold": True, "font_size": 20,
+        "align": "center", "valign": "vcenter"
+    })
+    address_fmt = workbook.add_format({
+        "font_size": 14, "align": "center", "valign": "vcenter"
+    })
+    title_fmt = workbook.add_format({
+        "bold": True, "font_size": 16,
+        "align": "center", "valign": "vcenter"
+    })
+
+    # ⭐ LAB NAME HEADER FORMAT
+    lab_header_fmt = workbook.add_format({
+        "bold": True, "font_size": 15,
+        "align": "center", "valign": "vcenter",
+        "bg_color": "#d9ead3", "border": 1
+    })
+
+    header_fmt = workbook.add_format({
+        "bold": True, "align": "center", "valign": "vcenter",
+        "bg_color": "#F2F2F2", "border": 1
+    })
+    data_fmt = workbook.add_format({"align": "center", "valign": "vcenter", "border": 1})
+    merge_fmt = workbook.add_format({"align": "center", "valign": "vcenter", "border": 1})
+    empty_fmt = workbook.add_format({"bg_color": "#D3D3D3", "border": 1})
 
     staff_abbr = {
         "AMBILY N MENON": "ANM", "SREELALITHAMBIKA P K": "SL",
@@ -495,87 +511,88 @@ def timetableexcel(request):
     }
 
     days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
-    hours = ["H1","H2","H3","H4","LB","H5","H6","H7"]
+    hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
     day_map = {"M":"Mon","T":"Tue","W":"Wed","Th":"Thu","F":"Fri"}
 
     for lab in labs:
         ws = workbook.add_worksheet(lab)
 
-        ws.write(0,0,"Day",header_format)
-        for c,h in enumerate(hours):
-            ws.write(0,c+1,h,header_format)
+        # ========== LOGO ==========
+        try:
+            ws.insert_image("A1", logo_path, {"x_scale": 0.3, "y_scale": 0.3})
+        except:
+            pass
 
-        row = 1
+        # ========== INSTITUTE HEADER ==========
+        ws.merge_range("A1:I1",
+                       "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)",
+                       institute_fmt)
+
+        ws.merge_range("B2:I2",
+                       "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)",
+                       address_fmt)
+
+        ws.merge_range("B3:I3",
+                       "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)",
+                       title_fmt)
+
+        # ⭐⭐⭐ LAB NAME HEADER MERGED ABOVE HOURS ⭐⭐⭐
+        ws.merge_range("A4:I4", f"LAB : {lab}", lab_header_fmt)
+
+        # ========== TABLE HEADER ==========
+        ws.write(4, 0, "Day", header_fmt)
+        for c, h in enumerate(hours):
+            ws.write(4, c + 1, h, header_fmt)
+
+        row = 5
         subjects = SubjectEntry.objects.filter(LAB=lab, period=DP).order_by("day")
         merged_cells = {}
 
         for day in days:
-            ws.write(row,0,day,data_format)
-            dkey = [k for k,v in day_map.items() if v==day][0]
-            day_subjects = subjects.filter(day=dkey)
+            ws.write(row, 0, day, data_fmt)
+            key = [k for k, v in day_map.items() if v == day][0]
+            subs = subjects.filter(day=key)
 
-            for sub in day_subjects:
+            for sub in subs:
+                entries = TimetableEntry.objects.filter(subject=sub, user=request.user)
+                staff_names = ",".join(
+                    staff_abbr.get(e.staff.name, e.staff.name) for e in entries
+                ) or "—"
 
-                # ===========================
-                # STAFF NAMES
-                # ===========================
-                entries = TimetableEntry.objects.filter(
-                    subject=sub, subject__period=DP, user=request.user
-                )
-                staff_names = ",".join(staff_abbr.get(e.staff.name,e.staff.name)
-                                       for e in entries) or "—"
-
-                # ===========================
-                # FACULTY NAMES (NEW)
-                # ===========================
                 try:
                     fac = SubjectFacultyMap.objects.get(subject=sub)
-                    faculty_names = fac.faculty_names or "—"
+                    faculty = fac.faculty_names or "—"
                 except:
-                    faculty_names = "—"
+                    faculty = "—"
 
-                # ===========================
-                # CELL LINE CONTENT
-                # ===========================
-                details = (
-                    f"{sub.subject_name} ({sub.class_name})\n"
-                    f"({faculty_names}) ({staff_names})"
-                )
+                text = f"{sub.subject_name} ({sub.class_name})\n({faculty}) ({staff_names})"
 
-                # ===========================
-                # HOUR ADJUSTMENT
-                # ===========================
-                adj = {"8":"5","5":"6","6":"7","7":"8"}
-                ah = [adj.get(h,h) for h in sub.allotted_hours.split(",")]
-                ah = sorted(set(ah), key=lambda x: int(x))
-                s = int(ah[0]) - 1
-                e = int(ah[-1]) - 1
+                adj = {"8": "5", "5": "6", "6": "7", "7": "8"}
+                ah = sorted({int(adj.get(h, h)) for h in sub.allotted_hours.split(",")})
 
-                merge_key = (s+1, e+1)
+                s = ah[0] - 1
+                e = ah[-1] - 1
 
-                # MERGE OR PLACE
                 if row not in merged_cells:
                     merged_cells[row] = []
 
-                overlap = any(ms <= merge_key[0] <= me or ms <= merge_key[1] <= me
-                              for (ms,me) in merged_cells[row])
+                overlap = any(ms <= s + 1 <= me or ms <= e + 1 <= me for (ms, me) in merged_cells[row])
 
                 if not overlap:
-                    ws.merge_range(row, s+1, row, e+1, details, merge_format)
-                    merged_cells[row].append((s+1,e+1))
+                    ws.merge_range(row, s + 1, row, e + 1, text, merge_fmt)
+                    merged_cells[row].append((s + 1, e + 1))
                 else:
-                    for col in range(s+1, e+2):
-                        ws.write(row, col, details, merge_format)
+                    for col in range(s + 1, e + 2):
+                        ws.write(row, col, text, merge_fmt)
 
-            # fill empty slots
-            for col in range(1,9):
-                if not any(ms <= col <= me for (ms,me) in merged_cells.get(row,[])):
-                    ws.write(row, col, "", empty_slot_format)
+            for col in range(1, 9):
+                if not any(ms <= col <= me for (ms, me) in merged_cells.get(row, [])):
+                    ws.write(row, col, "", empty_fmt)
 
             row += 1
 
-        ws.set_column("A:A", 6)
-        ws.set_column("B:I", 10)
+        ws.set_column("A:A", 7)
+        ws.set_column("B:I", 11)
         ws.set_default_row(45)
 
     workbook.close()
@@ -595,29 +612,34 @@ def timetableexcel(request):
 @login_required(login_url="/")
 def timetableexcel_combined(request):
     import xlsxwriter
-    from .models import SubjectFacultyMap  # <-- IMPORTANT
+    from .models import SubjectFacultyMap
+
+    logo_path = "/home/varun/fisatlab/static/fisat_logo.png"
 
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     ws = workbook.add_worksheet("Combined Labs")
 
-    header_format = workbook.add_format(
-        {"bold": True, "align": "center", "valign": "vcenter",
-         "bg_color": "#F2F2F2", "border": 1}
-    )
-    data_format = workbook.add_format(
-        {"align": "center", "valign": "vcenter", "border": 1}
-    )
-    merge_format = workbook.add_format(
-        {"align": "center", "valign": "vcenter", "border": 1}
-    )
-    empty_slot_format = workbook.add_format({"bg_color": "#D3D3D3", "border": 1})
+    # ===== FORMATS =====
+    institute_fmt = workbook.add_format({"bold": True, "font_size": 20,
+                                         "align": "center", "valign": "vcenter"})
+    address_fmt = workbook.add_format({"font_size": 14,
+                                       "align": "center", "valign": "vcenter"})
+    title_fmt = workbook.add_format({"bold": True, "font_size": 16,
+                                     "align": "center", "valign": "vcenter"})
+
+    header_fmt = workbook.add_format({"bold": True, "align": "center",
+                                      "bg_color": "#F2F2F2", "border": 1})
+    data_fmt = workbook.add_format({"align": "center", "border": 1})
+    merge_fmt = workbook.add_format({"align": "center", "border": 1})
+    empty_fmt = workbook.add_format({"bg_color": "#D3D3D3", "border": 1})
 
     staff_abbr = {
-        "AMBILY N MENON":"ANM","SREELALITHAMBIKA P K":"SL","SANDYA O C":"SOC",
-        "NEEBA CHERIYACHAN":"NC","NOMA MATHEW":"NM","AMBILY SEKAR C":"AS",
-        "VARUN P NAIR":"VPN","ARAVIND BALAN":"AB","SALINI T R":"STR",
-        "SMIJA M B":"SM","JOYCY":"JY",
+        "AMBILY N MENON": "ANM", "SREELALITHAMBIKA P K": "SL",
+        "SANDYA O C": "SOC", "NEEBA CHERIYACHAN": "NC",
+        "NOMA MATHEW": "NM", "AMBILY SEKAR C": "AS",
+        "VARUN P NAIR": "VPN", "ARAVIND BALAN": "AB",
+        "SALINI T R": "STR", "SMIJA M B": "SM", "JOYCY": "JY",
     }
 
     days = ["Mon","Tue","Wed","Thu","Fri"]
@@ -631,37 +653,54 @@ def timetableexcel_combined(request):
         ["L9","PG LAB"]
     ]
 
-    start_row = 0
+    # ===== LOGO =====
+    try:
+        ws.insert_image("A1", logo_path, {"x_scale": 0.3, "y_scale": 0.3})
+    except:
+        pass
+
+    # ===== SINGLE ROW HEADER =====
+    ws.merge_range("A1:AF1",
+        "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)",
+        institute_fmt)
+    ws.merge_range("B2:Z2",
+        "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)",
+        address_fmt)
+    ws.merge_range("B3:Z3",
+        "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)",
+        title_fmt)
+
+    start_row = 4
 
     for group in lab_groups:
         col_offset = 0
 
         for lab in group:
             col = col_offset
-            subjects = SubjectEntry.objects.filter(LAB=lab, period=DP).order_by("day")
 
-            # headers
-            ws.write(start_row, col, lab, header_format)
-            ws.write(start_row+1, col, "Day", header_format)
+            ws.write(start_row, col, lab, header_fmt)
+            ws.write(start_row+1, col, "Day", header_fmt)
+
             for i,h in enumerate(hours):
-                ws.write(start_row+1, col+1+i, h, header_format)
+                ws.write(start_row+1, col+1+i, h, header_fmt)
 
             merged = {}
             row = start_row + 2
 
-            for day in days:
-                ws.write(row, col, day, data_format)
-                dkey = [k for k,v in day_map.items() if v==day][0]
-                day_subs = subjects.filter(day=dkey)
+            subjects = SubjectEntry.objects.filter(LAB=lab, period=DP).order_by("day")
 
-                for sub in day_subs:
+            for day in days:
+                ws.write(row, col, day, data_fmt)
+
+                key = [k for k,v in day_map.items() if v==day][0]
+                subs = subjects.filter(day=key)
+
+                for sub in subs:
 
                     # staff
                     entries = TimetableEntry.objects.filter(subject=sub, user_id=request.user)
-                    staff_names = ",".join(
-                        staff_abbr.get(e.staff.name,e.staff.name)
-                        for e in entries
-                    ) or "—"
+                    staff_names = ",".join(staff_abbr.get(e.staff.name,e.staff.name)
+                                           for e in entries) or "—"
 
                     # faculty
                     try:
@@ -670,19 +709,13 @@ def timetableexcel_combined(request):
                     except:
                         faculty = "—"
 
-                    # cell text
-                    details = (
-                        f"{sub.subject_name} ({sub.class_name})\n"
-                        f"({faculty}) ({staff_names})"
-                    )
+                    text = f"{sub.subject_name} ({sub.class_name})\n({faculty}) ({staff_names})"
 
-                    # hours adjusted
                     adj = {"8":"5","5":"6","6":"7","7":"8"}
-                    ah = [adj.get(h,h) for h in sub.allotted_hours.split(",")]
-                    ah = sorted(set(ah), key=lambda x:int(x))
+                    ah = sorted({int(adj.get(h,h)) for h in sub.allotted_hours.split(",")})
 
-                    s = int(ah[0]) - 1
-                    e = int(ah[-1]) - 1
+                    s = ah[0] - 1
+                    e = ah[-1] - 1
 
                     if row not in merged:
                         merged[row] = []
@@ -693,16 +726,16 @@ def timetableexcel_combined(request):
                                   for (ms,me) in merged[row])
 
                     if not overlap:
-                        ws.merge_range(row, col+1+s, row, col+1+e, details, merge_format)
-                        merged[row].append((col+1+s,col+1+e))
+                        ws.merge_range(row, col+1+s, row, col+1+e, text, merge_fmt)
+                        merged[row].append((col+1+s, col+1+e))
                     else:
                         for c in range(col+1+s, col+2+e):
-                            ws.write(row, c, details, merge_format)
+                            ws.write(row, c, text, merge_fmt)
 
                 # free slots
                 for c in range(col+1, col+1+len(hours)):
                     if not any(ms<=c<=me for (ms,me) in merged.get(row,[])):
-                        ws.write(row, c, "", empty_slot_format)
+                        ws.write(row, c, "", empty_fmt)
 
                 row += 1
 
