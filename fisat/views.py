@@ -544,7 +544,7 @@ def timetableexcel(request):
                        title_fmt)'''
 
         # ⭐⭐⭐ LAB NAME HEADER MERGED ABOVE HOURS ⭐⭐⭐
-        ws.merge_range("A4:I4", f"LAB : {lab}", lab_header_fmt)
+        ws.merge_range("A4:I4", f"CCF : {lab}", lab_header_fmt)
 
         # ========== TABLE HEADER ==========
         ws.write(4, 0, "Day", header_fmt)
