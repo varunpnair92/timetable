@@ -1541,5 +1541,131 @@ def subject_faculty_mapping(request):
         "mapping": mapping
     })
 
+#for calculate and download workload
+import xlsxwriter
+from collections import defaultdict
+def export_final_workload(request):
 
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=department_workload.xlsx'
+
+    workbook = xlsxwriter.Workbook(response, {'in_memory': True})
+
+    ws = workbook.add_worksheet("Course Workload")
+    ws2 = workbook.add_worksheet("Staff Workload")
+
+    header = workbook.add_format({'bold': True})
+    right = workbook.add_format({'align': 'right'})
+
+    # =====================================================================
+    # SHEET 1 — SUBJECT WISE WITH BREAKDOWN
+    # =====================================================================
+
+    ws.write_row('A1', ["COURSE", "SUBJECT", "BREAKDOWN", "WORKLOAD"], header)
+
+    row = 1
+    total_workload = 0
+    subject_groups = defaultdict(list)
+
+    for s in SubjectEntry.objects.filter(period=DP):
+        key = (s.class_name.strip(), s.subject_name.strip())
+        subject_groups[key].append(s)
+
+    for (cls, sub), slots in sorted(subject_groups.items()):
+
+        staff_hours = defaultdict(int)
+
+        for slot in slots:
+            hrs = len(slot.allotted_hours.split(","))
+
+            assigned = (
+                TimetableEntry.objects
+                .filter(subject=slot)
+                .select_related("staff")
+            )
+
+            if assigned.exists():
+                for e in assigned:
+                    staff_hours[e.staff.name] += hrs
+            else:
+                staff_hours["UNASSIGNED"] += hrs
+
+        vals = list(staff_hours.values())
+
+        # Build breakdown string
+        if len(set(vals)) == 1 and len(vals) > 1:
+            breakdown = f"{vals[0]}*{len(vals)}"
+        else:
+            breakdown = "+".join(f"{h}*1" for h in sorted(vals, reverse=True))
+
+        workload = sum(vals)
+        total_workload += workload
+
+        ws.write(row, 0, cls)
+        ws.write(row, 1, sub)
+        ws.write(row, 2, breakdown)
+        ws.write_number(row, 3, workload, right)
+
+        row += 1
+
+    ws.write(row, 2, "TOTAL", header)
+    ws.write_number(row, 3, total_workload, header)
+
+
+    # =====================================================================
+    # SHEET 2 — STAFF WISE (GROUPED)
+    # =====================================================================
+
+    ws2.write_row('A1', ["STAFF", "SUBJECT", "CLASS", "HOURS", "TOTAL"], header)
+
+    row = 1
+    dept_total = 0
+
+    # Build grouped map
+    staff_map = defaultdict(lambda: defaultdict(int))
+
+    entries = (
+        TimetableEntry.objects
+        .filter(subject__period=DP)
+        .select_related("staff", "subject")
+        .order_by("staff__name")
+    )
+
+    for e in entries:
+        hrs = len(e.subject.allotted_hours.split(","))
+        key = (e.subject.subject_name.strip(), e.subject.class_name.strip())
+        staff_map[e.staff.name][key] += hrs
+
+    # Write sheet
+    for staff in sorted(staff_map.keys()):
+
+        running_total = 0
+        block_start_row = row
+
+        ws2.write(row, 0, staff, header)
+
+        for (sub, cls), hrs in staff_map[staff].items():
+
+            ws2.write(row, 1, sub)
+            ws2.write(row, 2, cls)
+            ws2.write(row, 3, hrs)
+
+            running_total += hrs
+            dept_total += hrs
+            row += 1
+
+        ws2.write(block_start_row, 4, running_total, header)
+
+        row += 1  # blank row
+
+
+    # FINAL TOTAL
+    row += 1
+    ws2.write(row, 3, "DEPARTMENT TOTAL", header)
+    ws2.write(row, 4, dept_total, header)
+
+    workbook.close()
+    return response
 

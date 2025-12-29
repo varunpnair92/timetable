@@ -1,7 +1,7 @@
 from django.urls import path,include
 from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff,get_free_staff
 from django.contrib.auth import views as auth_views
-from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,download_subject_entries_csv,timetable2, download_timetable_csv,edit_staff_config,apply_ai_allocation,subject_faculty_mapping,staff_subject_count,get_subject_load,get_staff_day_load,download_staff_allotment_csv,subject_wise_allocation
+from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,download_subject_entries_csv,timetable2, download_timetable_csv,edit_staff_config,apply_ai_allocation,subject_faculty_mapping,staff_subject_count,get_subject_load,get_staff_day_load,download_staff_allotment_csv,subject_wise_allocation,export_final_workload
 
 urlpatterns = [
     path('timetable/', timetable, name='timetable'),
@@ -55,6 +55,8 @@ path('apply_ai_allocation/', apply_ai_allocation, name='apply_ai_allocation'),
     path("staff_day_load/<int:staff_id>/<str:day>/", get_staff_day_load),
     
     path("faculty-mapping/", subject_faculty_mapping, name="subject_faculty_mapping"),
+    #excel workload download
+    path("export-workload/", export_final_workload,name="workload_excel"),
 
 
 
