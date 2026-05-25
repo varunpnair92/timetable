@@ -84,12 +84,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'OPTIONS': {
-            'options': '-c search_path=timetableweb'
+            'options': '-c search_path=timetable'
         },
-        'NAME': 'pscdb',  # Your database name
-        'USER': 'psc',  # Your database user
-        'PASSWORD': 'psc',  # Your database password
-        'HOST': '13.61.184.75',  # Set to empty string for localhost
+        'NAME': 'fisatdb',  # Your database name
+        'USER': 'fisat',  # Your database user
+        'PASSWORD': 'pwdfisat',  # Your database password
+        'HOST': 'localhost',  # Set to empty string for localhost
         'PORT': '',  # Set to empty string for default
     }
 }
@@ -168,8 +168,7 @@ LOGOUT_REDIRECT_URL = 'login'  # Redirect after logout
 LOGIN_REDIRECT_URL = '/dashboard/'
 
 # Google credentials (replace these)
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '84125902506-9jqucnbkpegphqn5ku1g63au6l9hchiv.apps.googleusercontent.com'
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
+
 
 # Optional (store extra fields)
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']

@@ -303,9 +303,11 @@ def timetable(request):
         staff_timetables[staff.name] = {
             "timetable_slots": timetable_slots,
             "total_hour": workload,
+            "staff_id": staff.id,
         }
 
-    return render(request, "timetable.html", {"staff_timetables": staff_timetables})
+    has_undo = bool(request.session.get('undo_data'))
+    return render(request, "timetable.html", {"staff_timetables": staff_timetables, "has_undo": has_undo})
 
 
 # ============================================================
@@ -433,6 +435,102 @@ def get_free_staff(request, subject_id):
 def delete_allotment(request, entry_id):
     entry = get_object_or_404(TimetableEntry, id=entry_id)
     entry.delete()
+    return redirect("timetable")
+
+
+@login_required(login_url="/")
+def drag_action(request, action, id1, id2):
+    entry1 = get_object_or_404(TimetableEntry, id=id1)
+    entry2 = get_object_or_404(TimetableEntry, id=id2)
+    
+    staff1 = entry1.staff
+    staff2 = entry2.staff
+
+    if action == 'swap':
+        TimetableEntry.objects.filter(id=id1).update(staff=staff2)
+        TimetableEntry.objects.filter(id=id2).update(staff=staff1)
+        request.session['undo_data'] = {
+            'type': 'swap',
+            'id1': id1,
+            'id2': id2
+        }
+    elif action == 'allot':
+        deleted_entry_data = {
+            'staff_id': staff2.id,
+            'subject_id': entry2.subject.id,
+        }
+        request.session['undo_data'] = {
+            'type': 'allot',
+            'id1': id1,
+            'old_staff1_id': staff1.id,
+            'deleted_entry': deleted_entry_data
+        }
+        TimetableEntry.objects.filter(id=id1).update(staff=staff2)
+        entry2.delete()
+        
+    return redirect("timetable")
+
+
+@login_required(login_url="/")
+def transfer_to_staff(request, entry_id, staff_id):
+    entry = get_object_or_404(TimetableEntry, id=entry_id)
+    old_staff = entry.staff
+    new_staff = get_object_or_404(Staff, id=staff_id)
+    TimetableEntry.objects.filter(id=entry_id).update(staff=new_staff)
+    
+    request.session['undo_data'] = {
+        'type': 'transfer',
+        'entry_id': entry_id,
+        'old_staff_id': old_staff.id
+    }
+    return redirect("timetable")
+
+
+@login_required(login_url="/")
+def undo_last_action(request):
+    undo_data = request.session.pop('undo_data', None)
+    if not undo_data:
+        return redirect("timetable")
+        
+    action_type = undo_data.get('type')
+    
+    if action_type == 'swap':
+        id1 = undo_data['id1']
+        id2 = undo_data['id2']
+        entry1 = TimetableEntry.objects.filter(id=id1).first()
+        entry2 = TimetableEntry.objects.filter(id=id2).first()
+        if entry1 and entry2:
+            staff1 = entry1.staff
+            staff2 = entry2.staff
+            TimetableEntry.objects.filter(id=id1).update(staff=staff2)
+            TimetableEntry.objects.filter(id=id2).update(staff=staff1)
+            
+    elif action_type == 'allot':
+        id1 = undo_data['id1']
+        old_staff1_id = undo_data['old_staff1_id']
+        deleted_entry = undo_data['deleted_entry']
+        
+        old_staff = Staff.objects.filter(id=old_staff1_id).first()
+        if old_staff:
+            TimetableEntry.objects.filter(id=id1).update(staff=old_staff)
+            
+        staff2 = Staff.objects.filter(id=deleted_entry['staff_id']).first()
+        subject = SubjectEntry.objects.filter(id=deleted_entry['subject_id']).first()
+        
+        if staff2 and subject:
+            TimetableEntry.objects.create(
+                staff=staff2,
+                subject=subject,
+                user=request.user
+            )
+            
+    elif action_type == 'transfer':
+        entry_id = undo_data['entry_id']
+        old_staff_id = undo_data['old_staff_id']
+        old_staff = Staff.objects.filter(id=old_staff_id).first()
+        if old_staff:
+            TimetableEntry.objects.filter(id=entry_id).update(staff=old_staff)
+            
     return redirect("timetable")
 
 

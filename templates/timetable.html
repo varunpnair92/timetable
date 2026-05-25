@@ -109,7 +109,69 @@
     <button onclick="hidePopup()">Cancel</button>
 </div>
 
+<!-- Drag Action Popup -->
+<div id="dragActionPopup" style="display:none; position:fixed; top:35%; left:40%; background:white; padding:20px; border:2px solid black; z-index:9999; width:300px; text-align:center; border-radius:8px;">
+    <p><strong>What would you like to do?</strong></p>
+    <button onclick="submitDragAction('swap')" style="background:green; color:white; padding:8px 12px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-right:10px;">Swap</button>
+    <button onclick="submitDragAction('allot')" style="background:blue; color:white; padding:8px 12px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-right:10px;">Allot (Replace)</button>
+    <button onclick="closeDragActionPopup()" style="padding:8px 12px; cursor:pointer; font-weight:bold;">Cancel</button>
+</div>
+
+<!-- Undo Button -->
+{% if has_undo %}
+<div style="position:fixed; bottom:30px; right:30px; z-index:9999;">
+    <a href="{% url 'undo_last_action' %}" style="background-color:#ff9800; color:white; padding:12px 20px; text-decoration:none; border-radius:50px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:flex; align-items:center; gap:8px;">
+        ↩ Undo Last Action
+    </a>
+</div>
+{% endif %}
+
 <script>
+function dragStart(ev, entryId) {
+    if (!entryId) return;
+    ev.dataTransfer.setData("text/plain", entryId);
+}
+function allowDrop(ev) {
+    ev.preventDefault();
+}
+
+let currentDragSource = null;
+let currentDragTarget = null;
+
+function dropSwap(ev, targetEntryId) {
+    ev.preventDefault();
+    if (!targetEntryId) return;
+    const sourceEntryId = ev.dataTransfer.getData("text/plain");
+    if (sourceEntryId && sourceEntryId !== targetEntryId) {
+        currentDragSource = sourceEntryId;
+        currentDragTarget = targetEntryId;
+        document.getElementById("dragActionPopup").style.display = "block";
+    }
+}
+
+function dropEmpty(ev, targetStaffId) {
+    ev.preventDefault();
+    if (!targetStaffId) return;
+    const sourceEntryId = ev.dataTransfer.getData("text/plain");
+    if (sourceEntryId) {
+        if (confirm("Transfer this subject to the new staff?")) {
+            window.location.href = `/transfer_to_staff/${sourceEntryId}/${targetStaffId}/`;
+        }
+    }
+}
+
+function submitDragAction(action) {
+    if (currentDragSource && currentDragTarget) {
+        window.location.href = `/drag_action/${action}/${currentDragSource}/${currentDragTarget}/`;
+    }
+}
+
+function closeDragActionPopup() {
+    document.getElementById("dragActionPopup").style.display = "none";
+    currentDragSource = null;
+    currentDragTarget = null;
+}
+
 function showDelete(entryId) {
     document.getElementById("deleteLink").href = "/delete_entry/" + entryId + "/";
     document.getElementById("deletePopup").style.display = "block";
@@ -126,7 +188,7 @@ function hidePopup() {
     {% for staff_name, data in staff_chunk %}
     <div class="staff-timetable">
 
-        <center><h4>{{ staff_name }} ({{ data.total_hour }})</h4></center>
+        <center><h4 ondrop="dropEmpty(event, '{{ data.staff_id }}')" ondragover="allowDrop(event)">{{ staff_name }} ({{ data.total_hour }})</h4></center>
 
         <table>
             <thead>
@@ -150,12 +212,18 @@ function hidePopup() {
                     <th>Mon</th>
                     {% for cell in data.timetable_slots.0 %}
                         {% if cell.subject %}
-                            <td colspan="{{ cell.colspan }}">
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td class="empty-cell"></td>
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
@@ -165,12 +233,18 @@ function hidePopup() {
                     <th>Tue</th>
                     {% for cell in data.timetable_slots.1 %}
                         {% if cell.subject %}
-                            <td colspan="{{ cell.colspan }}">
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td class="empty-cell"></td>
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
@@ -180,12 +254,18 @@ function hidePopup() {
                     <th>Wed</th>
                     {% for cell in data.timetable_slots.2 %}
                         {% if cell.subject %}
-                            <td colspan="{{ cell.colspan }}">
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td class="empty-cell"></td>
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
@@ -195,12 +275,18 @@ function hidePopup() {
                     <th>Thu</th>
                     {% for cell in data.timetable_slots.3 %}
                         {% if cell.subject %}
-                            <td colspan="{{ cell.colspan }}">
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td class="empty-cell"></td>
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
@@ -210,12 +296,18 @@ function hidePopup() {
                     <th>Fri</th>
                     {% for cell in data.timetable_slots.4 %}
                         {% if cell.subject %}
-                            <td colspan="{{ cell.colspan }}">
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
                             </td>
                         {% elif cell is not None %}
-                            <td class="empty-cell"></td>
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>

@@ -1,5 +1,5 @@
 from django.urls import path,include
-from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff,get_free_staff
+from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff,get_free_staff,drag_action,transfer_to_staff,undo_last_action
 from django.contrib.auth import views as auth_views
 from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,download_subject_entries_csv,timetable2, download_timetable_csv,edit_staff_config,apply_ai_allocation,subject_faculty_mapping,staff_subject_count,get_subject_load,get_staff_day_load,download_staff_allotment_csv,subject_wise_allocation,export_final_workload
 
@@ -10,6 +10,9 @@ urlpatterns = [
     path('allocate/', allocate_staff, name='allocate'),
     path('allotted/', allotted, name='alloctted_staff'),
     path('delete_entry/<int:entry_id>/', delete_allotment, name='delete_entry'),
+    path('drag_action/<str:action>/<int:id1>/<int:id2>/', drag_action, name='drag_action'),
+    path('transfer_to_staff/<int:entry_id>/<int:staff_id>/', transfer_to_staff, name='transfer_to_staff'),
+    path('undo_last_action/', undo_last_action, name='undo_last_action'),
     path('subject/', allot_subject_entry, name='allot_subject_entry'),
     path('labd/',  timetableexcel, name='Lab Download'),
     path('labdfull/',  timetableexcel_combined, name='Lab Download Combined'),
