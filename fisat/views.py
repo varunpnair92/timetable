@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.db import IntegrityError, transaction
 
 import csv
 import io
@@ -446,27 +447,31 @@ def drag_action(request, action, id1, id2):
     staff1 = entry1.staff
     staff2 = entry2.staff
 
-    if action == 'swap':
-        TimetableEntry.objects.filter(id=id1).update(staff=staff2)
-        TimetableEntry.objects.filter(id=id2).update(staff=staff1)
-        request.session['undo_data'] = {
-            'type': 'swap',
-            'id1': id1,
-            'id2': id2
-        }
-    elif action == 'allot':
-        deleted_entry_data = {
-            'staff_id': staff2.id,
-            'subject_id': entry2.subject.id,
-        }
-        request.session['undo_data'] = {
-            'type': 'allot',
-            'id1': id1,
-            'old_staff1_id': staff1.id,
-            'deleted_entry': deleted_entry_data
-        }
-        TimetableEntry.objects.filter(id=id1).update(staff=staff2)
-        entry2.delete()
+    try:
+        with transaction.atomic():
+            if action == 'swap':
+                TimetableEntry.objects.filter(id=id1).update(staff=staff2)
+                TimetableEntry.objects.filter(id=id2).update(staff=staff1)
+                request.session['undo_data'] = {
+                    'type': 'swap',
+                    'id1': id1,
+                    'id2': id2
+                }
+            elif action == 'allot':
+                deleted_entry_data = {
+                    'staff_id': staff2.id,
+                    'subject_id': entry2.subject.id,
+                }
+                request.session['undo_data'] = {
+                    'type': 'allot',
+                    'id1': id1,
+                    'old_staff1_id': staff1.id,
+                    'deleted_entry': deleted_entry_data
+                }
+                TimetableEntry.objects.filter(id=id1).update(staff=staff2)
+                entry2.delete()
+    except IntegrityError:
+        messages.error(request, "Action failed: This staff member is already assigned to this subject.")
         
     return redirect("timetable")
 
@@ -476,13 +481,18 @@ def transfer_to_staff(request, entry_id, staff_id):
     entry = get_object_or_404(TimetableEntry, id=entry_id)
     old_staff = entry.staff
     new_staff = get_object_or_404(Staff, id=staff_id)
-    TimetableEntry.objects.filter(id=entry_id).update(staff=new_staff)
     
-    request.session['undo_data'] = {
-        'type': 'transfer',
-        'entry_id': entry_id,
-        'old_staff_id': old_staff.id
-    }
+    try:
+        with transaction.atomic():
+            TimetableEntry.objects.filter(id=entry_id).update(staff=new_staff)
+            
+            request.session['undo_data'] = {
+                'type': 'transfer',
+                'entry_id': entry_id,
+                'old_staff_id': old_staff.id
+            }
+    except IntegrityError:
+        messages.error(request, "Action failed: This staff member is already assigned to this subject.")
     return redirect("timetable")
 
 
@@ -494,42 +504,46 @@ def undo_last_action(request):
         
     action_type = undo_data.get('type')
     
-    if action_type == 'swap':
-        id1 = undo_data['id1']
-        id2 = undo_data['id2']
-        entry1 = TimetableEntry.objects.filter(id=id1).first()
-        entry2 = TimetableEntry.objects.filter(id=id2).first()
-        if entry1 and entry2:
-            staff1 = entry1.staff
-            staff2 = entry2.staff
-            TimetableEntry.objects.filter(id=id1).update(staff=staff2)
-            TimetableEntry.objects.filter(id=id2).update(staff=staff1)
-            
-    elif action_type == 'allot':
-        id1 = undo_data['id1']
-        old_staff1_id = undo_data['old_staff1_id']
-        deleted_entry = undo_data['deleted_entry']
-        
-        old_staff = Staff.objects.filter(id=old_staff1_id).first()
-        if old_staff:
-            TimetableEntry.objects.filter(id=id1).update(staff=old_staff)
-            
-        staff2 = Staff.objects.filter(id=deleted_entry['staff_id']).first()
-        subject = SubjectEntry.objects.filter(id=deleted_entry['subject_id']).first()
-        
-        if staff2 and subject:
-            TimetableEntry.objects.create(
-                staff=staff2,
-                subject=subject,
-                user=request.user
-            )
-            
-    elif action_type == 'transfer':
-        entry_id = undo_data['entry_id']
-        old_staff_id = undo_data['old_staff_id']
-        old_staff = Staff.objects.filter(id=old_staff_id).first()
-        if old_staff:
-            TimetableEntry.objects.filter(id=entry_id).update(staff=old_staff)
+    try:
+        with transaction.atomic():
+            if action_type == 'swap':
+                id1 = undo_data['id1']
+                id2 = undo_data['id2']
+                entry1 = TimetableEntry.objects.filter(id=id1).first()
+                entry2 = TimetableEntry.objects.filter(id=id2).first()
+                if entry1 and entry2:
+                    staff1 = entry1.staff
+                    staff2 = entry2.staff
+                    TimetableEntry.objects.filter(id=id1).update(staff=staff2)
+                    TimetableEntry.objects.filter(id=id2).update(staff=staff1)
+                    
+            elif action_type == 'allot':
+                id1 = undo_data['id1']
+                old_staff1_id = undo_data['old_staff1_id']
+                deleted_entry = undo_data['deleted_entry']
+                
+                old_staff = Staff.objects.filter(id=old_staff1_id).first()
+                if old_staff:
+                    TimetableEntry.objects.filter(id=id1).update(staff=old_staff)
+                    
+                staff2 = Staff.objects.filter(id=deleted_entry['staff_id']).first()
+                subject = SubjectEntry.objects.filter(id=deleted_entry['subject_id']).first()
+                
+                if staff2 and subject:
+                    TimetableEntry.objects.create(
+                        staff=staff2,
+                        subject=subject,
+                        user=request.user
+                    )
+                    
+            elif action_type == 'transfer':
+                entry_id = undo_data['entry_id']
+                old_staff_id = undo_data['old_staff_id']
+                old_staff = Staff.objects.filter(id=old_staff_id).first()
+                if old_staff:
+                    TimetableEntry.objects.filter(id=entry_id).update(staff=old_staff)
+    except IntegrityError:
+        messages.error(request, "Undo failed due to a database constraint.")
             
     return redirect("timetable")
 

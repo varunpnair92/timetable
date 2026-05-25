@@ -102,6 +102,19 @@
 
 {% load custom_filters %}
 
+<!-- Django Messages -->
+{% if messages %}
+<div style="width: 100%; text-align: center; margin-bottom: 20px;">
+    {% for message in messages %}
+    <div style="display: inline-block; padding: 10px 20px; border-radius: 5px; font-weight: bold;
+                {% if message.tags == 'error' %}background-color: #ffcccc; color: red; border: 1px solid red;
+                {% else %}background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- Delete Popup -->
 <div id="deletePopup">
     <p><strong>Delete this allotment?</strong></p>
