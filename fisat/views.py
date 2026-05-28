@@ -1908,35 +1908,51 @@ def subject_entry_view(request):
     if request.method == "POST":
         batch_id = request.POST.get('batch_id')
         subject_name = request.POST.get('subject_name')
+        lab = request.POST.get('lab')
+        
         if batch_id and subject_name:
             batch = Batch.objects.get(id=batch_id)
+            errors = []
+            
+            def save_entry(day, hours):
+                try:
+                    entry = SubjectEntry(
+                        subject_name=subject_name,
+                        class_name=batch.name,
+                        day=day,
+                        allotted_hours=hours,
+                        LAB=lab,
+                        period=dp
+                    )
+                    entry.full_clean()
+                    entry.save()
+                except ValidationError as e:
+                    errors.append(f"Allotment error: {', '.join(e.messages)}")
             
             day_1 = request.POST.get('day_1')
             hours_1 = request.POST.get('hours_1')
             if day_1 and hours_1:
-                SubjectEntry.objects.create(
-                    subject_name=subject_name, 
-                    class_name=batch.name, 
-                    day=day_1, 
-                    allotted_hours=hours_1,
-                    period=dp
-                )
+                save_entry(day_1, hours_1)
             
             day_2 = request.POST.get('day_2')
             hours_2 = request.POST.get('hours_2')
-            if day_2 and hours_2:
-                SubjectEntry.objects.create(
-                    subject_name=subject_name, 
-                    class_name=batch.name, 
-                    day=day_2, 
-                    allotted_hours=hours_2,
-                    period=dp
-                )
+            if day_2 and hours_2 and not errors:
+                save_entry(day_2, hours_2)
+            
+            if errors:
+                for error in errors:
+                    messages.error(request, error)
+            else:
+                messages.success(request, "Success! Subject entries have been allotted.")
             
             return redirect('subject_entry')
     
     batches = Batch.objects.filter(period=dp)
-    return render(request, 'subject_entry.html', {'batches': batches})
+    lab_choices = SubjectEntry.LAB_CHOICES
+    return render(request, 'subject_entry.html', {
+        'batches': batches,
+        'lab_choices': lab_choices
+    })
 
 def get_batch_subjects(request, batch_id):
     subjects = BatchSubject.objects.filter(batch_id=batch_id).values('id', 'subject_name')

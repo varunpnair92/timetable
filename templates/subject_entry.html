@@ -27,6 +27,19 @@
         <a href="{% url 'dashboard' %}">&larr; Back to Dashboard</a>
     </div>
 
+    <!-- Django Messages -->
+    {% if messages %}
+    <div style="width: 100%; text-align: center; margin-bottom: 20px;">
+        {% for message in messages %}
+        <div style="display: inline-block; padding: 10px 20px; border-radius: 5px; font-weight: bold;
+                    {% if message.tags == 'error' %}background-color: #ffcccc; color: red; border: 1px solid red;
+                    {% else %}background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <h1>Subject Entry (Allotments)</h1>
 
     <div class="container">
@@ -48,6 +61,16 @@
                     <label>Select Subject</label>
                     <select name="subject_name" id="subjectSelect" required disabled>
                         <option value="">-- Select Subject --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Select LAB</label>
+                    <select name="lab" required>
+                        <option value="">-- Select LAB --</option>
+                        {% for code, name in lab_choices %}
+                        <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 
