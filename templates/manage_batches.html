@@ -40,7 +40,7 @@
                 <button type="submit">Add Batch</button>
             </form>
 
-            <hr style="margin: 30px 0;">
+            <hr style="margin: 20px 0;">
 
             <h3>Add Subject to Batch</h3>
             <form method="POST">
@@ -60,6 +60,37 @@
                     <input type="text" name="subject_name" required>
                 </div>
                 <button type="submit">Add Subject</button>
+            </form>
+
+            <hr style="margin: 20px 0;">
+
+            <h3>Semester Settings</h3>
+            <p><strong>Active Sem:</strong> {% if active_sem %}{{ active_sem.name }}{% else %}None{% endif %}</p>
+            <p><strong>Viewing Sem:</strong> {{ current_view_sem }}</p>
+
+            <form method="POST" style="margin-bottom: 20px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_semester">
+                <div class="form-group">
+                    <label>Add New Semester (e.g., 2026-june)</label>
+                    <input type="text" name="semester_name" required>
+                </div>
+                <button type="submit">Add Semester</button>
+            </form>
+
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="activate_semester">
+                <div class="form-group">
+                    <label>Set Global Active Semester</label>
+                    <select name="semester_id" required>
+                        <option value="">-- Select --</option>
+                        {% for sem in semesters %}
+                        <option value="{{ sem.id }}" {% if sem.is_active %}selected{% endif %}>{{ sem.name }} {% if sem.is_active %}(Active){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" style="background-color: #28a745;">Set Active</button>
             </form>
         </div>
 

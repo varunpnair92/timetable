@@ -23,11 +23,21 @@ from .models import (
     SubjectEntry,
     TimetableEntry,
     Batch,
-    BatchSubject
+    BatchSubject,
+    Semester
 )
 from django.http import JsonResponse
 
-DP = settings.DP
+def get_current_period(request=None):
+    if request and 'selected_period' in request.session:
+        return request.session['selected_period']
+    try:
+        active_sem = Semester.objects.get(is_active=True)
+        return active_sem.name
+    except Semester.DoesNotExist:
+        return settings.DP
+
+DEFAULT_DP = settings.DP
 
 # ============================================================
 #  JSON CONFIG – DYNAMIC LOAD
@@ -204,6 +214,7 @@ def select_staff(subject, staff_list, staff_avail, staff_stats):
 
 @login_required(login_url="/")
 def allocate_staff(request):
+    dp = get_current_period(request)
     action = (
         request.POST.get("action")
         if request.method == "POST"
@@ -211,7 +222,7 @@ def allocate_staff(request):
     )
 
     if request.method == "POST":
-        form = AllocationForm(request.POST, action=action, user=request.user)
+        form = AllocationForm(request.POST, action=action, user=request.user, period=dp)
         if form.is_valid():
             if action == "delete":
                 delete_entry = form.cleaned_data["delete_entry"]
@@ -221,7 +232,7 @@ def allocate_staff(request):
                 form.save()
             return redirect(reverse("timetable"))
     else:
-        form = AllocationForm(action=action, user=request.user)
+        form = AllocationForm(action=action, user=request.user, period=dp)
 
     return render(request, "allocate.html", {"form": form, "action": action})
 
@@ -233,6 +244,7 @@ def allocate_staff(request):
 
 @login_required(login_url="/")
 def timetable(request):
+    dp = get_current_period(request)
     staff_members = Staff.objects.all()
     staff_timetables = {}
 
@@ -244,7 +256,7 @@ def timetable(request):
         # get staff timetable entries for this user + period
         timetable_entries = TimetableEntry.objects.filter(
             staff=staff,
-            subject__period=DP,
+            subject__period=dp,
             user=request.user
         )
 
@@ -313,7 +325,7 @@ def timetable(request):
     has_undo = bool(request.session.get('undo_data'))
 
     # Build Palette Subjects
-    all_subjects = SubjectEntry.objects.filter(period=DP)
+    all_subjects = SubjectEntry.objects.filter(period=dp)
     palette_subjects = {}
     for sub in all_subjects:
         if sub.class_name not in palette_subjects:
@@ -330,10 +342,13 @@ def timetable(request):
             'lab': sub.LAB
         })
 
+    semesters = Semester.objects.all().order_by('name')
     return render(request, "timetable.html", {
         "staff_timetables": staff_timetables, 
         "has_undo": has_undo,
-        "palette_subjects": palette_subjects
+        "palette_subjects": palette_subjects,
+        "semesters": semesters,
+        "current_view_sem": dp
     })
 
 # ============================================================
@@ -343,7 +358,7 @@ def timetable(request):
 
 @login_required(login_url="/")
 def allotted(request):
-    subjects = SubjectEntry.objects.filter(period=DP)
+    subjects = SubjectEntry.objects.filter(period=dp)
     staff_list = Staff.objects.all()
 
     class_data = {}
@@ -355,7 +370,7 @@ def allotted(request):
             class_data[class_name] = []
 
         allocations = TimetableEntry.objects.filter(
-            subject=subject, subject__period=DP
+            subject=subject, subject__period=dp
         )
         allocated_staff = [a.staff for a in allocations]
 
@@ -394,7 +409,7 @@ def get_free_staff(request, subject_id):
     slots that staff already has for the same subject (subject name) in this period.
     JSON: [{id, name, count}, ...]
     """
-    subject = get_object_or_404(SubjectEntry, id=subject_id, period=DP)
+    subject = get_object_or_404(SubjectEntry, id=subject_id, period=dp)
 
     # target info
     target_day = subject.day
@@ -412,7 +427,7 @@ def get_free_staff(request, subject_id):
         entries = TimetableEntry.objects.filter(
             staff=st,
             subject__day=target_day,
-            subject__period=DP
+            subject__period=dp
         )
 
         busy = False
@@ -433,7 +448,7 @@ def get_free_staff(request, subject_id):
         same_subject_entries = TimetableEntry.objects.filter(
             staff=st,
             subject__subject_name__iexact=subject.subject_name,
-            subject__period=DP
+            subject__period=dp
         )
 
         # count total hours/slots for those entries (we count "slots" as the number of hours)
@@ -597,13 +612,14 @@ def allot_subject_entry(request):
 
 @login_required(login_url="/")
 def timetableexcel(request):
+    dp = get_current_period(request)
     import xlsxwriter
     from .models import SubjectFacultyMap
 
     logo_path = "/home/varun/fisatlab/static/fisat_logo.png"
 
     labs = (
-        SubjectEntry.objects.filter(period=DP)
+        SubjectEntry.objects.filter(period=dp)
         .values_list("LAB", flat=True)
         .distinct()
     )
@@ -689,7 +705,7 @@ def timetableexcel(request):
             ws.write(4, c + 1, h, header_fmt)
 
         row = 5
-        subjects = SubjectEntry.objects.filter(LAB=lab, period=DP).order_by("day")
+        subjects = SubjectEntry.objects.filter(LAB=lab, period=dp).order_by("day")
         merged_cells = {}
 
         for day in days:
@@ -831,7 +847,7 @@ def timetableexcel_combined(request):
             merged = {}
             row = start_row + 2
 
-            subjects = SubjectEntry.objects.filter(LAB=lab, period=DP).order_by("day")
+            subjects = SubjectEntry.objects.filter(LAB=lab, period=dp).order_by("day")
 
             for day in days:
                 ws.write(row, col, day, data_fmt)
@@ -903,9 +919,7 @@ import csv
 from django.http import HttpResponse
 from django.conf import settings
 from .models import SubjectEntry
-
-DP = settings.DP
-
+# DP removed
 def download_subject_entries_csv(request):
     # Create the HTTP response for CSV
     response = HttpResponse(content_type='text/csv')
@@ -925,7 +939,7 @@ def download_subject_entries_csv(request):
     ])
 
     # Query Subjects only for current period DP
-    subjects = SubjectEntry.objects.filter(period=DP).order_by("class_name", "subject_name")
+    subjects = SubjectEntry.objects.filter(period=dp).order_by("class_name", "subject_name")
 
     # Write data rows
     for s in subjects:
@@ -971,7 +985,7 @@ def export_lab_allotments_csv(request):
     start_date = "01-06-2025"
     end_date = "31-12-2026"
 
-    subjects = SubjectEntry.objects.filter(period=DP)
+    subjects = SubjectEntry.objects.filter(period=dp)
 
     for subject in subjects:
         writer.writerow(
@@ -992,20 +1006,19 @@ import csv
 from django.http import HttpResponse
 from .models import TimetableEntry
 from django.conf import settings
-
-DP = settings.DP
-
+# DP removed
 def download_staff_allotment_csv(request):
+    dp = get_current_period(request)
     # Response settings
     response = HttpResponse(content_type="text/csv")
-    response['Content-Disposition'] = 'attachment; filename="staff_allotment.csv"'
+    response['Content-Disposition'] = f'attachment; filename="staff_allotment_{dp}.csv"'
 
     writer = csv.writer(response)
     writer.writerow(["Staff Name", "Subject", "Class", "Lab", "Day", "Hours"])
 
     entries = (
         TimetableEntry.objects
-        .filter(subject__period=DP)
+        .filter(subject__period=dp)
         .select_related("staff", "subject")
         .order_by("staff__name", "subject__subject_name")
     )
@@ -1130,9 +1143,7 @@ from django.db.models import Prefetch
 from collections import OrderedDict
 from .models import SubjectEntry, TimetableEntry, Staff
 from django.conf import settings
-
-DP = settings.DP
-
+# DP removed
 # Custom sorting for class names
 def class_sort_key(name):
     name = name.upper()
@@ -1148,11 +1159,11 @@ def subject_sort_key(name):
 def subject_wise_allocation(request):
 
     # Fetch all subject entries for current period
-    subjects = SubjectEntry.objects.filter(period=DP).order_by("class_name", "subject_name")
+    subjects = SubjectEntry.objects.filter(period=dp).order_by("class_name", "subject_name")
 
     # Prefetch staff for each subject
     timetable_map = {}
-    tt = TimetableEntry.objects.select_related("staff", "subject").filter(subject__period=DP)
+    tt = TimetableEntry.objects.select_related("staff", "subject").filter(subject__period=dp)
     for t in tt:
         timetable_map.setdefault(t.subject_id, []).append(t.staff.name)
 
@@ -1252,7 +1263,19 @@ def logout_view(request):
 
 @login_required
 def dashboard_view(request):
-    return render(request, "dashboard.html")
+    semesters = Semester.objects.all().order_by('name')
+    active_sem = semesters.filter(is_active=True).first()
+    
+    if active_sem and 'selected_period' not in request.session:
+        request.session['selected_period'] = active_sem.name
+        
+    current_view_sem = request.session.get('selected_period')
+    
+    return render(request, "dashboard.html", {
+        "semesters": semesters,
+        "active_sem": active_sem,
+        "current_view_sem": current_view_sem
+    })
 
 
 #staff count for hover
@@ -1260,9 +1283,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from .models import TimetableEntry
 from django.conf import settings
-
-DP = settings.DP
-
+# DP removed
 @login_required
 def staff_subject_count(request):
     """
@@ -1280,7 +1301,7 @@ def staff_subject_count(request):
         count = TimetableEntry.objects.filter(
             staff_id=staff_id,
             subject__subject_name__iexact=subject,
-            subject__period=DP,
+            subject__period=dp,
             user_id=request.user
         ).count()
     except Exception:
@@ -1303,9 +1324,7 @@ def get_subject_load(request, staff_id, subject_id):
 from django.http import JsonResponse
 from django.conf import settings
 from .models import TimetableEntry
-
-DP = settings.DP
-
+# DP removed
 def get_staff_day_load(request, staff_id, day):
     """
     Returns staff's allocated hours on a given day.
@@ -1313,7 +1332,7 @@ def get_staff_day_load(request, staff_id, day):
     entries = TimetableEntry.objects.filter(
         staff_id=staff_id,
         subject__day=day,
-        subject__period=DP
+        subject__period=dp
     ).select_related("subject")
 
     result = []
@@ -1425,7 +1444,7 @@ def apply_ai_allocation(request):
     # 1️⃣ CLEAR OLD RECORDS FOR THIS USER + PERIOD
     old_deleted, _ = TimetableEntry.objects.filter(
         user=request.user,
-        subject__period=DP
+        subject__period=dp
     ).delete()
 
     inserted = 0
@@ -1441,7 +1460,7 @@ def apply_ai_allocation(request):
     )
 
     # 3️⃣ SUBJECTS SORTED
-    subjects = list(SubjectEntry.objects.filter(period=DP))
+    subjects = list(SubjectEntry.objects.filter(period=dp))
 
     def subj_sort_key(sub):
         sname = sub.subject_name.upper()
@@ -1487,7 +1506,7 @@ def apply_ai_allocation(request):
             existing = TimetableEntry.objects.filter(
                 user=request.user,
                 staff=staff,
-                subject__period=DP,
+                subject__period=dp,
                 subject__day=sub.day
             )
 
@@ -1566,7 +1585,7 @@ def timetable2(request):
     )
 
     # 2️⃣ LOAD SUBJECTS FOR THIS PERIOD
-    subjects = list(SubjectEntry.objects.filter(period=DP))
+    subjects = list(SubjectEntry.objects.filter(period=dp))
 
     def subj_sort_key(sub):
         sname = sub.subject_name.upper()
@@ -1650,10 +1669,10 @@ def timetable2(request):
 from .models import SubjectFacultyMap
 @login_required
 def subject_faculty_mapping(request):
-    subjects = SubjectEntry.objects.filter(period=DP).order_by("class_name", "subject_name", "id")
+    subjects = SubjectEntry.objects.filter(period=dp).order_by("class_name", "subject_name", "id")
 
     # Load existing mappings
-    mapping = {m.subject_id: m for m in SubjectFacultyMap.objects.filter(period=DP)}
+    mapping = {m.subject_id: m for m in SubjectFacultyMap.objects.filter(period=dp)}
 
     if request.method == "POST":
         for sub in subjects:
@@ -1666,7 +1685,7 @@ def subject_faculty_mapping(request):
             # update OR create
             obj, created = SubjectFacultyMap.objects.update_or_create(
                 subject=sub,
-                period=DP,
+                period=dp,
                 defaults={"faculty_names": faculty_val},
             )
 
@@ -1706,7 +1725,7 @@ def export_final_workload(request):
     total_workload = 0
     subject_groups = defaultdict(list)
 
-    for s in SubjectEntry.objects.filter(period=DP):
+    for s in SubjectEntry.objects.filter(period=dp):
         key = (s.class_name.strip(), s.subject_name.strip())
         subject_groups[key].append(s)
 
@@ -1765,7 +1784,7 @@ def export_final_workload(request):
 
     entries = (
         TimetableEntry.objects
-        .filter(subject__period=DP)
+        .filter(subject__period=dp)
         .select_related("staff", "subject")
         .order_by("staff__name")
     )
@@ -1818,12 +1837,48 @@ def manage_batches(request):
             if batch_id and subject_name:
                 batch = Batch.objects.get(id=batch_id)
                 BatchSubject.objects.create(batch=batch, subject_name=subject_name)
+        elif action == "add_semester":
+            sem_name = request.POST.get('semester_name')
+            if sem_name:
+                Semester.objects.get_or_create(name=sem_name)
+        elif action == "activate_semester":
+            sem_id = request.POST.get('semester_id')
+            if sem_id:
+                try:
+                    sem = Semester.objects.get(id=sem_id)
+                    sem.is_active = True
+                    sem.save()
+                    request.session['selected_period'] = sem.name
+                except Semester.DoesNotExist:
+                    pass
         return redirect('manage_batches')
     
     batches = Batch.objects.prefetch_related('subjects').all()
-    return render(request, 'manage_batches.html', {'batches': batches})
+    semesters = Semester.objects.all().order_by('name')
+    active_sem = semesters.filter(is_active=True).first()
+    
+    # Ensure active semester exists in session if it's set in db
+    if active_sem and 'selected_period' not in request.session:
+        request.session['selected_period'] = active_sem.name
+        
+    current_view_sem = request.session.get('selected_period')
+    
+    return render(request, 'manage_batches.html', {
+        'batches': batches,
+        'semesters': semesters,
+        'active_sem': active_sem,
+        'current_view_sem': current_view_sem
+    })
+
+def switch_semester(request):
+    if request.method == "POST":
+        sem_name = request.POST.get('semester_name')
+        if sem_name:
+            request.session['selected_period'] = sem_name
+    return redirect(request.META.get('HTTP_REFERER', 'timetable'))
 
 def subject_entry_view(request):
+    dp = get_current_period(request)
     if request.method == "POST":
         batch_id = request.POST.get('batch_id')
         subject_name = request.POST.get('subject_name')
@@ -1833,12 +1888,24 @@ def subject_entry_view(request):
             day_1 = request.POST.get('day_1')
             hours_1 = request.POST.get('hours_1')
             if day_1 and hours_1:
-                SubjectEntry.objects.create(subject_name=subject_name, class_name=batch.name, day=day_1, allotted_hours=hours_1)
+                SubjectEntry.objects.create(
+                    subject_name=subject_name, 
+                    class_name=batch.name, 
+                    day=day_1, 
+                    allotted_hours=hours_1,
+                    period=dp
+                )
             
             day_2 = request.POST.get('day_2')
             hours_2 = request.POST.get('hours_2')
             if day_2 and hours_2:
-                SubjectEntry.objects.create(subject_name=subject_name, class_name=batch.name, day=day_2, allotted_hours=hours_2)
+                SubjectEntry.objects.create(
+                    subject_name=subject_name, 
+                    class_name=batch.name, 
+                    day=day_2, 
+                    allotted_hours=hours_2,
+                    period=dp
+                )
             
             return redirect('subject_entry')
     
@@ -1850,9 +1917,10 @@ def get_batch_subjects(request, batch_id):
     return JsonResponse({'subjects': list(subjects)})
 
 def get_batch_allotments(request, batch_id):
+    dp = get_current_period(request)
     try:
         batch = Batch.objects.get(id=batch_id)
-        allotments = SubjectEntry.objects.filter(class_name=batch.name).values('id', 'subject_name', 'day', 'allotted_hours')
+        allotments = SubjectEntry.objects.filter(class_name=batch.name, period=dp).values('id', 'subject_name', 'day', 'allotted_hours')
         # map day codes to display names
         day_map = dict(SubjectEntry.DAY_CHOICES)
         allotments_list = list(allotments)

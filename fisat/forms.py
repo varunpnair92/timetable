@@ -2,8 +2,6 @@ from django import forms
 from .models import Staff, SubjectEntry, TimetableEntry
 from django.conf import settings
 
-DP=settings.DP
-
 class SubjectEntryChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         return f"{obj.subject_name} - {obj.class_name} - {obj.allotted_hours} ({obj.get_day_display()})"
@@ -24,10 +22,15 @@ class AllocationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)  # ✅ capture logged-in user
         action = kwargs.pop('action', None)
+        period = kwargs.pop('period', None)
         super().__init__(*args, **kwargs)
 
-        self.fields['subject_entry'].queryset = SubjectEntry.objects.all().order_by('subject_name', 'class_name')
-        self.fields['delete_entry'].queryset = TimetableEntry.objects.all().order_by('staff__name')
+        if period:
+            self.fields['subject_entry'].queryset = SubjectEntry.objects.filter(period=period).order_by('subject_name', 'class_name')
+            self.fields['delete_entry'].queryset = TimetableEntry.objects.filter(subject__period=period).order_by('staff__name')
+        else:
+            self.fields['subject_entry'].queryset = SubjectEntry.objects.all().order_by('subject_name', 'class_name')
+            self.fields['delete_entry'].queryset = TimetableEntry.objects.all().order_by('staff__name')
 
         if action == 'allot':
             self.fields['subject_entry'].required = True
@@ -66,6 +69,10 @@ class SubjectEntryForm(forms.ModelForm):
         model = SubjectEntry
         fields = ['subject_name', 'class_name', 'LAB']
 
+    def __init__(self, *args, **kwargs):
+        self.period = kwargs.pop('period', None)
+        super().__init__(*args, **kwargs)
+
     def save(self, commit=True):
         instance = super().save(commit=False)
         
@@ -87,7 +94,8 @@ class SubjectEntryForm(forms.ModelForm):
                     class_name=instance.class_name,
                     day=day,
                     LAB=instance.LAB,
-                    allotted_hours=hour
+                    allotted_hours=hour,
+                    period=self.period
                 )
                 if commit:
                     new_instance.save()
@@ -96,17 +104,19 @@ class SubjectEntryForm(forms.ModelForm):
         return created_instances
 
 
-from django import forms
-from .models import SubjectEntry
-
 class DeleteSubjectEntryForm(forms.Form):
     subject_entry = forms.ModelChoiceField(
-        queryset=SubjectEntry.objects.filter(period=DP).order_by('subject_name'),
+        queryset=SubjectEntry.objects.none(),
         label="Select Subject Allotment"
     )
 
     def __init__(self, *args, **kwargs):
+        period = kwargs.pop('period', None)
         super(DeleteSubjectEntryForm, self).__init__(*args, **kwargs)
+        if period:
+            self.fields['subject_entry'].queryset = SubjectEntry.objects.filter(period=period).order_by('subject_name')
+        else:
+            self.fields['subject_entry'].queryset = SubjectEntry.objects.all().order_by('subject_name')
         self.fields['subject_entry'].label_from_instance = lambda obj: (
             f"{obj.subject_name} - {obj.class_name} | Day: {obj.get_day_display()} | Hours: {obj.allotted_hours} | Lab: {obj.LAB}"
         )

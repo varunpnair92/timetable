@@ -164,7 +164,25 @@
 
 </head>
 <body>
-    <h1>Staff Timetable</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="margin: 0;">Staff Timetable</h1>
+        
+        <div style="background: #e9ecef; padding: 10px; border-radius: 5px;">
+            <form action="{% url 'switch_semester' %}" method="POST" id="semesterForm">
+                {% csrf_token %}
+                <label for="semester_select" style="font-weight: bold; margin-right: 10px;">Viewing Semester:</label>
+                <select name="semester_name" id="semester_select" onchange="document.getElementById('semesterForm').submit();" style="padding: 5px; border-radius: 4px;">
+                    {% for sem in semesters %}
+                    <option value="{{ sem.name }}" {% if sem.name == current_view_sem %}selected{% endif %}>
+                        {{ sem.name }} {% if sem.is_active %}(Active){% endif %}
+                    </option>
+                    {% empty %}
+                    <option value="">No Semesters Added</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
 
 {% load custom_filters %}
 

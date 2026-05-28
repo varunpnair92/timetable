@@ -3,7 +3,20 @@ from django.forms import ValidationError
 from django.conf import settings
 from django.contrib.auth.models import User
 
-DP=settings.DP
+class Semester(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if self.is_active:
+            Semester.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+
+    class Meta:
+        db_table = 'semester'
 
 class Batch(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -63,12 +76,12 @@ class SubjectEntry(models.Model):
         
     def clean(self):
         if self.pk is None:  # Check if this is a new instance (not updating)
-            existing_entries = SubjectEntry.objects.filter(day=self.day, LAB=self.LAB,period=DP)
+            existing_entries = SubjectEntry.objects.filter(day=self.day, LAB=self.LAB, period=self.period)
             for entry in existing_entries:
                 existing_hours = set(map(int, entry.allotted_hours.split(',')))
                 new_hours = set(map(int, self.allotted_hours.split(',')))
                 if existing_hours.intersection(new_hours):
-                    raise ValidationError(_('Overlapping hours are not allowed within the same day and lab.'))
+                    raise ValidationError('Overlapping hours are not allowed within the same day and lab.')
     
 class Staff(models.Model):
     id = models.AutoField(primary_key=True,db_column="sid")
@@ -95,7 +108,7 @@ class TimetableEntry(models.Model):
     def clean(self):
         # Check if subject is assigned to more than 2 staff members
         if self.subject_id is not None:
-            existing_entries = TimetableEntry.objects.filter(subject=self.subject,subject__period=DP)
+            existing_entries = TimetableEntry.objects.filter(subject=self.subject, subject__period=self.subject.period)
             if existing_entries.count() >= 2:
                 raise ValidationError('This subject already has two staff members assigned.')
 
@@ -103,7 +116,7 @@ class TimetableEntry(models.Model):
         if self.staff_id is not None and self.subject_id is not None:
             subject_day = self.subject.day
             subject_hours = set(map(int, self.subject.allotted_hours.split(',')))
-            existing_entries = TimetableEntry.objects.filter(staff=self.staff, subject__day=subject_day,subject__period=DP)
+            existing_entries = TimetableEntry.objects.filter(staff=self.staff, subject__day=subject_day, subject__period=self.subject.period)
 
             for entry in existing_entries:
                 existing_hours = set(map(int, entry.subject.allotted_hours.split(',')))
