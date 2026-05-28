@@ -318,11 +318,15 @@ def timetable(request):
     for sub in all_subjects:
         if sub.class_name not in palette_subjects:
             palette_subjects[sub.class_name] = []
+        
+        # Replace '8' with 'LB' for display in the palette
+        display_hours = sub.allotted_hours.replace('8', 'LB') if sub.allotted_hours else ''
+        
         palette_subjects[sub.class_name].append({
             'id': sub.id,
             'subject_name': sub.subject_name,
             'day': sub.day,
-            'allotted_hours': sub.allotted_hours,
+            'allotted_hours': display_hours,
             'lab': sub.LAB
         })
 
