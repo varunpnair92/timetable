@@ -428,7 +428,6 @@ def get_free_staff(request, subject_id):
             "count": slot_count
         })
 
-<<<<<<< HEAD
     return JsonResponse(free_staff, safe=False)
 
 # ============================================================
