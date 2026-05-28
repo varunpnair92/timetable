@@ -104,6 +104,7 @@
             flex: 1;
         }
         .palette-sidebar {
+            display: none;
             width: 250px;
             background: #fff;
             border: 1px solid #ccc;
@@ -136,6 +137,28 @@
             text-align: center;
         }
 
+
+
+        #paletteToggleBtn {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            z-index: 10000;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-align: center;
+            line-height: 60px;
+        }
+        #paletteToggleBtn:hover {
+            background-color: #0056b3;
+        }
 
     </style>
 
@@ -408,6 +431,19 @@ function hidePopup() {
     {% endfor %}
 </div>
 </div> <!-- End layout-container -->
+
+
+<button id="paletteToggleBtn" onclick="togglePalette()">+</button>
+<script>
+function togglePalette() {
+    var palette = document.querySelector('.palette-sidebar');
+    if (palette.style.display === 'none' || palette.style.display === '') {
+        palette.style.display = 'block';
+    } else {
+        palette.style.display = 'none';
+    }
+}
+</script>
 
 </body>
 </html>
