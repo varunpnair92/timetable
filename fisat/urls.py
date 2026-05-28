@@ -9,7 +9,6 @@ urlpatterns = [
 
     path('allocate/', allocate_staff, name='allocate'),
     path('allotted/', allotted, name='alloctted_staff'),
-<<<<<<< HEAD
     path('delete_entry/<int:entry_id>/', delete_allotment, name='delete_entry'),
     path('drag_action/<str:action>/<int:id1>/<int:id2>/', drag_action, name='drag_action'),
     path('transfer_to_staff/<int:entry_id>/<int:staff_id>/', transfer_to_staff, name='transfer_to_staff'),
