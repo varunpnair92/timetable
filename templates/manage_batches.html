@@ -52,19 +52,30 @@
 
             <hr style="margin: 20px 0;">
 
-            <h3>Add Existing Batch to Semester</h3>
+            <h3>Add Existing Batches to Semester</h3>
             <form method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="assign_batch_to_semester">
+                
                 <div class="form-group">
-                    <label>Select Existing Batch Name</label>
-                    <select name="batch_name" required>
-                        <option value="">-- Select --</option>
-                        {% for name in distinct_batch_names %}
-                        <option value="{{ name }}">{{ name }}</option>
+                    <label>Select Existing Batches to Copy</label>
+                    <div style="max-height: 250px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 4px; background: #fff; text-align: left;">
+                        {% for item in distinct_batches_with_subjects %}
+                        <div style="margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px;">
+                            <input type="checkbox" name="batch_names" value="{{ item.name }}" id="batch_chk_{{ forloop.counter }}" style="width: auto; margin-top: 3px;">
+                            <label for="batch_chk_{{ forloop.counter }}" style="display: inline; font-weight: normal; margin-bottom: 0; cursor: pointer;">
+                                <strong>{{ item.name }}</strong> 
+                                <span style="color: #666; font-size: 0.9em;">
+                                    (Subjects: {% for sub in item.subjects %}{{ sub }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %})
+                                </span>
+                            </label>
+                        </div>
+                        {% empty %}
+                        <p style="color: #666; margin: 0;">No existing batches found.</p>
                         {% endfor %}
-                    </select>
+                    </div>
                 </div>
+
                 <div class="form-group">
                     <label>Target Semester</label>
                     <select name="period" required>
@@ -75,7 +86,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" style="background-color: #17a2b8; color: white; border: none; padding: 8px 15px; cursor: pointer;">Add to Semester</button>
+                <button type="submit" style="background-color: #17a2b8; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px;">Add Selected Batches</button>
             </form>
 
             <hr style="margin: 20px 0;">
