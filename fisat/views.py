@@ -1962,15 +1962,24 @@ def get_batch_allotments(request, batch_id):
     dp = get_current_period(request)
     try:
         batch = Batch.objects.get(id=batch_id)
-        allotments = SubjectEntry.objects.filter(class_name=batch.name, period=dp).values('id', 'subject_name', 'day', 'allotted_hours')
+        allotments = SubjectEntry.objects.filter(class_name=batch.name, period=dp).values('id', 'subject_name', 'day', 'allotted_hours', 'LAB')
         # map day codes to display names
         day_map = dict(SubjectEntry.DAY_CHOICES)
+        lab_map = dict(SubjectEntry.LAB_CHOICES)
         allotments_list = list(allotments)
         for a in allotments_list:
             a['day_display'] = day_map.get(a['day'], a['day'])
+            a['lab_display'] = lab_map.get(a['LAB'], a['LAB'])
         return JsonResponse({'allotments': allotments_list})
     except Batch.DoesNotExist:
         return JsonResponse({'allotments': []})
+
+def delete_subject_entry_ajax(request, entry_id):
+    if request.method == "POST":
+        entry = get_object_or_404(SubjectEntry, id=entry_id)
+        entry.delete()
+        return JsonResponse({"status": "success"})
+    return JsonResponse({"status": "error", "message": "Invalid method"}, status=400)
 
 @login_required
 def palette_allocate(request, subject_id, staff_id):
