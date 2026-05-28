@@ -1830,8 +1830,9 @@ def manage_batches(request):
         action = request.POST.get('action')
         if action == "add_batch":
             batch_name = request.POST.get('batch_name')
+            period = request.POST.get('period', dp)
             if batch_name:
-                Batch.objects.get_or_create(name=batch_name, period=dp)
+                Batch.objects.get_or_create(name=batch_name, period=period)
         elif action == "add_subject":
             batch_id = request.POST.get('batch_id')
             subject_name = request.POST.get('subject_name')
