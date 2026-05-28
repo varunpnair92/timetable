@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Batches & Subjects</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { display: flex; gap: 40px; }
+        .section { flex: 1; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        .list-section { flex: 2; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 8px 15px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 15px; text-decoration: none; color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="{% url 'timetable' %}">&larr; Back to Timetable</a>
+        <a href="{% url 'subject_entry' %}">Go to Subject Entry</a>
+    </div>
+
+    <h1>Manage Batches & Subjects</h1>
+
+    <div class="container">
+        <div class="section">
+            <h3>Add New Batch</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_batch">
+                <div class="form-group">
+                    <label>Batch Name (e.g., S4 CSB)</label>
+                    <input type="text" name="batch_name" required>
+                </div>
+                <button type="submit">Add Batch</button>
+            </form>
+
+            <hr style="margin: 30px 0;">
+
+            <h3>Add Subject to Batch</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_subject">
+                <div class="form-group">
+                    <label>Select Batch</label>
+                    <select name="batch_id" required>
+                        <option value="">-- Select --</option>
+                        {% for batch in batches %}
+                        <option value="{{ batch.id }}">{{ batch.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subject Name (e.g., OS)</label>
+                    <input type="text" name="subject_name" required>
+                </div>
+                <button type="submit">Add Subject</button>
+            </form>
+        </div>
+
+        <div class="section list-section">
+            <h3>Existing Batches & Subjects</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Batch Name</th>
+                        <th>Subjects</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches %}
+                    <tr>
+                        <td><strong>{{ batch.name }}</strong></td>
+                        <td>
+                            <ul>
+                            {% for subject in batch.subjects.all %}
+                                <li>{{ subject.subject_name }}</li>
+                            {% empty %}
+                                <li><em>No subjects added</em></li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" style="text-align: center;">No batches found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

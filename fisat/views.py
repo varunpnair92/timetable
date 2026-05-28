@@ -2,7 +2,8 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 
 from fisat.forms import AllocationForm
-from .models import Staff, SubjectEntry, TimetableEntry
+from .models import Staff, SubjectEntry, TimetableEntry, Batch, BatchSubject
+from django.http import JsonResponse
 
 
 
@@ -116,3 +117,60 @@ def allotted(request):
         })
 
     return render(request, 'allotted.html', {'class_data': class_data})
+
+def manage_batches(request):
+    if request.method == "POST":
+        action = request.POST.get('action')
+        if action == "add_batch":
+            batch_name = request.POST.get('batch_name')
+            if batch_name:
+                Batch.objects.get_or_create(name=batch_name)
+        elif action == "add_subject":
+            batch_id = request.POST.get('batch_id')
+            subject_name = request.POST.get('subject_name')
+            if batch_id and subject_name:
+                batch = Batch.objects.get(id=batch_id)
+                BatchSubject.objects.create(batch=batch, subject_name=subject_name)
+        return redirect('manage_batches')
+    
+    batches = Batch.objects.prefetch_related('subjects').all()
+    return render(request, 'manage_batches.html', {'batches': batches})
+
+def subject_entry_view(request):
+    if request.method == "POST":
+        batch_id = request.POST.get('batch_id')
+        subject_name = request.POST.get('subject_name')
+        if batch_id and subject_name:
+            batch = Batch.objects.get(id=batch_id)
+            
+            day_1 = request.POST.get('day_1')
+            hours_1 = request.POST.get('hours_1')
+            if day_1 and hours_1:
+                SubjectEntry.objects.create(subject_name=subject_name, class_name=batch.name, day=day_1, allotted_hours=hours_1)
+            
+            day_2 = request.POST.get('day_2')
+            hours_2 = request.POST.get('hours_2')
+            if day_2 and hours_2:
+                SubjectEntry.objects.create(subject_name=subject_name, class_name=batch.name, day=day_2, allotted_hours=hours_2)
+            
+            return redirect('subject_entry')
+    
+    batches = Batch.objects.all()
+    return render(request, 'subject_entry.html', {'batches': batches})
+
+def get_batch_subjects(request, batch_id):
+    subjects = BatchSubject.objects.filter(batch_id=batch_id).values('id', 'subject_name')
+    return JsonResponse({'subjects': list(subjects)})
+
+def get_batch_allotments(request, batch_id):
+    try:
+        batch = Batch.objects.get(id=batch_id)
+        allotments = SubjectEntry.objects.filter(class_name=batch.name).values('id', 'subject_name', 'day', 'allotted_hours')
+        # map day codes to display names
+        day_map = dict(SubjectEntry.DAY_CHOICES)
+        allotments_list = list(allotments)
+        for a in allotments_list:
+            a['day_display'] = day_map.get(a['day'], a['day'])
+        return JsonResponse({'allotments': allotments_list})
+    except Batch.DoesNotExist:
+        return JsonResponse({'allotments': []})

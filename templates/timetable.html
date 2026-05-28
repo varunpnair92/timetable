@@ -47,6 +47,10 @@
 </head>
 <body>
     <h1>Staff Timetable</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'manage_batches' %}" style="margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold;">Manage Batches & Subjects</a>
+        <a href="{% url 'subject_entry' %}" style="text-decoration: none; color: #28a745; font-weight: bold;">Subject Entry / Allotments</a>
+    </div>
 
     {% load custom_filters %}
 

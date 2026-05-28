@@ -1,6 +1,22 @@
 from django.db import models
 from django.forms import ValidationError
 
+class Batch(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+    class Meta:
+        db_table = 'batch'
+
+class BatchSubject(models.Model):
+    batch = models.ForeignKey(Batch, related_name='subjects', on_delete=models.CASCADE)
+    subject_name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.subject_name} ({self.batch.name})"
+    class Meta:
+        db_table = 'batchsubject'
 class SubjectEntry(models.Model):
     _id = models.AutoField(primary_key=True,db_column="tid")
     subject_name = models.CharField(max_length=100)

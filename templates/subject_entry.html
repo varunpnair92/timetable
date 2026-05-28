@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Subject Entry (Allotments)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { display: flex; gap: 40px; }
+        .section { flex: 1; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        .list-section { flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background: #218838; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 15px; text-decoration: none; color: #007bff; }
+        .allotment-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .allotment-row > div { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="{% url 'timetable' %}">&larr; Back to Timetable</a>
+        <a href="{% url 'manage_batches' %}">Manage Batches & Subjects</a>
+    </div>
+
+    <h1>Subject Entry (Allotments)</h1>
+
+    <div class="container">
+        <div class="section">
+            <h3>Add Allotment</h3>
+            <form method="POST" id="allotmentForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Select Batch</label>
+                    <select name="batch_id" id="batchSelect" required>
+                        <option value="">-- Select Batch --</option>
+                        {% for batch in batches %}
+                        <option value="{{ batch.id }}">{{ batch.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Subject</label>
+                    <select name="subject_name" id="subjectSelect" required disabled>
+                        <option value="">-- Select Subject --</option>
+                    </select>
+                </div>
+
+                <hr style="margin: 20px 0;">
+                <h4>Allotments (Fill up to two)</h4>
+                
+                <!-- First Allotment -->
+                <div class="allotment-row">
+                    <div>
+                        <label>Day 1</label>
+                        <select name="day_1">
+                            <option value="">-- Select Day --</option>
+                            <option value="M">Monday</option>
+                            <option value="T">Tuesday</option>
+                            <option value="W">Wednesday</option>
+                            <option value="Th">Thursday</option>
+                            <option value="F">Friday</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Hours (e.g., 5,6,7)</label>
+                        <input type="text" name="hours_1" placeholder="e.g. 5,6,7">
+                    </div>
+                </div>
+
+                <!-- Second Allotment -->
+                <div class="allotment-row">
+                    <div>
+                        <label>Day 2 (Optional)</label>
+                        <select name="day_2">
+                            <option value="">-- Select Day --</option>
+                            <option value="M">Monday</option>
+                            <option value="T">Tuesday</option>
+                            <option value="W">Wednesday</option>
+                            <option value="Th">Thursday</option>
+                            <option value="F">Friday</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Hours</label>
+                        <input type="text" name="hours_2" placeholder="e.g. 1,2,3">
+                    </div>
+                </div>
+
+                <button type="submit" style="margin-top: 15px; width: 100%;">Save Allotments</button>
+            </form>
+        </div>
+
+        <div class="section list-section">
+            <h3 id="allotmentTitle">Current Allotments</h3>
+            <table id="allotmentTable">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Day</th>
+                        <th>Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="3" style="text-align: center;">Select a batch to view allotments</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const batchSelect = document.getElementById('batchSelect');
+        const subjectSelect = document.getElementById('subjectSelect');
+        const allotmentTableBody = document.querySelector('#allotmentTable tbody');
+        const allotmentTitle = document.getElementById('allotmentTitle');
+
+        batchSelect.addEventListener('change', function() {
+            const batchId = this.value;
+            const batchName = this.options[this.selectedIndex].text;
+            
+            if (batchId) {
+                // Fetch subjects
+                fetch(`/api/batch/${batchId}/subjects/`)
+                    .then(res => res.json())
+                    .then(data => {
+                        subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+                        data.subjects.forEach(sub => {
+                            const opt = document.createElement('option');
+                            opt.value = sub.subject_name;
+                            opt.textContent = sub.subject_name;
+                            subjectSelect.appendChild(opt);
+                        });
+                        subjectSelect.disabled = false;
+                    });
+                
+                // Fetch allotments
+                allotmentTitle.textContent = `Current Allotments for ${batchName}`;
+                fetch(`/api/batch/${batchId}/allotments/`)
+                    .then(res => res.json())
+                    .then(data => {
+                        allotmentTableBody.innerHTML = '';
+                        if (data.allotments.length === 0) {
+                            allotmentTableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No allotments found</td></tr>';
+                        } else {
+                            data.allotments.forEach(al => {
+                                const tr = document.createElement('tr');
+                                tr.innerHTML = `
+                                    <td><strong>${al.subject_name}</strong></td>
+                                    <td>${al.day_display}</td>
+                                    <td>${al.allotted_hours}</td>
+                                `;
+                                allotmentTableBody.appendChild(tr);
+                            });
+                        }
+                    });
+            } else {
+                subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+                subjectSelect.disabled = true;
+                allotmentTitle.textContent = 'Current Allotments';
+                allotmentTableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Select a batch to view allotments</td></tr>';
+            }
+        });
+    </script>
+</body>
+</html>
