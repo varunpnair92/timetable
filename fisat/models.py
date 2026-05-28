@@ -19,12 +19,14 @@ class Semester(models.Model):
         db_table = 'semester'
 
 class Batch(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
+    period = models.CharField(max_length=20, default='2025-dec')
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.period})"
     class Meta:
         db_table = 'batch'
+        unique_together = ('name', 'period')
 
 class BatchSubject(models.Model):
     batch = models.ForeignKey(Batch, related_name='subjects', on_delete=models.CASCADE)

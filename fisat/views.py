@@ -1825,12 +1825,13 @@ def export_final_workload(request):
     return response
 
 def manage_batches(request):
+    dp = get_current_period(request)
     if request.method == "POST":
         action = request.POST.get('action')
         if action == "add_batch":
             batch_name = request.POST.get('batch_name')
             if batch_name:
-                Batch.objects.get_or_create(name=batch_name)
+                Batch.objects.get_or_create(name=batch_name, period=dp)
         elif action == "add_subject":
             batch_id = request.POST.get('batch_id')
             subject_name = request.POST.get('subject_name')
@@ -1853,7 +1854,6 @@ def manage_batches(request):
                     pass
         return redirect('manage_batches')
     
-    batches = Batch.objects.prefetch_related('subjects').all()
     semesters = Semester.objects.all().order_by('name')
     active_sem = semesters.filter(is_active=True).first()
     
@@ -1861,7 +1861,8 @@ def manage_batches(request):
     if active_sem and 'selected_period' not in request.session:
         request.session['selected_period'] = active_sem.name
         
-    current_view_sem = request.session.get('selected_period')
+    current_view_sem = request.session.get('selected_period') or dp
+    batches = Batch.objects.filter(period=current_view_sem).prefetch_related('subjects').all()
     
     return render(request, 'manage_batches.html', {
         'batches': batches,
@@ -1909,7 +1910,7 @@ def subject_entry_view(request):
             
             return redirect('subject_entry')
     
-    batches = Batch.objects.all()
+    batches = Batch.objects.filter(period=dp)
     return render(request, 'subject_entry.html', {'batches': batches})
 
 def get_batch_subjects(request, batch_id):
