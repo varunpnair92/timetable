@@ -1839,6 +1839,15 @@ def manage_batches(request):
             if batch_id and subject_name:
                 batch = Batch.objects.get(id=batch_id)
                 BatchSubject.objects.create(batch=batch, subject_name=subject_name)
+        elif action == "assign_batch_to_semester":
+            batch_name = request.POST.get('batch_name')
+            target_period = request.POST.get('period')
+            if batch_name and target_period:
+                target_batch, created = Batch.objects.get_or_create(name=batch_name, period=target_period)
+                source_batch = Batch.objects.filter(name=batch_name).exclude(period=target_period).first()
+                if source_batch:
+                    for subject in source_batch.subjects.all():
+                        BatchSubject.objects.get_or_create(batch=target_batch, subject_name=subject.subject_name)
         elif action == "add_semester":
             sem_name = request.POST.get('semester_name')
             if sem_name:
@@ -1864,12 +1873,14 @@ def manage_batches(request):
         
     current_view_sem = request.session.get('selected_period') or dp
     batches = Batch.objects.filter(period=current_view_sem).prefetch_related('subjects').all()
+    distinct_batch_names = Batch.objects.values_list('name', flat=True).distinct().order_by('name')
     
     return render(request, 'manage_batches.html', {
         'batches': batches,
         'semesters': semesters,
         'active_sem': active_sem,
-        'current_view_sem': current_view_sem
+        'current_view_sem': current_view_sem,
+        'distinct_batch_names': distinct_batch_names
     })
 
 def switch_semester(request):

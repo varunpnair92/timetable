@@ -52,6 +52,34 @@
 
             <hr style="margin: 20px 0;">
 
+            <h3>Add Existing Batch to Semester</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="assign_batch_to_semester">
+                <div class="form-group">
+                    <label>Select Existing Batch Name</label>
+                    <select name="batch_name" required>
+                        <option value="">-- Select --</option>
+                        {% for name in distinct_batch_names %}
+                        <option value="{{ name }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Target Semester</label>
+                    <select name="period" required>
+                        {% for sem in semesters %}
+                        <option value="{{ sem.name }}" {% if sem.name == current_view_sem %}selected{% endif %}>{{ sem.name }}</option>
+                        {% empty %}
+                        <option value="">No semesters available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" style="background-color: #17a2b8; color: white; border: none; padding: 8px 15px; cursor: pointer;">Add to Semester</button>
+            </form>
+
+            <hr style="margin: 20px 0;">
+
             <h3>Add Subject to Batch</h3>
             <form method="POST">
                 {% csrf_token %}
