@@ -311,8 +311,26 @@ def timetable(request):
         }
 
     has_undo = bool(request.session.get('undo_data'))
-    return render(request, "timetable.html", {"staff_timetables": staff_timetables, "has_undo": has_undo})
 
+    # Build Palette Subjects
+    all_subjects = SubjectEntry.objects.filter(period=DP)
+    palette_subjects = {}
+    for sub in all_subjects:
+        if sub.class_name not in palette_subjects:
+            palette_subjects[sub.class_name] = []
+        palette_subjects[sub.class_name].append({
+            'id': sub.id,
+            'subject_name': sub.subject_name,
+            'day': sub.day,
+            'allotted_hours': sub.allotted_hours,
+            'lab': sub.LAB
+        })
+
+    return render(request, "timetable.html", {
+        "staff_timetables": staff_timetables, 
+        "has_undo": has_undo,
+        "palette_subjects": palette_subjects
+    })
 
 # ============================================================
 #  CLASS WISE ALLOTTED VIEW
@@ -1839,3 +1857,15 @@ def get_batch_allotments(request, batch_id):
         return JsonResponse({'allotments': allotments_list})
     except Batch.DoesNotExist:
         return JsonResponse({'allotments': []})
+
+@login_required
+def palette_allocate(request, subject_id, staff_id):
+    subject = get_object_or_404(SubjectEntry, id=subject_id)
+    staff = get_object_or_404(Staff, id=staff_id)
+    
+    # Check if this exact SubjectEntry is already allotted to this staff
+    exists = TimetableEntry.objects.filter(staff=staff, subject=subject).exists()
+    if not exists:
+        TimetableEntry.objects.create(staff=staff, subject=subject, user=request.user)
+    
+    return redirect("timetable")

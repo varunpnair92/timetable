@@ -95,6 +95,48 @@
             font-weight: bold;
         }
 
+        /* ===== PALETTE ===== */
+        .layout-container {
+            display: flex;
+            gap: 20px;
+        }
+        .main-content {
+            flex: 1;
+        }
+        .palette-sidebar {
+            width: 250px;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 15px;
+            height: calc(100vh - 100px);
+            position: sticky;
+            top: 20px;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .palette-batch {
+            margin-bottom: 15px;
+        }
+        .palette-batch h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            background: #eee;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .palette-item {
+            background: #007bff;
+            color: white;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: grab;
+            text-align: center;
+        }
+
+
     </style>
 
 </head>
@@ -152,24 +194,36 @@ function allowDrop(ev) {
 let currentDragSource = null;
 let currentDragTarget = null;
 
-function dropSwap(ev, targetEntryId) {
+function dropSwap(ev, targetEntryId, targetStaffId) {
     ev.preventDefault();
     if (!targetEntryId) return;
-    const sourceEntryId = ev.dataTransfer.getData("text/plain");
-    if (sourceEntryId && sourceEntryId !== targetEntryId) {
-        currentDragSource = sourceEntryId;
-        currentDragTarget = targetEntryId;
-        document.getElementById("dragActionPopup").style.display = "block";
+    const sourceData = ev.dataTransfer.getData("text/plain");
+    
+    if (sourceData.startsWith("palette:")) {
+        const subjectId = sourceData.split(":")[1];
+        window.location.href = `/palette_allocate/${subjectId}/${targetStaffId}/`;
+    } else {
+        if (sourceData && sourceData !== targetEntryId) {
+            currentDragSource = sourceData;
+            currentDragTarget = targetEntryId;
+            document.getElementById("dragActionPopup").style.display = "block";
+        }
     }
 }
 
 function dropEmpty(ev, targetStaffId) {
     ev.preventDefault();
     if (!targetStaffId) return;
-    const sourceEntryId = ev.dataTransfer.getData("text/plain");
-    if (sourceEntryId) {
-        if (confirm("Transfer this subject to the new staff?")) {
-            window.location.href = `/transfer_to_staff/${sourceEntryId}/${targetStaffId}/`;
+    const sourceData = ev.dataTransfer.getData("text/plain");
+    
+    if (sourceData.startsWith("palette:")) {
+        const subjectId = sourceData.split(":")[1];
+        window.location.href = `/palette_allocate/${subjectId}/${targetStaffId}/`;
+    } else {
+        if (sourceData) {
+            if (confirm("Transfer this subject to the new staff?")) {
+                window.location.href = `/transfer_to_staff/${sourceData}/${targetStaffId}/`;
+            }
         }
     }
 }
@@ -196,6 +250,8 @@ function hidePopup() {
 </script>
 
 
+<div class="layout-container">
+<div class="main-content">
 {% for staff_chunk in staff_timetables|chunkify:3 %}
 <div class="staff-row">
 
@@ -229,7 +285,7 @@ function hidePopup() {
                             <td colspan="{{ cell.colspan }}"
                                 draggable="true" 
                                 ondragstart="dragStart(event, '{{cell.entry_id}}')" 
-                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
                                 ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
@@ -250,7 +306,7 @@ function hidePopup() {
                             <td colspan="{{ cell.colspan }}"
                                 draggable="true" 
                                 ondragstart="dragStart(event, '{{cell.entry_id}}')" 
-                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
                                 ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
@@ -271,7 +327,7 @@ function hidePopup() {
                             <td colspan="{{ cell.colspan }}"
                                 draggable="true" 
                                 ondragstart="dragStart(event, '{{cell.entry_id}}')" 
-                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
                                 ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
@@ -292,7 +348,7 @@ function hidePopup() {
                             <td colspan="{{ cell.colspan }}"
                                 draggable="true" 
                                 ondragstart="dragStart(event, '{{cell.entry_id}}')" 
-                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
                                 ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
@@ -313,7 +369,7 @@ function hidePopup() {
                             <td colspan="{{ cell.colspan }}"
                                 draggable="true" 
                                 ondragstart="dragStart(event, '{{cell.entry_id}}')" 
-                                ondrop="dropSwap(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
                                 ondragover="allowDrop(event)">
                                 <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
                                 <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
@@ -334,6 +390,24 @@ function hidePopup() {
 
 </div>
 {% endfor %}
+
+
+</div> <!-- End main-content -->
+<div class="palette-sidebar">
+    <h2 style="font-size: 16px; margin-top: 0; text-align: center;">Unallotted Subjects</h2>
+    {% for batch_name, subjects in palette_subjects.items %}
+    <div class="palette-batch">
+        <h3>{{ batch_name }}</h3>
+        {% for sub in subjects %}
+        <div class="palette-item" draggable="true" ondragstart="dragStart(event, 'palette:{{ sub.id }}')">
+            <strong>{{ sub.subject_name }}</strong><br>
+            <small>{{ sub.lab }} | Day: {{ sub.day }} | Hrs: {{ sub.allotted_hours }}</small>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+</div> <!-- End layout-container -->
 
 </body>
 </html>
