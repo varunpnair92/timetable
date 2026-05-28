@@ -37,16 +37,6 @@
                     <label>Batch Name (e.g., S4 CSB)</label>
                     <input type="text" name="batch_name" required>
                 </div>
-                <div class="form-group">
-                    <label>Semester</label>
-                    <select name="period" required>
-                        {% for sem in semesters %}
-                        <option value="{{ sem.name }}" {% if sem.name == current_view_sem %}selected{% endif %}>{{ sem.name }}</option>
-                        {% empty %}
-                        <option value="">No semesters available</option>
-                        {% endfor %}
-                    </select>
-                </div>
                 <button type="submit">Add Batch</button>
             </form>
 
