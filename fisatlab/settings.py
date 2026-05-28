@@ -28,7 +28,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = ["http://localhost:8888"]
+CSRF_TRUSTED_ORIGINS = ["http://13.61.176.252:7777"]
 # Application definition
 
 INSTALLED_APPS = [
@@ -84,11 +84,11 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'OPTIONS': {
-            'options': '-c search_path=timetable'
+            'options': '-c search_path=timetableweb'
         },
-        'NAME': 'fisatdb',  # Your database name
-        'USER': 'fisat',  # Your database user
-        'PASSWORD': 'pwdfisat',  # Your database password
+        'NAME': 'pscdb',  # Your database name
+        'USER': 'psc',  # Your database user
+        'PASSWORD': 'psc',  # Your database password
         'HOST': 'localhost',  # Set to empty string for localhost
         'PORT': '',  # Set to empty string for default
     }
