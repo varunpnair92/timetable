@@ -2070,6 +2070,8 @@ def subject_entry_view(request):
                     entry.save()
                 except ValidationError as e:
                     errors.append(f"Allotment error: {', '.join(e.messages)}")
+                except IntegrityError as e:
+                    errors.append(f"Database error (possible duplicate key or sequence out of sync): {str(e)}")
             
             day_1 = request.POST.get('day_1')
             hours_1 = request.POST.get('hours_1')
