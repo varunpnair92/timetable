@@ -5,8 +5,13 @@ import io
 out = io.StringIO()
 call_command('sqlsequencereset', 'fisat', stdout=out)
 sql = out.getvalue()
-print("Executing SQL to reset sequences:")
-print(sql)
+
+statements = [s.strip() for s in sql.split(';') if s.strip()]
+
 with connection.cursor() as cursor:
-    cursor.execute(sql)
+    for statement in statements:
+        if statement.upper() in ('BEGIN', 'COMMIT'):
+            continue
+        print(f"Executing: {statement}")
+        cursor.execute(statement)
 print("Sequences reset successfully!")
