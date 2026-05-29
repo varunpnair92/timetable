@@ -840,6 +840,8 @@ def timetableexcel(request):
                 s = col_indices[0]
                 e = col_indices[-1]
 
+                overlap = any(s <= c_idx <= e for c_idx in merged_cols)
+
                 if s == e:
                     ws.write(row, s + 1, text, merge_fmt)
                     for c_idx in range(s, e + 1):
