@@ -689,6 +689,12 @@ def timetableexcel(request):
         .distinct()
     )
 
+    try:
+        sem = Semester.objects.get(name=dp)
+        layout_type = sem.layout_type
+    except Semester.DoesNotExist:
+        layout_type = 'classic'
+
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
 
@@ -719,6 +725,14 @@ def timetableexcel(request):
     data_fmt = workbook.add_format({"align": "center", "valign": "vcenter", "border": 1})
     merge_fmt = workbook.add_format({"align": "center", "valign": "vcenter", "border": 1})
     empty_fmt = workbook.add_format({"bg_color": "#D3D3D3", "border": 1})
+    black_fmt = workbook.add_format({
+        "bg_color": "black",
+        "font_color": "white",
+        "align": "center",
+        "valign": "vcenter",
+        "bold": True,
+        "border": 1
+    })
 
     staff_abbr = {
         "AMBILY N MENON": "ANM", "SREELALITHAMBIKA P K": "SL",
@@ -729,8 +743,14 @@ def timetableexcel(request):
     }
 
     days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
-    hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
     day_map = {"M":"Mon","T":"Tue","W":"Wed","Th":"Thu","F":"Fri"}
+
+    if layout_type == 'new':
+        hours = ["H1", "H2", "H3", "H4", "H5", "H6 / LB (Fri)", "H6 (Fri)"]
+        last_col = "H"
+    else:
+        hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
+        last_col = "I"
 
     for lab in labs:
         ws = workbook.add_worksheet(lab)
@@ -748,21 +768,13 @@ def timetableexcel(request):
             pass
 
         # ========== INSTITUTE HEADER ==========
-        ws.merge_range("A1:I1",
+        ws.merge_range(f"A1:{last_col}1",
                        """FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)
                         (Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)
                         LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)""",institute_fmt)
 
-        '''ws.merge_range("B2:I2",
-                       "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)",
-                       address_fmt)
-
-        #ws.merge_range("B3:I3",
-                       "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)",
-                       title_fmt)'''
-
         # ⭐⭐⭐ LAB NAME HEADER MERGED ABOVE HOURS ⭐⭐⭐
-        ws.merge_range("A4:I4", f"CCF : {lab}", lab_header_fmt)
+        ws.merge_range(f"A4:{last_col}4", f"CCF : {lab}", lab_header_fmt)
 
         # ========== TABLE HEADER ==========
         ws.write(4, 0, "Day", header_fmt)
@@ -771,12 +783,13 @@ def timetableexcel(request):
 
         row = 5
         subjects = SubjectEntry.objects.filter(LAB=lab, period=dp).order_by("day")
-        merged_cells = {}
 
         for day in days:
             ws.write(row, 0, day, data_fmt)
             key = [k for k, v in day_map.items() if v == day][0]
             subs = subjects.filter(day=key)
+            
+            merged_cols = set()
 
             for sub in subs:
                 entries = TimetableEntry.objects.filter(subject=sub, user=request.user)
@@ -792,32 +805,63 @@ def timetableexcel(request):
 
                 text = f"{sub.subject_name} ({sub.class_name})\n({faculty}) ({staff_names})"
 
-                adj = {"8": "5", "5": "6", "6": "7", "7": "8"}
-                ah = sorted({int(adj.get(h, h)) for h in sub.allotted_hours.split(",")})
+                # Dynamic hour columns index mapping
+                col_indices = []
+                for h_str in sub.allotted_hours.split(","):
+                    h = int(h_str)
+                    if layout_type == 'new':
+                        if key == 'F':
+                            # Friday: 1->0, 2->1, 3->2, 4->3, 5->4, 8(LB)->5, 6->6
+                            if h == 8:
+                                col_indices.append(5)
+                            elif h == 6:
+                                col_indices.append(6)
+                            else:
+                                col_indices.append(h - 1)
+                        else:
+                            # Mon-Thu: 1->0, 2->1, 3->2, 4->3, 5->4, 6->5
+                            col_indices.append(h - 1)
+                    else:
+                        # Classic: 1->0, 2->1, 3->2, 4->3, 8(LB)->4, 5->5, 6->6, 7->7
+                        if h == 8:
+                            col_indices.append(4)
+                        elif h == 5:
+                            col_indices.append(5)
+                        elif h == 6:
+                            col_indices.append(6)
+                        elif h == 7:
+                            col_indices.append(7)
+                        else:
+                            col_indices.append(h - 1)
 
-                s = ah[0] - 1
-                e = ah[-1] - 1
+                col_indices = sorted(set(col_indices))
+                if not col_indices:
+                    continue
+                s = col_indices[0]
+                e = col_indices[-1]
 
-                if row not in merged_cells:
-                    merged_cells[row] = []
-
-                overlap = any(ms <= s + 1 <= me or ms <= e + 1 <= me for (ms, me) in merged_cells[row])
+                overlap = any(s <= c_idx <= e for c_idx in merged_cols)
 
                 if not overlap:
                     ws.merge_range(row, s + 1, row, e + 1, text, merge_fmt)
-                    merged_cells[row].append((s + 1, e + 1))
+                    for c_idx in range(s, e + 1):
+                        merged_cols.add(c_idx)
                 else:
-                    for col in range(s + 1, e + 2):
-                        ws.write(row, col, text, merge_fmt)
+                    for c_idx in range(s, e + 1):
+                        ws.write(row, c_idx + 1, text, merge_fmt)
+                        merged_cols.add(c_idx)
 
-            for col in range(1, 9):
-                if not any(ms <= col <= me for (ms, me) in merged_cells.get(row, [])):
-                    ws.write(row, col, "", empty_fmt)
+            for col_idx in range(len(hours)):
+                if col_idx not in merged_cols:
+                    if layout_type == 'new' and key == 'F' and col_idx == 5:
+                        ws.write(row, col_idx + 1, "LB", black_fmt)
+                    else:
+                        ws.write(row, col_idx + 1, "", empty_fmt)
 
             row += 1
 
         ws.set_column("A:A", 7)
-        ws.set_column("B:I", 11)
+        ws.set_column(f"B:{last_col}", 11)
         ws.set_default_row(45)
 
     workbook.close()
@@ -839,8 +883,15 @@ def timetableexcel_combined(request):
     dp = get_current_period(request)
     import xlsxwriter
     from .models import SubjectFacultyMap
+    from xlsxwriter.utility import xl_col_to_name
 
     logo_path = "/home/varun/fisatlab/static/fisat_logo.png"
+
+    try:
+        sem = Semester.objects.get(name=dp)
+        layout_type = sem.layout_type
+    except Semester.DoesNotExist:
+        layout_type = 'classic'
 
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
@@ -859,6 +910,14 @@ def timetableexcel_combined(request):
     data_fmt = workbook.add_format({"align": "center", "border": 1})
     merge_fmt = workbook.add_format({"align": "center", "border": 1})
     empty_fmt = workbook.add_format({"bg_color": "#D3D3D3", "border": 1})
+    black_fmt = workbook.add_format({
+        "bg_color": "black",
+        "font_color": "white",
+        "align": "center",
+        "valign": "vcenter",
+        "bold": True,
+        "border": 1
+    })
 
     staff_abbr = {
         "AMBILY N MENON": "ANM", "SREELALITHAMBIKA P K": "SL",
@@ -869,8 +928,12 @@ def timetableexcel_combined(request):
     }
 
     days = ["Mon","Tue","Wed","Thu","Fri"]
-    hours = ["H1","H2","H3","H4","LB","H5","H6","H7"]
     day_map = {"M":"Mon","T":"Tue","W":"Wed","Th":"Thu","F":"Fri"}
+
+    if layout_type == 'new':
+        hours = ["H1", "H2", "H3", "H4", "H5", "H6 / LB (Fri)", "H6 (Fri)"]
+    else:
+        hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
 
     lab_groups = [
         ["L1","L2","L3"],
@@ -879,6 +942,12 @@ def timetableexcel_combined(request):
         ["L9","PG LAB"]
     ]
 
+    max_labs = max(len(g) for g in lab_groups)
+    total_cols = (len(hours) + 3) * (max_labs - 1) + len(hours) + 1
+    last_col_idx = total_cols - 1
+    last_col_letter = xl_col_to_name(last_col_idx)
+    title_end_letter = xl_col_to_name(max(1, last_col_idx - 5))
+
     # ===== LOGO =====
     try:
         ws.insert_image("A1", logo_path, {"x_scale": 0.3, "y_scale": 0.3})
@@ -886,13 +955,13 @@ def timetableexcel_combined(request):
         pass
 
     # ===== SINGLE ROW HEADER =====
-    ws.merge_range("A1:AF1",
+    ws.merge_range(f"A1:{last_col_letter}1",
         "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)",
         institute_fmt)
-    ws.merge_range("B2:Z2",
+    ws.merge_range(f"B2:{title_end_letter}2",
         "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)",
         address_fmt)
-    ws.merge_range("B3:Z3",
+    ws.merge_range(f"B3:{title_end_letter}3",
         "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)",
         title_fmt)
 
@@ -937,11 +1006,39 @@ def timetableexcel_combined(request):
 
                     text = f"{sub.subject_name} ({sub.class_name})\n({faculty}) ({staff_names})"
 
-                    adj = {"8":"5","5":"6","6":"7","7":"8"}
-                    ah = sorted({int(adj.get(h,h)) for h in sub.allotted_hours.split(",")})
+                    col_indices = []
+                    for h_str in sub.allotted_hours.split(","):
+                        h = int(h_str)
+                        if layout_type == 'new':
+                            if key == 'F':
+                                # Friday: 1->0, 2->1, 3->2, 4->3, 5->4, 8(LB)->5, 6->6
+                                if h == 8:
+                                    col_indices.append(5)
+                                elif h == 6:
+                                    col_indices.append(6)
+                                else:
+                                    col_indices.append(h - 1)
+                            else:
+                                # Mon-Thu: 1->0, 2->1, 3->2, 4->3, 5->4, 6->5
+                                col_indices.append(h - 1)
+                        else:
+                            # Classic: 1->0, 2->1, 3->2, 4->3, 8(LB)->4, 5->5, 6->6, 7->7
+                            if h == 8:
+                                col_indices.append(4)
+                            elif h == 5:
+                                col_indices.append(5)
+                            elif h == 6:
+                                col_indices.append(6)
+                            elif h == 7:
+                                col_indices.append(7)
+                            else:
+                                col_indices.append(h - 1)
 
-                    s = ah[0] - 1
-                    e = ah[-1] - 1
+                    col_indices = sorted(set(col_indices))
+                    if not col_indices:
+                        continue
+                    s = col_indices[0]
+                    e = col_indices[-1]
 
                     if row not in merged:
                         merged[row] = []
@@ -955,13 +1052,18 @@ def timetableexcel_combined(request):
                         ws.merge_range(row, col+1+s, row, col+1+e, text, merge_fmt)
                         merged[row].append((col+1+s, col+1+e))
                     else:
-                        for c in range(col+1+s, col+2+e):
+                        for c in range(col+1+s, col+1+e+1):
                             ws.write(row, c, text, merge_fmt)
+                        merged[row].append((col+1+s, col+1+e))
 
                 # free slots
-                for c in range(col+1, col+1+len(hours)):
+                for col_idx in range(len(hours)):
+                    c = col + 1 + col_idx
                     if not any(ms<=c<=me for (ms,me) in merged.get(row,[])):
-                        ws.write(row, c, "", empty_fmt)
+                        if layout_type == 'new' and key == 'F' and col_idx == 5:
+                            ws.write(row, c, "LB", black_fmt)
+                        else:
+                            ws.write(row, c, "", empty_fmt)
 
                 row += 1
 
