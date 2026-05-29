@@ -840,9 +840,11 @@ def timetableexcel(request):
                 s = col_indices[0]
                 e = col_indices[-1]
 
-                overlap = any(s <= c_idx <= e for c_idx in merged_cols)
-
-                if not overlap:
+                if s == e:
+                    ws.write(row, s + 1, text, merge_fmt)
+                    for c_idx in range(s, e + 1):
+                        merged_cols.add(c_idx)
+                elif not overlap:
                     ws.merge_range(row, s + 1, row, e + 1, text, merge_fmt)
                     for c_idx in range(s, e + 1):
                         merged_cols.add(c_idx)
@@ -993,7 +995,7 @@ def timetableexcel_combined(request):
                 for sub in subs:
 
                     # staff
-                    entries = TimetableEntry.objects.filter(subject=sub, user_id=request.user)
+                    entries = TimetableEntry.objects.filter(subject=sub, user=request.user)
                     staff_names = ",".join(staff_abbr.get(e.staff.name,e.staff.name)
                                            for e in entries) or "—"
 
@@ -1048,7 +1050,10 @@ def timetableexcel_combined(request):
                     overlap = any(ms<=merge_key[0]<=me or ms<=merge_key[1]<=me
                                   for (ms,me) in merged[row])
 
-                    if not overlap:
+                    if s == e:
+                        ws.write(row, col+1+s, text, merge_fmt)
+                        merged[row].append((col+1+s, col+1+e))
+                    elif not overlap:
                         ws.merge_range(row, col+1+s, row, col+1+e, text, merge_fmt)
                         merged[row].append((col+1+s, col+1+e))
                     else:
