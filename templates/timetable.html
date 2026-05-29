@@ -127,14 +127,64 @@
             border-radius: 4px;
         }
         .palette-item {
-            background: #007bff;
-            color: white;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            font-size: 12px;
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-size: 13px;
             cursor: grab;
-            text-align: center;
+            text-align: left;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .palette-item:hover {
+            border-color: #007bff;
+            background: #f1f3f5;
+        }
+        .palette-item strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #007bff;
+        }
+        .allotted-staff-list {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #555;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        .staff-tag {
+            background: #e2e3e5;
+            color: #383d41;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 4px;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .staff-tag a {
+            color: red;
+            text-decoration: none;
+            margin-left: 4px;
+            font-weight: bold;
+        }
+        .staff-tag a:hover {
+            color: darkred;
+        }
+        .allot-staff-container {
+            margin-top: 8px;
+        }
+        .allot-staff-select {
+            width: 100%;
+            padding: 4px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background: #fff;
         }
 
 
@@ -435,14 +485,36 @@ function hidePopup() {
 
 </div> <!-- End main-content -->
 <div class="palette-sidebar">
-    <h2 style="font-size: 16px; margin-top: 0; text-align: center;">Unallotted Subjects</h2>
+    <h2 style="font-size: 16px; margin-top: 0; text-align: center;">Subjects Palette</h2>
     {% for batch_name, subjects in palette_subjects.items %}
     <div class="palette-batch">
         <h3>{{ batch_name }}</h3>
         {% for sub in subjects %}
         <div class="palette-item" draggable="true" ondragstart="dragStart(event, 'palette:{{ sub.id }}')">
-            <strong>{{ sub.subject_name }}</strong><br>
+            <strong>{{ sub.subject_name }}</strong>
             <small>{{ sub.lab }} | Day: {{ sub.day }} | Hrs: {{ sub.allotted_hours }}</small>
+            
+            <!-- Allotted Staff Section -->
+            <div class="allotted-staff-list" draggable="false" ondragstart="event.preventDefault(); event.stopPropagation();">
+                <strong>Allotted:</strong>
+                {% if sub.allotted_staff %}
+                    {% for staff in sub.allotted_staff %}
+                        <span class="staff-tag">
+                            {{ staff.name }}
+                            <a href="/delete_entry/{{ staff.entry_id }}/" onclick="return confirm('Remove {{ staff.name }} from this subject?');" title="Remove staff">×</a>
+                        </span>
+                    {% endfor %}
+                {% else %}
+                    <span style="color: #888; font-style: italic;">None</span>
+                {% endif %}
+            </div>
+
+            <!-- Allot Staff Dropdown -->
+            <div class="allot-staff-container" draggable="false" ondragstart="event.preventDefault(); event.stopPropagation();">
+                <select class="allot-staff-select" data-subject-id="{{ sub.id }}" onfocus="loadAvailableStaff(this)" onchange="allotStaff(this)" draggable="false">
+                    <option value="">Allot Staff...</option>
+                </select>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -459,6 +531,51 @@ function togglePalette() {
         palette.style.display = 'block';
     } else {
         palette.style.display = 'none';
+    }
+}
+
+function loadAvailableStaff(selectElement) {
+    const subjectId = selectElement.dataset.subjectId;
+    
+    // Show a loading state
+    selectElement.innerHTML = '<option value="">Loading staff...</option>';
+    
+    fetch(`/get_free_staff/${subjectId}/`)
+        .then(response => response.json())
+        .then(data => {
+            selectElement.innerHTML = '';
+            
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Allot Staff...";
+            selectElement.appendChild(defaultOption);
+            
+            if (data.length === 0) {
+                const noOption = document.createElement('option');
+                noOption.value = "";
+                noOption.textContent = "No available staff";
+                noOption.disabled = true;
+                selectElement.appendChild(noOption);
+            } else {
+                data.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} (Load: ${staff.count})`;
+                    selectElement.appendChild(option);
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching available staff:', err);
+            selectElement.innerHTML = '<option value="">Error loading staff</option>';
+        });
+}
+
+function allotStaff(selectElement) {
+    const subjectId = selectElement.dataset.subjectId;
+    const staffId = selectElement.value;
+    if (staffId) {
+        window.location.href = `/palette_allocate/${subjectId}/${staffId}/`;
     }
 }
 </script>

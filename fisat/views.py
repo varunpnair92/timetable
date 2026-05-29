@@ -326,6 +326,21 @@ def timetable(request):
 
     # Build Palette Subjects
     all_subjects = SubjectEntry.objects.filter(period=dp)
+    
+    # Retrieve all TimetableEntries for these subjects & user to avoid N+1 queries
+    from collections import defaultdict
+    allotment_map = defaultdict(list)
+    entries = TimetableEntry.objects.filter(
+        subject__period=dp,
+        user=request.user
+    ).select_related('staff')
+    for entry in entries:
+        allotment_map[entry.subject_id].append({
+            'entry_id': entry.id,
+            'staff_id': entry.staff.id,
+            'name': entry.staff.name
+        })
+
     palette_subjects = {}
     for sub in all_subjects:
         if sub.class_name not in palette_subjects:
@@ -339,7 +354,8 @@ def timetable(request):
             'subject_name': sub.subject_name,
             'day': sub.day,
             'allotted_hours': display_hours,
-            'lab': sub.LAB
+            'lab': sub.LAB,
+            'allotted_staff': allotment_map[sub.id],
         })
 
     semesters = Semester.objects.all().order_by('name')
