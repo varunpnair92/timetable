@@ -358,6 +358,7 @@ def timetable(request):
 
 @login_required(login_url="/")
 def allotted(request):
+    dp = get_current_period(request)
     subjects = SubjectEntry.objects.filter(period=dp)
     staff_list = Staff.objects.all()
 
@@ -404,6 +405,7 @@ from django.contrib.auth.decorators import login_required
 
 @login_required
 def get_free_staff(request, subject_id):
+    dp = get_current_period(request)
     """
     Returns list of staff free for the subject's slot, plus the number of
     slots that staff already has for the same subject (subject name) in this period.
@@ -771,6 +773,7 @@ def timetableexcel(request):
 
 @login_required(login_url="/")
 def timetableexcel_combined(request):
+    dp = get_current_period(request)
     import xlsxwriter
     from .models import SubjectFacultyMap
 
@@ -921,9 +924,10 @@ from django.conf import settings
 from .models import SubjectEntry
 # DP removed
 def download_subject_entries_csv(request):
+    dp = get_current_period(request)
     # Create the HTTP response for CSV
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="subject_entries_{DP}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="subject_entries_{dp}.csv"'
 
     writer = csv.writer(response)
     
@@ -966,6 +970,7 @@ def download_subject_entries_csv(request):
 
 @login_required(login_url="/")
 def export_lab_allotments_csv(request):
+    dp = get_current_period(request)
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="lab_allotments.csv"'
 
@@ -1157,6 +1162,7 @@ def subject_sort_key(name):
     return name.upper()
 
 def subject_wise_allocation(request):
+    dp = get_current_period(request)
 
     # Fetch all subject entries for current period
     subjects = SubjectEntry.objects.filter(period=dp).order_by("class_name", "subject_name")
@@ -1286,6 +1292,7 @@ from django.conf import settings
 # DP removed
 @login_required
 def staff_subject_count(request):
+    dp = get_current_period(request)
     """
     Returns JSON: { "count": <int> }
     Query params: staff_id, subject (subject_name)
@@ -1326,6 +1333,7 @@ from django.conf import settings
 from .models import TimetableEntry
 # DP removed
 def get_staff_day_load(request, staff_id, day):
+    dp = get_current_period(request)
     """
     Returns staff's allocated hours on a given day.
     """
@@ -1421,6 +1429,7 @@ def edit_staff_config(request):
 
 @login_required
 def apply_ai_allocation(request):
+    dp = get_current_period(request)
     """
     Run AI allocation fresh and push directly into TimetableEntry.
     Shows final summary: inserted, duplicates skipped, overlaps skipped.
@@ -1557,6 +1566,7 @@ def apply_ai_allocation(request):
 
 @login_required
 def timetable2(request):
+    dp = get_current_period(request)
     """
     AI-generated timetable preview.
     Uses dynamic JSON (staff_config.json) on EVERY REQUEST.
@@ -1669,6 +1679,7 @@ def timetable2(request):
 from .models import SubjectFacultyMap
 @login_required
 def subject_faculty_mapping(request):
+    dp = get_current_period(request)
     subjects = SubjectEntry.objects.filter(period=dp).order_by("class_name", "subject_name", "id")
 
     # Load existing mappings
@@ -1701,6 +1712,7 @@ def subject_faculty_mapping(request):
 import xlsxwriter
 from collections import defaultdict
 def export_final_workload(request):
+    dp = get_current_period(request)
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
