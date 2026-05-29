@@ -252,7 +252,7 @@
 <!-- Delete Popup -->
 <div id="deletePopup">
     <p><strong>Delete this allotment?</strong></p>
-    <a id="deleteLink" href="#">Delete</a>
+    <a id="deleteLink" href="#" onclick="saveScrollPosition();">Delete</a>
     <button onclick="hidePopup()">Cancel</button>
 </div>
 
@@ -267,13 +267,31 @@
 <!-- Undo Button -->
 {% if has_undo %}
 <div style="position:fixed; bottom:30px; right:30px; z-index:9999;">
-    <a href="{% url 'undo_last_action' %}" style="background-color:#ff9800; color:white; padding:12px 20px; text-decoration:none; border-radius:50px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:flex; align-items:center; gap:8px;">
+    <a href="{% url 'undo_last_action' %}" onclick="saveScrollPosition();" style="background-color:#ff9800; color:white; padding:12px 20px; text-decoration:none; border-radius:50px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:flex; align-items:center; gap:8px;">
         ↩ Undo Last Action
     </a>
 </div>
 {% endif %}
 
 <script>
+function saveScrollPosition() {
+    sessionStorage.setItem('timetable_scroll_y', window.scrollY);
+    sessionStorage.setItem('timetable_scroll_x', window.scrollX);
+}
+
+window.addEventListener('DOMContentLoaded', (event) => {
+    const scrollY = sessionStorage.getItem('timetable_scroll_y');
+    const scrollX = sessionStorage.getItem('timetable_scroll_x');
+    if (scrollY !== null && scrollX !== null) {
+        window.scrollTo(parseInt(scrollX, 10), parseInt(scrollY, 10));
+        setTimeout(() => {
+            window.scrollTo(parseInt(scrollX, 10), parseInt(scrollY, 10));
+        }, 50);
+        sessionStorage.removeItem('timetable_scroll_y');
+        sessionStorage.removeItem('timetable_scroll_x');
+    }
+});
+
 function dragStart(ev, entryId) {
     if (!entryId) return;
     ev.dataTransfer.setData("text/plain", entryId);
@@ -292,6 +310,7 @@ function dropSwap(ev, targetEntryId, targetStaffId) {
     
     if (sourceData.startsWith("palette:")) {
         const subjectId = sourceData.split(":")[1];
+        saveScrollPosition();
         window.location.href = `/palette_allocate/${subjectId}/${targetStaffId}/`;
     } else {
         if (sourceData && sourceData !== targetEntryId) {
@@ -309,10 +328,12 @@ function dropEmpty(ev, targetStaffId) {
     
     if (sourceData.startsWith("palette:")) {
         const subjectId = sourceData.split(":")[1];
+        saveScrollPosition();
         window.location.href = `/palette_allocate/${subjectId}/${targetStaffId}/`;
     } else {
         if (sourceData) {
             if (confirm("Transfer this subject to the new staff?")) {
+                saveScrollPosition();
                 window.location.href = `/transfer_to_staff/${sourceData}/${targetStaffId}/`;
             }
         }
@@ -321,6 +342,7 @@ function dropEmpty(ev, targetStaffId) {
 
 function submitDragAction(action) {
     if (currentDragSource && currentDragTarget) {
+        saveScrollPosition();
         window.location.href = `/drag_action/${action}/${currentDragSource}/${currentDragTarget}/`;
     }
 }
@@ -501,7 +523,7 @@ function hidePopup() {
                     {% for staff in sub.allotted_staff %}
                         <span class="staff-tag">
                             {{ staff.name }}
-                            <a href="/delete_entry/{{ staff.entry_id }}/" onclick="return confirm('Remove {{ staff.name }} from this subject?');" title="Remove staff">×</a>
+                            <a href="/delete_entry/{{ staff.entry_id }}/" onclick="saveScrollPosition(); return confirm('Remove {{ staff.name }} from this subject?');" title="Remove staff">×</a>
                         </span>
                     {% endfor %}
                 {% else %}
@@ -575,6 +597,7 @@ function allotStaff(selectElement) {
     const subjectId = selectElement.dataset.subjectId;
     const staffId = selectElement.value;
     if (staffId) {
+        saveScrollPosition();
         window.location.href = `/palette_allocate/${subjectId}/${staffId}/`;
     }
 }
