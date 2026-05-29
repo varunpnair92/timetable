@@ -10,8 +10,8 @@ statements = [s.strip() for s in sql.split(';') if s.strip()]
 
 with connection.cursor() as cursor:
     for statement in statements:
-        if statement.upper() in ('BEGIN', 'COMMIT'):
-            continue
-        print(f"Executing: {statement}")
-        cursor.execute(statement)
+        # Only execute SELECT setval statements
+        if statement.upper().startswith('SELECT'):
+            print(f"Executing: {statement}")
+            cursor.execute(statement)
 print("Sequences reset successfully!")
