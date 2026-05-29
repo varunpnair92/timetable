@@ -347,19 +347,20 @@ def timetable(request):
 
             # Fill timetable grid
             for col_index in range(start_index, end_index + 1):
-                if col_index == start_index:
-                    # ⭐ MAIN SLOT – We store entry_id here
-                    timetable_slots[row_index][col_index] = {
-                        "hour_label": timetable_slots[row_index][col_index]["hour_label"],
-                        "lab": subject_entry.LAB,
-                        "class_name": subject_entry.class_name,
-                        "subject": subject_entry.subject_name,
-                        "entry_id": entry.id,     # ⭐ IMPORTANT
-                        "colspan": end_index - start_index + 1,
-                    }
-                else:
-                    # Fill skipped cells with None
-                    timetable_slots[row_index][col_index] = None
+                if col_index < len(timetable_slots[row_index]):
+                    if col_index == start_index:
+                        # ⭐ MAIN SLOT – We store entry_id here
+                        timetable_slots[row_index][col_index] = {
+                            "hour_label": timetable_slots[row_index][col_index]["hour_label"],
+                            "lab": subject_entry.LAB,
+                            "class_name": subject_entry.class_name,
+                            "subject": subject_entry.subject_name,
+                            "entry_id": entry.id,     # ⭐ IMPORTANT
+                            "colspan": min(end_index, len(timetable_slots[row_index]) - 1) - start_index + 1,
+                        }
+                    else:
+                        # Fill skipped cells with None
+                        timetable_slots[row_index][col_index] = None
 
         staff_timetables[staff.name] = {
             "timetable_slots": timetable_slots,
@@ -1769,16 +1770,17 @@ def timetable2(request):
                 end = max_index
 
             for c in range(start, end + 1):
-                if c == start:
-                    slots[row][c] = {
-                        "hour_label": slots[row][c]["hour_label"],
-                        "subject": sub.subject_name,
-                        "class_name": sub.class_name,
-                        "lab": sub.LAB,
-                        "colspan": end - start + 1,
-                    }
-                else:
-                    slots[row][c] = None
+                if c < len(slots[row]):
+                    if c == start:
+                        slots[row][c] = {
+                            "hour_label": slots[row][c]["hour_label"],
+                            "subject": sub.subject_name,
+                            "class_name": sub.class_name,
+                            "lab": sub.LAB,
+                            "colspan": min(end, len(slots[row]) - 1) - start + 1,
+                        }
+                    else:
+                        slots[row][c] = None
 
         staff_timetables[s.name] = {
             "timetable_slots": slots,
