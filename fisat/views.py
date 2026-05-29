@@ -681,7 +681,7 @@ def timetableexcel(request):
     import xlsxwriter
     from .models import SubjectFacultyMap
 
-    logo_path = "/home/varun/fisatlab/static/fisat_logo.png"
+    logo_path = os.path.join(settings.BASE_DIR, "static", "fisat_logo.png")
 
     labs = (
         SubjectEntry.objects.filter(period=dp)
@@ -887,7 +887,7 @@ def timetableexcel_combined(request):
     from .models import SubjectFacultyMap
     from xlsxwriter.utility import xl_col_to_name
 
-    logo_path = "/home/varun/fisatlab/static/fisat_logo.png"
+    logo_path = os.path.join(settings.BASE_DIR, "static", "fisat_logo.png")
 
     try:
         sem = Semester.objects.get(name=dp)
