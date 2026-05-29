@@ -138,6 +138,28 @@
                 </div>
                 <button type="submit" style="background-color: #28a745;">Set Active</button>
             </form>
+
+            <form method="POST" style="margin-top: 20px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_semester_layout">
+                <div class="form-group">
+                    <label>Edit Semester Layout</label>
+                    <select name="semester_id" required>
+                        <option value="">-- Select Semester --</option>
+                        {% for sem in semesters %}
+                        <option value="{{ sem.id }}">{{ sem.name }} (Current: {{ sem.get_layout_type_display }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>New Period Layout Scheme</label>
+                    <select name="layout_type" required>
+                        <option value="classic">Classic Layout (8 Hours: 1,2,3,4,LB,5,6,7)</option>
+                        <option value="new">New Layout (Mon-Thu 6 Hours / Fri 7 Hours)</option>
+                    </select>
+                </div>
+                <button type="submit" style="background-color: #ffc107; color: black; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px;">Update Layout</button>
+            </form>
         </div>
 
         <div class="section list-section">

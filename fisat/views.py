@@ -1964,6 +1964,16 @@ def manage_batches(request):
                     request.session['selected_period'] = sem.name
                 except Semester.DoesNotExist:
                     pass
+        elif action == "edit_semester_layout":
+            sem_id = request.POST.get('semester_id')
+            layout_type = request.POST.get('layout_type')
+            if sem_id and layout_type:
+                try:
+                    sem = Semester.objects.get(id=sem_id)
+                    sem.layout_type = layout_type
+                    sem.save()
+                except Semester.DoesNotExist:
+                    pass
         return redirect('manage_batches')
     
     semesters = Semester.objects.all().order_by('name')
