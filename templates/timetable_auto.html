@@ -76,6 +76,15 @@
                     <thead>
                         <tr>
                             <th></th>
+                            {% if layout_type == 'new' %}
+                            <th>H1</th>
+                            <th>H2</th>
+                            <th>H3</th>
+                            <th>H4</th>
+                            <th>H5</th>
+                            <th>H6 / LB (Fri)</th>
+                            <th>H6 (Fri)</th>
+                            {% else %}
                             <th>H1</th>
                             <th>H2</th>
                             <th>H3</th>
@@ -84,6 +93,7 @@
                             <th>H5</th>
                             <th>H6</th>
                             <th>H7</th>
+                            {% endif %}
                         </tr>
                     </thead>
 

@@ -112,7 +112,14 @@
                 <input type="hidden" name="action" value="add_semester">
                 <div class="form-group">
                     <label>Add New Semester (e.g., 2026-june)</label>
-                    <input type="text" name="semester_name" required>
+                    <input type="text" name="semester_name" required style="margin-bottom: 10px;">
+                </div>
+                <div class="form-group">
+                    <label>Period Layout Scheme</label>
+                    <select name="layout_type" required>
+                        <option value="classic">Classic Layout (8 Hours: 1,2,3,4,LB,5,6,7)</option>
+                        <option value="new">New Layout (Mon-Thu 6 Hours / Fri 7 Hours)</option>
+                    </select>
                 </div>
                 <button type="submit">Add Semester</button>
             </form>
@@ -125,7 +132,7 @@
                     <select name="semester_id" required>
                         <option value="">-- Select --</option>
                         {% for sem in semesters %}
-                        <option value="{{ sem.id }}" {% if sem.is_active %}selected{% endif %}>{{ sem.name }} {% if sem.is_active %}(Active){% endif %}</option>
+                        <option value="{{ sem.id }}" {% if sem.is_active %}selected{% endif %}>{{ sem.name }} ({{ sem.get_layout_type_display }}) {% if sem.is_active %}(Active){% endif %}</option>
                         {% endfor %}
                     </select>
                 </div>

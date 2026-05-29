@@ -6,6 +6,14 @@ from django.contrib.auth.models import User
 class Semester(models.Model):
     name = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=False)
+    layout_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('classic', 'Classic (8 Hours)'),
+            ('new', 'New (6 Hours / Friday 7 Hours)')
+        ],
+        default='classic'
+    )
 
     def __str__(self):
         return self.name

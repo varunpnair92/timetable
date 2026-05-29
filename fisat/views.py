@@ -245,13 +245,22 @@ def allocate_staff(request):
 @login_required(login_url="/")
 def timetable(request):
     dp = get_current_period(request)
+    try:
+        sem = Semester.objects.get(name=dp)
+        layout_type = sem.layout_type
+    except Semester.DoesNotExist:
+        layout_type = 'classic'
+
     staff_members = Staff.objects.all()
     staff_timetables = {}
 
     for staff in staff_members:
 
-        # 5 days × 8 hours grid
-        timetable_slots = [["" for _ in range(8)] for _ in range(5)]
+        # 5 days × (7 or 8) hours grid
+        if layout_type == 'new':
+            timetable_slots = [["" for _ in range(7)] for _ in range(5)]
+        else:
+            timetable_slots = [["" for _ in range(8)] for _ in range(5)]
 
         # get staff timetable entries for this user + period
         timetable_entries = TimetableEntry.objects.filter(
@@ -276,19 +285,34 @@ def timetable(request):
             if row_index is None:
                 continue
 
-            # Adjust hours: 8→5, 5→6, 6→7, 7→8
             adjusted_hours = []
-            for hour in hours:
-                if hour == "8":
-                    adjusted_hours.append("5")
-                elif hour == "5":
-                    adjusted_hours.append("6")
-                elif hour == "6":
-                    adjusted_hours.append("7")
-                elif hour == "7":
-                    adjusted_hours.append("8")
+            if layout_type == 'new':
+                if day == 'F':
+                    # Friday: 1->1, 2->2, 3->3, 4->4, 5->5, 8(LB)->6, 6->7
+                    for hour in hours:
+                        if hour == '8':
+                            adjusted_hours.append('6')
+                        elif hour == '6':
+                            adjusted_hours.append('7')
+                        else:
+                            adjusted_hours.append(hour)
                 else:
-                    adjusted_hours.append(hour)
+                    # Mon-Thu: 1->1, 2->2, 3->3, 4->4, 5->5, 6->6
+                    for hour in hours:
+                        adjusted_hours.append(hour)
+            else:
+                # Adjust hours: 8→5, 5→6, 6→7, 7→8
+                for hour in hours:
+                    if hour == "8":
+                        adjusted_hours.append("5")
+                    elif hour == "5":
+                        adjusted_hours.append("6")
+                    elif hour == "6":
+                        adjusted_hours.append("7")
+                    elif hour == "7":
+                        adjusted_hours.append("8")
+                    else:
+                        adjusted_hours.append(hour)
 
             adjusted_hours = sorted(set(adjusted_hours), key=lambda x: int(x))
 
@@ -296,10 +320,11 @@ def timetable(request):
             start_index = int(adjusted_hours[0]) - 1
             end_index = int(adjusted_hours[-1]) - 1
 
+            max_index = 6 if layout_type == 'new' else 7
             if start_index < 0: 
                 start_index = 0
-            if end_index > 7:
-                end_index = 7
+            if end_index > max_index:
+                end_index = max_index
 
             # Fill timetable grid
             for col_index in range(start_index, end_index + 1):
@@ -364,7 +389,8 @@ def timetable(request):
         "has_undo": has_undo,
         "palette_subjects": palette_subjects,
         "semesters": semesters,
-        "current_view_sem": dp
+        "current_view_sem": dp,
+        "layout_type": layout_type,
     })
 
 # ============================================================
@@ -1656,18 +1682,62 @@ def timetable2(request):
             assigned_map[sid].append(sub)
 
     # 5️⃣ BUILD PREVIEW MATRIX
+    try:
+        sem = Semester.objects.get(name=dp)
+        layout_type = sem.layout_type
+    except Semester.DoesNotExist:
+        layout_type = 'classic'
+
     staff_timetables = {}
     for s in staff_list:
-        slots = [["" for _ in range(8)] for _ in range(5)]
+        if layout_type == 'new':
+            slots = [["" for _ in range(7)] for _ in range(5)]
+        else:
+            slots = [["" for _ in range(8)] for _ in range(5)]
         workload = staff_stats[s.id]["hours"]
 
         for sub in assigned_map[s.id]:
             hours = [int(x) for x in sub.allotted_hours.split(",")]
             row = {"M": 0, "T": 1, "W": 2, "Th": 3, "F": 4}[sub.day]
 
-            adj = sorted(set(adjusted_hour(h) for h in hours))
+            adjusted_hours = []
+            if layout_type == 'new':
+                if sub.day == 'F':
+                    # Friday: 1->1, 2->2, 3->3, 4->4, 5->5, 8(LB)->6, 6->7
+                    for hour in hours:
+                        if hour == 8:
+                            adjusted_hours.append(6)
+                        elif hour == 6:
+                            adjusted_hours.append(7)
+                        else:
+                            adjusted_hours.append(hour)
+                else:
+                    # Mon-Thu: 1->1, 2->2, 3->3, 4->4, 5->5, 6->6
+                    for hour in hours:
+                        adjusted_hours.append(hour)
+            else:
+                # Adjust hours: 8→5, 5→6, 6→7, 7→8
+                for hour in hours:
+                    if hour == 8:
+                        adjusted_hours.append(5)
+                    elif hour == 5:
+                        adjusted_hours.append(6)
+                    elif hour == 6:
+                        adjusted_hours.append(7)
+                    elif hour == 7:
+                        adjusted_hours.append(8)
+                    else:
+                        adjusted_hours.append(hour)
+
+            adj = sorted(set(adjusted_hours))
             start = adj[0] - 1
             end = adj[-1] - 1
+
+            max_index = 6 if layout_type == 'new' else 7
+            if start < 0:
+                start = 0
+            if end > max_index:
+                end = max_index
 
             for c in range(start, end + 1):
                 if c == start:
@@ -1688,7 +1758,10 @@ def timetable2(request):
     return render(
         request,
         "timetable_auto.html",
-        {"staff_timetables": staff_timetables},
+        {
+            "staff_timetables": staff_timetables,
+            "layout_type": layout_type,
+        },
     )
 
 
@@ -1878,8 +1951,9 @@ def manage_batches(request):
                             BatchSubject.objects.get_or_create(batch=target_batch, subject_name=subject.subject_name)
         elif action == "add_semester":
             sem_name = request.POST.get('semester_name')
+            layout_type = request.POST.get('layout_type', 'classic')
             if sem_name:
-                Semester.objects.get_or_create(name=sem_name)
+                Semester.objects.get_or_create(name=sem_name, defaults={'layout_type': layout_type})
         elif action == "activate_semester":
             sem_id = request.POST.get('semester_id')
             if sem_id:
