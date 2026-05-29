@@ -373,19 +373,151 @@ function hidePopup() {
 
         <center><h4 ondrop="dropEmpty(event, '{{ data.staff_id }}')" ondragover="allowDrop(event)">{{ staff_name }} ({{ data.total_hour }})</h4></center>
 
+        {% if layout_type == 'new' %}
+        <!-- MON-THU TABLE (6 columns) -->
+        <table style="margin-bottom: 15px;">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>1</th>
+                    <th>2</th>
+                    <th>3</th>
+                    <th>4</th>
+                    <th>5</th>
+                    <th>6</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- ⭐ MONDAY -->
+                <tr>
+                    <th>Mon</th>
+                    {% for cell in data.timetable_slots.0 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+                <!-- ⭐ TUESDAY -->
+                <tr>
+                    <th>Tue</th>
+                    {% for cell in data.timetable_slots.1 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+                <!-- ⭐ WEDNESDAY -->
+                <tr>
+                    <th>Wed</th>
+                    {% for cell in data.timetable_slots.2 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+
+                <!-- ⭐ THURSDAY -->
+                <tr>
+                    <th>Thu</th>
+                    {% for cell in data.timetable_slots.3 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- FRIDAY TABLE (7 columns) -->
         <table>
             <thead>
                 <tr>
                     <th></th>
-                    {% if layout_type == 'new' %}
-                    <th>H1</th>
-                    <th>H2</th>
-                    <th>H3</th>
-                    <th>H4</th>
-                    <th>H5</th>
-                    <th>H6 / LB (Fri)</th>
-                    <th>H6 (Fri)</th>
-                    {% else %}
+                    <th>1</th>
+                    <th>2</th>
+                    <th>3</th>
+                    <th>4</th>
+                    <th>5</th>
+                    <th>LB</th>
+                    <th>6</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- ⭐ FRIDAY -->
+                <tr>
+                    <th>Fri</th>
+                    {% for cell in data.timetable_slots.4 %}
+                        {% if cell.subject %}
+                            <td colspan="{{ cell.colspan }}"
+                                draggable="true" 
+                                ondragstart="dragStart(event, '{{cell.entry_id}}')" 
+                                ondrop="dropSwap(event, '{{cell.entry_id}}', '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)">
+                                <div class="subject" onclick="showDelete('{{cell.entry_id}}')">{{ cell.subject }}</div>
+                                <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
+                            </td>
+                        {% elif cell is not None %}
+                            <td class="empty-cell"
+                                ondrop="dropEmpty(event, '{{ data.staff_id }}')" 
+                                ondragover="allowDrop(event)"></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+
+        {% else %}
+        <!-- CLASSIC SINGLE TABLE -->
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
                     <th>H1</th>
                     <th>H2</th>
                     <th>H3</th>
@@ -394,12 +526,10 @@ function hidePopup() {
                     <th>H5</th>
                     <th>H6</th>
                     <th>H7</th>
-                    {% endif %}
                 </tr>
             </thead>
 
             <tbody>
-
                 <!-- ⭐ MONDAY -->
                 <tr>
                     <th>Mon</th>
@@ -507,6 +637,7 @@ function hidePopup() {
 
             </tbody>
         </table>
+        {% endif %}
 
     </div>
     {% endfor %}

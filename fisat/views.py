@@ -242,6 +242,16 @@ def allocate_staff(request):
 # ============================================================
 
 
+def get_day_labels(day, layout_type):
+    if layout_type == 'new':
+        if day == 'F':
+            return ["1", "2", "3", "4", "5", "LB", "6"]
+        else:
+            return ["1", "2", "3", "4", "5", "6"]
+    else:
+        return ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
+
+
 @login_required(login_url="/")
 def timetable(request):
     dp = get_current_period(request)
@@ -256,11 +266,18 @@ def timetable(request):
 
     for staff in staff_members:
 
-        # 5 days × (7 or 8) hours grid
-        if layout_type == 'new':
-            timetable_slots = [["" for _ in range(7)] for _ in range(5)]
-        else:
-            timetable_slots = [["" for _ in range(8)] for _ in range(5)]
+        # 5 days × dynamic hours grid
+        timetable_slots = []
+        days_keys = ["M", "T", "W", "Th", "F"]
+        for dkey in days_keys:
+            day_labels = get_day_labels(dkey, layout_type)
+            row_slots = []
+            for lbl in day_labels:
+                row_slots.append({
+                    "hour_label": lbl,
+                    "subject": None
+                })
+            timetable_slots.append(row_slots)
 
         # get staff timetable entries for this user + period
         timetable_entries = TimetableEntry.objects.filter(
@@ -331,6 +348,7 @@ def timetable(request):
                 if col_index == start_index:
                     # ⭐ MAIN SLOT – We store entry_id here
                     timetable_slots[row_index][col_index] = {
+                        "hour_label": timetable_slots[row_index][col_index]["hour_label"],
                         "lab": subject_entry.LAB,
                         "class_name": subject_entry.class_name,
                         "subject": subject_entry.subject_name,
@@ -1690,10 +1708,19 @@ def timetable2(request):
 
     staff_timetables = {}
     for s in staff_list:
-        if layout_type == 'new':
-            slots = [["" for _ in range(7)] for _ in range(5)]
-        else:
-            slots = [["" for _ in range(8)] for _ in range(5)]
+        # 5 days × dynamic hours grid
+        slots = []
+        days_keys = ["M", "T", "W", "Th", "F"]
+        for dkey in days_keys:
+            day_labels = get_day_labels(dkey, layout_type)
+            row_slots = []
+            for lbl in day_labels:
+                row_slots.append({
+                    "hour_label": lbl,
+                    "subject": None
+                })
+            slots.append(row_slots)
+
         workload = staff_stats[s.id]["hours"]
 
         for sub in assigned_map[s.id]:
@@ -1742,6 +1769,7 @@ def timetable2(request):
             for c in range(start, end + 1):
                 if c == start:
                     slots[row][c] = {
+                        "hour_label": slots[row][c]["hour_label"],
                         "subject": sub.subject_name,
                         "class_name": sub.class_name,
                         "lab": sub.LAB,
