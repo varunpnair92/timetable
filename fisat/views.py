@@ -746,7 +746,7 @@ def timetableexcel(request):
     day_map = {"M":"Mon","T":"Tue","W":"Wed","Th":"Thu","F":"Fri"}
 
     if layout_type == 'new':
-        hours = ["H1", "H2", "H3", "H4", "H5", "H6 / LB (Fri)", "H6 (Fri)"]
+        hours = ["H1", "H2", "H3", "H4", "H5", "H6", "H6(f)"]
         last_col = "H"
     else:
         hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
@@ -935,7 +935,7 @@ def timetableexcel_combined(request):
     day_map = {"M":"Mon","T":"Tue","W":"Wed","Th":"Thu","F":"Fri"}
 
     if layout_type == 'new':
-        hours = ["H1", "H2", "H3", "H4", "H5", "H6 / LB (Fri)", "H6 (Fri)"]
+        hours = ["H1", "H2", "H3", "H4", "H5", "H6", "H6(f)"]
     else:
         hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
 
