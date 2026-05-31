@@ -493,11 +493,20 @@ def get_free_staff(request, subject_id):
     target_subj = subject.subject_name.upper()
 
     staff_qs = Staff.objects.all().order_by('name')
+    
+    # Pre-fetch all entries for the given period to avoid N+1 queries
+    all_period_entries = TimetableEntry.objects.filter(subject__period=dp).select_related('staff', 'subject')
+    entries_by_staff = {}
+    for e in all_period_entries:
+        if e.staff_id not in entries_by_staff:
+            entries_by_staff[e.staff_id] = []
+        entries_by_staff[e.staff_id].append(e)
+
     free_staff = []
 
     for st in staff_qs:
         # Check timetable for this staff
-        all_entries = TimetableEntry.objects.filter(staff=st, subject__period=dp)
+        all_entries = entries_by_staff.get(st.id, [])
         
         # 1) Time conflict
         busy = False
