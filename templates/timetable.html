@@ -564,7 +564,7 @@ function hidePopup() {
 
             <!-- Allot Staff Dropdown -->
             <div class="allot-staff-container" draggable="false" ondragstart="event.preventDefault(); event.stopPropagation();">
-                <select class="allot-staff-select" data-subject-id="{{ sub.id }}" onfocus="loadAvailableStaff(this)" onchange="allotStaff(this)" draggable="false">
+                <select class="allot-staff-select" data-subject-id="{{ sub.id }}" onmouseenter="loadAvailableStaff(this)" onfocus="loadAvailableStaff(this)" onchange="allotStaff(this)" draggable="false">
                     <option value="">Allot Staff...</option>
                 </select>
             </div>
@@ -588,9 +588,14 @@ function togglePalette() {
 }
 
 function loadAvailableStaff(selectElement) {
+    if (selectElement.dataset.loaded === "true" || selectElement.dataset.loading === "true") {
+        return;
+    }
+    
     const subjectId = selectElement.dataset.subjectId;
     
     // Show a loading state
+    selectElement.dataset.loading = "true";
     selectElement.innerHTML = '<option value="">Loading staff...</option>';
     
     fetch(`/get_free_staff/${subjectId}/`)
@@ -622,10 +627,13 @@ function loadAvailableStaff(selectElement) {
                     selectElement.appendChild(option);
                 });
             }
+            selectElement.dataset.loaded = "true";
+            selectElement.dataset.loading = "false";
         })
         .catch(err => {
             console.error('Error fetching available staff:', err);
             selectElement.innerHTML = '<option value="">Error loading staff</option>';
+            selectElement.dataset.loading = "false";
         });
 }
 
