@@ -106,7 +106,7 @@
                             {% for slot in day_slots %}
                                 {% if slot.subject %}
                                     <div class="bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded p-1 text-xs text-center relative group" 
-                                         style="height: {{ slot.colspan|default:1|add:0|multiply:24 }}px; min-height: 24px;">
+                                         style="height: {{ slot.height_px|default:24 }}px; min-height: 24px;">
                                         <div class="font-bold text-blue-800 dark:text-blue-200 truncate">{{ slot.subject }}</div>
                                         <div class="text-[10px] text-blue-600 dark:text-blue-400 truncate">{{ slot.class_name }}</div>
                                     </div>

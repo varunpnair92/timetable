@@ -2364,11 +2364,13 @@ def auto_lab_allotment_view(request):
             for c in range(start, end + 1):
                 if c < len(slots[row]):
                     if c == start:
+                        colspan_val = min(end, len(slots[row]) - 1) - start + 1
                         slots[row][c] = {
                             "hour_label": slots[row][c]["hour_label"],
                             "subject": sub.subject_name,
                             "class_name": sub.class_name,
-                            "colspan": min(end, len(slots[row]) - 1) - start + 1,
+                            "colspan": colspan_val,
+                            "height_px": colspan_val * 24,
                         }
                     else:
                         slots[row][c] = None
