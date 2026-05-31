@@ -244,6 +244,9 @@
             });
             div.appendChild(subList);
 
+            // Add to selectedBatches initially because it's checked by default
+            selectedBatches.add(batch.id);
+
             // Handlers
             header.querySelector('.batch-cb').addEventListener('change', (e) => {
                 if(e.target.checked) selectedBatches.add(batch.id);
