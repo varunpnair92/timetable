@@ -2385,11 +2385,16 @@ def auto_lab_allotment_view(request):
             'subjects': [s.subject_name for s in b.subjects.all()]
         })
         
+    semesters = Semester.objects.all().order_by('name')
+    current_view_sem = dp
+
     return render(request, 'auto_lab_allotment.html', {
         'batch_data': json.dumps(batch_data),
         'lab_choices': json.dumps(list(SubjectEntry.LAB_CHOICES)),
         'lab_timetables': lab_timetables,
         'layout_type': layout_type,
+        'semesters': semesters,
+        'current_view_sem': current_view_sem,
     })
 
 @csrf_exempt
@@ -2406,6 +2411,7 @@ def api_run_auto_lab_allotment(request):
         deselected_subjects = data.get('deselected_subjects', {})
         parallel_groups_data = data.get('parallel_groups', [])
         lab_preferences_data = data.get('lab_preferences', [])
+        batch_preferences_data = data.get('batch_preferences', [])
         
         with transaction.atomic():
             LabPreference.objects.filter(period=dp).delete()
@@ -2435,12 +2441,27 @@ def api_run_auto_lab_allotment(request):
                 
             DAYS = ['M', 'T', 'W', 'Th', 'F']
             
-            def is_batch_free(batch_name, day, hours):
+            # Map batch_id to gap
+            batch_gaps = {str(b['batch_id']): b['gap'] for b in batch_preferences_data}
+            
+            def is_batch_free(batch_obj, day, hours):
                 hours_set = set(map(int, hours.split(',')))
-                existing = SubjectEntry.objects.filter(class_name=batch_name, day=day, period=dp)
-                for e in existing:
+                existing = SubjectEntry.objects.filter(class_name=batch_obj.name, period=dp)
+                
+                # Check overlapping time
+                for e in existing.filter(day=day):
                     if set(map(int, e.allotted_hours.split(','))).intersection(hours_set):
                         return False
+                        
+                # Check batch gap constraint
+                gap = batch_gaps.get(str(batch_obj.id), 0)
+                if gap > 0:
+                    day_idx = DAYS.index(day)
+                    for e in existing:
+                        e_idx = DAYS.index(e.day)
+                        if abs(day_idx - e_idx) <= gap and e_idx != day_idx:
+                            return False
+                            
                 return True
                 
             def is_lab_free(lab, day, hours):
@@ -2471,7 +2492,7 @@ def api_run_auto_lab_allotment(request):
                             if allocated: break
                             for block in ['1,2,3', '4,5,6', '5,6,7']:
                                 if allocated: break
-                                if not is_batch_free(batch.name, day, block):
+                                if not is_batch_free(batch, day, block):
                                     continue
                                     
                                 free_labs = []
@@ -2496,7 +2517,7 @@ def api_run_auto_lab_allotment(request):
                         if allocated: break
                         for block in ['1,2,3', '4,5,6', '5,6,7']:
                             if allocated: break
-                            if not is_batch_free(batch.name, day, block):
+                            if not is_batch_free(batch, day, block):
                                 continue
                             
                             for l_code, l_name in SubjectEntry.LAB_CHOICES:

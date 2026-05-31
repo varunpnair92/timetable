@@ -17,8 +17,25 @@
         </button>
     </div>
 
+    <!-- Semester Switcher -->
+    <div class="mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow flex items-center gap-4">
+        <form action="{% url 'switch_semester' %}" method="POST" id="semesterForm" class="flex items-center gap-2 w-full">
+            {% csrf_token %}
+            <label for="semester_select" class="font-bold text-gray-800 dark:text-white">Viewing Semester:</label>
+            <select name="semester_name" id="semester_select" onchange="document.getElementById('semesterForm').submit();" class="p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white flex-1 max-w-sm">
+                {% for sem in semesters %}
+                <option value="{{ sem.name }}" {% if sem.name == current_view_sem %}selected{% endif %}>
+                    {{ sem.name }} {% if sem.is_active %}(Active){% endif %}
+                </option>
+                {% empty %}
+                <option value="">No Semesters Added</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
     <!-- MAIN CONFIGURATION SECTION -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
         
         <!-- Batch & Subject Selection -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -76,6 +93,27 @@
             </div>
             <ul id="prefList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
                 <!-- List preferences -->
+            </ul>
+        </div>
+
+        <!-- Batch Preferences -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Batch Preferences</h2>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apply to Batch</label>
+                <select id="prefBatchSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
+                    <option value="ALL">All Batches</option>
+                </select>
+                
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day Gap Between Sessions</label>
+                <input type="number" id="prefBatchGap" value="1" min="0" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" title="E.g., 1 means if a session is on Monday, the next is on Wednesday.">
+                
+                <button id="addBatchPrefBtn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 rounded transition">
+                    Save Batch Pref
+                </button>
+            </div>
+            <ul id="batchPrefList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
+                <!-- List batch preferences -->
             </ul>
         </div>
     </div>
@@ -143,15 +181,18 @@
         let deselectedSubjects = {}; // batchId -> Set of subject names
         let parallelGroups = []; // {batch_id, batch_name, sub1, sub2}
         let labPreferences = {}; // lab_code -> {days, hours, gap}
+        let batchPreferences = {}; // batch_id -> {gap}
 
         // Initialize UI Elements
         const batchContainer = document.getElementById('batchContainer');
         const pBatchSelect = document.getElementById('pBatchSelect');
         const prefLabSelect = document.getElementById('prefLabSelect');
+        const prefBatchSelect = document.getElementById('prefBatchSelect');
         const pSub1Select = document.getElementById('pSub1Select');
         const pSub2Select = document.getElementById('pSub2Select');
         const parallelList = document.getElementById('parallelList');
         const prefList = document.getElementById('prefList');
+        const batchPrefList = document.getElementById('batchPrefList');
 
         // Populate Lab Choices
         labChoices.forEach(([code, name]) => {
@@ -168,6 +209,12 @@
             opt.value = batch.id;
             opt.textContent = batch.name;
             pBatchSelect.appendChild(opt);
+
+            // Add to batch pref select
+            let optB = document.createElement('option');
+            optB.value = batch.id;
+            optB.textContent = batch.name;
+            prefBatchSelect.appendChild(optB);
 
             // Add to batch list
             let div = document.createElement('div');
@@ -293,6 +340,37 @@
         }
         window.removePref = (lab) => { delete labPreferences[lab]; renderPrefs(); };
 
+        // Batch Pref Logic
+        document.getElementById('addBatchPrefBtn').addEventListener('click', () => {
+            const batchId = prefBatchSelect.value;
+            const gap = document.getElementById('prefBatchGap').value;
+            
+            if(batchId === 'ALL') {
+                batchData.forEach(b => {
+                    batchPreferences[b.id] = { gap: parseInt(gap) };
+                });
+            } else {
+                batchPreferences[batchId] = { gap: parseInt(gap) };
+            }
+            renderBatchPrefs();
+        });
+
+        function renderBatchPrefs() {
+            batchPrefList.innerHTML = '';
+            for(let bId in batchPreferences) {
+                let p = batchPreferences[bId];
+                let bName = batchData.find(b => b.id == bId)?.name || bId;
+                let li = document.createElement('li');
+                li.className = "flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded";
+                li.innerHTML = `
+                    <span><b>${bName}:</b> Gap: ${p.gap}</span>
+                    <button class="text-red-500 hover:text-red-700 font-bold" onclick="removeBatchPref('${bId}')">×</button>
+                `;
+                batchPrefList.appendChild(li);
+            }
+        }
+        window.removeBatchPref = (bId) => { delete batchPreferences[bId]; renderBatchPrefs(); };
+
         // Run
         document.getElementById('runBtn').addEventListener('click', () => {
             if(selectedBatches.size === 0) {
@@ -312,11 +390,17 @@
                 gap: labPreferences[k].gap
             }));
 
+            const bPrefArr = Object.keys(batchPreferences).map(k => ({
+                batch_id: k,
+                gap: batchPreferences[k].gap
+            }));
+
             const payload = {
                 selected_batches: Array.from(selectedBatches),
                 deselected_subjects: deselObj,
                 parallel_groups: parallelGroups,
-                lab_preferences: prefArr
+                lab_preferences: prefArr,
+                batch_preferences: bPrefArr
             };
 
             const btn = document.getElementById('runBtn');
