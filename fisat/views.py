@@ -470,65 +470,102 @@ from django.contrib.auth.decorators import login_required
 def get_free_staff(request, subject_id):
     dp = get_current_period(request)
     """
-    Returns list of staff free for the subject's slot, plus the number of
-    slots that staff already has for the same subject (subject name) in this period.
-    JSON: [{id, name, count}, ...]
+    Returns list of staff free for the subject's slot, plus their AI Rank, Reason,
+    and the number of slots that staff already has for the same subject.
+    JSON: [{id, name, count, rank, reason}, ...]
     """
     subject = get_object_or_404(SubjectEntry, id=subject_id, period=dp)
 
+    RULES = load_rules()
+    STAFF_PREF = RULES.get("PREFERENCES", {})
+    MAX_WORKLOAD = RULES.get("WORKLOAD", {})
+    MAX_SUBJECT_ALLOTMENT = RULES.get("MAX_SUBJECT_ALLOTMENT", {})
+    COMMON_SUBJECTS = set(RULES.get("COMMON_SUBJECTS", []))
+    DEFAULT_MAX_WORKLOAD = 22
+
     # target info
     target_day = subject.day
-    # parse hours safely (ignore empty parts)
     try:
         target_hours = set(int(x) for x in subject.allotted_hours.split(',') if x.strip() != '')
     except Exception:
         target_hours = set()
+    
+    target_subj = subject.subject_name.upper()
 
     staff_qs = Staff.objects.all().order_by('name')
     free_staff = []
 
     for st in staff_qs:
-        # all timetable entries for this staff on the same day & period
-        entries = TimetableEntry.objects.filter(
-            staff=st,
-            subject__day=target_day,
-            subject__period=dp
-        )
-
+        # Check timetable for this staff
+        all_entries = TimetableEntry.objects.filter(staff=st, subject__period=dp)
+        
+        # 1) Time conflict
         busy = False
-        for e in entries:
+        total_hours_for_staff = 0
+        subject_slot_count = 0
+        same_batch = False
+
+        for e in all_entries:
             try:
-                entry_hours = set(int(x) for x in e.subject.allotted_hours.split(',') if x.strip() != '')
+                e_hours = [int(x) for x in e.subject.allotted_hours.split(',') if x.strip() != '']
             except Exception:
-                entry_hours = set()
-            if target_hours.intersection(entry_hours):
-                busy = True
-                break
+                e_hours = []
+                
+            total_hours_for_staff += len(e_hours)
+            
+            if e.subject.subject_name.upper() == target_subj:
+                subject_slot_count += len(e_hours)
+                if e.subject.class_name == subject.class_name:
+                    same_batch = True
+                    
+            if e.subject.day == target_day:
+                if target_hours.intersection(set(e_hours)):
+                    busy = True
 
         if busy:
             continue
 
-        # count how many slots this staff already has for the SAME subject name
-        # (case-insensitive match on subject_name) within same period
-        same_subject_entries = TimetableEntry.objects.filter(
-            staff=st,
-            subject__subject_name__iexact=subject.subject_name,
-            subject__period=dp
-        )
+        # 2) Workload check
+        hours_needed = len(target_hours)
+        max_hours = MAX_WORKLOAD.get(st.name, DEFAULT_MAX_WORKLOAD)
+        if total_hours_for_staff + hours_needed > max_hours:
+            continue # Over workload
 
-        # count total hours/slots for those entries (we count "slots" as the number of hours)
-        slot_count = 0
-        for ent in same_subject_entries:
-            try:
-                slot_count += sum(1 for x in ent.subject.allotted_hours.split(',') if x.strip() != '')
-            except Exception:
-                pass
+        # 3) Subject entry limit
+        limit = MAX_SUBJECT_ALLOTMENT.get(target_subj, 999)
+        # Count rows for this subject
+        rows_for_subject = sum(1 for e in all_entries if e.subject.subject_name.upper() == target_subj)
+        if rows_for_subject + 1 > limit:
+            continue
+
+        # Determine AI Rank
+        rank = 3
+        reason = "Available"
+        prefs = STAFF_PREF.get(st.name, ["", ""])
+        
+        if same_batch:
+            rank = 1
+            reason = "Same Batch"
+        elif prefs and prefs[0].upper() == target_subj:
+            rank = 1
+            reason = "1st Preference"
+        elif len(prefs) > 1 and prefs[1].upper() == target_subj:
+            rank = 2
+            reason = "2nd Preference"
+        elif target_subj in COMMON_SUBJECTS:
+            rank = 2
+            reason = "Common Subject"
 
         free_staff.append({
             "id": st.id,
             "name": st.name,
-            "count": slot_count
+            "count": subject_slot_count,
+            "rank": rank,
+            "reason": reason
         })
+
+    # Sort by rank ascending, then by current load ascending
+    free_staff.sort(key=lambda x: (x["rank"], x["count"]))
 
     return JsonResponse(free_staff, safe=False)
 

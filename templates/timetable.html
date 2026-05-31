@@ -613,7 +613,12 @@ function loadAvailableStaff(selectElement) {
                 data.forEach(staff => {
                     const option = document.createElement('option');
                     option.value = staff.id;
-                    option.textContent = `${staff.name} (Load: ${staff.count})`;
+                    
+                    let prefix = "";
+                    if (staff.rank === 1) prefix = "⭐ ";
+                    else if (staff.rank === 2) prefix = "🌟 ";
+                    
+                    option.textContent = `${prefix}${staff.name} (${staff.reason} | Load: ${staff.count})`;
                     selectElement.appendChild(option);
                 });
             }
