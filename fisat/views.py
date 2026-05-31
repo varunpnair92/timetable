@@ -2302,6 +2302,13 @@ from .models import LabPreference, ParallelSubjectGroup
 def auto_lab_allotment_view(request):
     dp = get_current_period(request)
     
+    # Auto-sync batches from existing SubjectEntries if they were uploaded manually
+    existing_entries = SubjectEntry.objects.filter(period=dp)
+    for e in existing_entries:
+        if e.class_name and e.subject_name:
+            b, _ = Batch.objects.get_or_create(name=e.class_name, period=dp)
+            BatchSubject.objects.get_or_create(batch=b, subject_name=e.subject_name)
+            
     batches = Batch.objects.filter(period=dp).prefetch_related('subjects')
     lab_choices = SubjectEntry.LAB_CHOICES
     
