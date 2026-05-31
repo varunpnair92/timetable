@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Auto Lab Allotment{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Auto Lab Allotment</h1>
+        <button id="runBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded shadow-lg transition duration-200 transform hover:scale-105">
+            Run Auto Allotment
+        </button>
+    </div>
+
+    <!-- MAIN CONFIGURATION SECTION -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Batch & Subject Selection -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Select Batches</h2>
+            <div id="batchContainer" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+
+        <!-- Parallel Subject Groups -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Parallel Subjects</h2>
+            <div class="mb-4 space-y-3">
+                <select id="pBatchSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Select Batch...</option>
+                </select>
+                <div class="flex gap-2">
+                    <select id="pSub1Select" class="w-1/2 p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Subject 1</option>
+                    </select>
+                    <select id="pSub2Select" class="w-1/2 p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Subject 2</option>
+                    </select>
+                </div>
+                <button id="addParallelBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded transition">
+                    + Add Parallel Group
+                </button>
+            </div>
+            <ul id="parallelList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300">
+                <!-- List added parallel groups -->
+            </ul>
+        </div>
+
+        <!-- Lab Preferences -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Lab Preferences</h2>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apply to Lab</label>
+                <select id="prefLabSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
+                    <option value="ALL">All Labs</option>
+                </select>
+                
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Allowed Days (comma separated)</label>
+                <input type="text" id="prefDays" value="M,T,W,Th,F" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" placeholder="e.g. M,T,W">
+                
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Allowed Hours (comma separated)</label>
+                <input type="text" id="prefHours" value="1,2,3" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" placeholder="e.g. 1,2,3 or 4,5,6">
+                
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day Gap Between Sessions</label>
+                <input type="number" id="prefGap" value="1" min="0" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
+                
+                <button id="addPrefBtn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded transition">
+                    Save Preference
+                </button>
+            </div>
+            <ul id="prefList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
+                <!-- List preferences -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- TIMETABLE MATRIX -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-x-auto">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white border-b pb-2">Lab Allocation Matrix</h2>
+        <table class="w-full text-left border-collapse table-fixed min-w-[800px]">
+            <thead>
+                <tr>
+                    <th class="w-24 p-2 bg-gray-100 dark:bg-gray-700 border dark:border-gray-600">Lab \ Day</th>
+                    <th class="p-2 bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 text-center font-medium">Monday</th>
+                    <th class="p-2 bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 text-center font-medium">Tuesday</th>
+                    <th class="p-2 bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 text-center font-medium">Wednesday</th>
+                    <th class="p-2 bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 text-center font-medium">Thursday</th>
+                    <th class="p-2 bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 text-center font-medium">Friday</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lab_code, lab_data in lab_timetables.items %}
+                <tr>
+                    <td class="p-3 border dark:border-gray-600 font-bold bg-gray-50 dark:bg-gray-700 text-center">
+                        {{ lab_data.name }}
+                    </td>
+                    {% for day_slots in lab_data.timetable_slots %}
+                    <td class="p-1 border dark:border-gray-600 align-top">
+                        <div class="flex flex-col gap-1">
+                            {% for slot in day_slots %}
+                                {% if slot.subject %}
+                                    <div class="bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded p-1 text-xs text-center relative group" 
+                                         style="height: {{ slot.colspan|default:1|add:0|multiply:24 }}px; min-height: 24px;">
+                                        <div class="font-bold text-blue-800 dark:text-blue-200 truncate">{{ slot.subject }}</div>
+                                        <div class="text-[10px] text-blue-600 dark:text-blue-400 truncate">{{ slot.class_name }}</div>
+                                    </div>
+                                {% else %}
+                                    {% if not slot.hidden %}
+                                    <div class="h-6 border border-dashed border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-800 flex items-center justify-center opacity-50">
+                                        <span class="text-[9px] text-gray-400">{{ slot.hour_label }}</span>
+                                    </div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Data from Backend -->
+<script id="batch-data" type="application/json">{{ batch_data|safe }}</script>
+<script id="lab-choices" type="application/json">{{ lab_choices|safe }}</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const batchData = JSON.parse(document.getElementById('batch-data').textContent);
+        const labChoices = JSON.parse(document.getElementById('lab-choices').textContent);
+        
+        // --- State ---
+        let selectedBatches = new Set();
+        let deselectedSubjects = {}; // batchId -> Set of subject names
+        let parallelGroups = []; // {batch_id, batch_name, sub1, sub2}
+        let labPreferences = {}; // lab_code -> {days, hours, gap}
+
+        // Initialize UI Elements
+        const batchContainer = document.getElementById('batchContainer');
+        const pBatchSelect = document.getElementById('pBatchSelect');
+        const prefLabSelect = document.getElementById('prefLabSelect');
+        const pSub1Select = document.getElementById('pSub1Select');
+        const pSub2Select = document.getElementById('pSub2Select');
+        const parallelList = document.getElementById('parallelList');
+        const prefList = document.getElementById('prefList');
+
+        // Populate Lab Choices
+        labChoices.forEach(([code, name]) => {
+            let opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = name;
+            prefLabSelect.appendChild(opt);
+        });
+
+        // Render Batches
+        batchData.forEach(batch => {
+            // Add to parallel select
+            let opt = document.createElement('option');
+            opt.value = batch.id;
+            opt.textContent = batch.name;
+            pBatchSelect.appendChild(opt);
+
+            // Add to batch list
+            let div = document.createElement('div');
+            div.className = "border rounded p-3 bg-gray-50 dark:bg-gray-700 dark:border-gray-600";
+            
+            let header = document.createElement('div');
+            header.className = "flex items-center justify-between";
+            header.innerHTML = `
+                <label class="flex items-center space-x-2 font-medium cursor-pointer text-gray-800 dark:text-gray-200">
+                    <input type="checkbox" class="batch-cb form-checkbox h-4 w-4 text-blue-600" value="${batch.id}">
+                    <span>${batch.name}</span>
+                </label>
+                <button class="text-sm text-blue-500 hover:text-blue-700 expand-btn">Toggle Subjects</button>
+            `;
+            div.appendChild(header);
+
+            let subList = document.createElement('div');
+            subList.className = "mt-2 pl-6 space-y-1 hidden";
+            batch.subjects.forEach(sub => {
+                let sDiv = document.createElement('div');
+                sDiv.innerHTML = `
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-600 dark:text-gray-400">
+                        <input type="checkbox" class="sub-cb form-checkbox h-3 w-3 text-red-500" data-batch="${batch.id}" value="${sub}" checked>
+                        <span>${sub}</span>
+                    </label>
+                `;
+                subList.appendChild(sDiv);
+            });
+            div.appendChild(subList);
+
+            // Handlers
+            header.querySelector('.batch-cb').addEventListener('change', (e) => {
+                if(e.target.checked) selectedBatches.add(batch.id);
+                else selectedBatches.delete(batch.id);
+            });
+
+            header.querySelector('.expand-btn').addEventListener('click', () => {
+                subList.classList.toggle('hidden');
+            });
+
+            subList.querySelectorAll('.sub-cb').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    if(!deselectedSubjects[batch.id]) deselectedSubjects[batch.id] = new Set();
+                    if(!e.target.checked) {
+                        deselectedSubjects[batch.id].add(e.target.value);
+                    } else {
+                        deselectedSubjects[batch.id].delete(e.target.value);
+                    }
+                });
+            });
+
+            batchContainer.appendChild(div);
+        });
+
+        // Parallel Logic
+        pBatchSelect.addEventListener('change', (e) => {
+            const batchId = parseInt(e.target.value);
+            pSub1Select.innerHTML = '<option value="">Subject 1</option>';
+            pSub2Select.innerHTML = '<option value="">Subject 2</option>';
+            if(batchId) {
+                const batch = batchData.find(b => b.id === batchId);
+                batch.subjects.forEach(sub => {
+                    pSub1Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
+                    pSub2Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
+                });
+            }
+        });
+
+        document.getElementById('addParallelBtn').addEventListener('click', () => {
+            const bId = parseInt(pBatchSelect.value);
+            const sub1 = pSub1Select.value;
+            const sub2 = pSub2Select.value;
+            if(bId && sub1 && sub2 && sub1 !== sub2) {
+                const bName = pBatchSelect.options[pBatchSelect.selectedIndex].text;
+                parallelGroups.push({batch_id: bId, batch_name: bName, sub1, sub2});
+                renderParallel();
+            }
+        });
+
+        function renderParallel() {
+            parallelList.innerHTML = '';
+            parallelGroups.forEach((pg, idx) => {
+                let li = document.createElement('li');
+                li.className = "flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded";
+                li.innerHTML = `
+                    <span><b>${pg.batch_name}:</b> ${pg.sub1} || ${pg.sub2}</span>
+                    <button class="text-red-500 hover:text-red-700 font-bold" onclick="removeParallel(${idx})">×</button>
+                `;
+                parallelList.appendChild(li);
+            });
+        }
+        window.removeParallel = (idx) => { parallelGroups.splice(idx, 1); renderParallel(); };
+
+        // Pref Logic
+        document.getElementById('addPrefBtn').addEventListener('click', () => {
+            const lab = prefLabSelect.value;
+            const days = document.getElementById('prefDays').value;
+            const hours = document.getElementById('prefHours').value;
+            const gap = document.getElementById('prefGap').value;
+            
+            if(lab === 'ALL') {
+                labChoices.forEach(([code, _]) => {
+                    labPreferences[code] = {days, hours, gap};
+                });
+            } else {
+                labPreferences[lab] = {days, hours, gap};
+            }
+            renderPrefs();
+        });
+
+        function renderPrefs() {
+            prefList.innerHTML = '';
+            for(let lab in labPreferences) {
+                let p = labPreferences[lab];
+                let li = document.createElement('li');
+                li.className = "flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded";
+                li.innerHTML = `
+                    <span><b>${lab}:</b> ${p.days} | ${p.hours} | Gap: ${p.gap}</span>
+                    <button class="text-red-500 hover:text-red-700 font-bold" onclick="removePref('${lab}')">×</button>
+                `;
+                prefList.appendChild(li);
+            }
+        }
+        window.removePref = (lab) => { delete labPreferences[lab]; renderPrefs(); };
+
+        // Run
+        document.getElementById('runBtn').addEventListener('click', () => {
+            if(selectedBatches.size === 0) {
+                alert("Please select at least one batch.");
+                return;
+            }
+
+            const deselObj = {};
+            for(let k in deselectedSubjects) {
+                if(deselectedSubjects[k].size > 0) deselObj[k] = Array.from(deselectedSubjects[k]);
+            }
+
+            const prefArr = Object.keys(labPreferences).map(k => ({
+                lab: k,
+                days: labPreferences[k].days,
+                hours: labPreferences[k].hours,
+                gap: labPreferences[k].gap
+            }));
+
+            const payload = {
+                selected_batches: Array.from(selectedBatches),
+                deselected_subjects: deselObj,
+                parallel_groups: parallelGroups,
+                lab_preferences: prefArr
+            };
+
+            const btn = document.getElementById('runBtn');
+            btn.textContent = "Processing...";
+            btn.disabled = true;
+
+            fetch("{% url 'api_run_auto_lab_allotment' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    alert("Allotment Successful!");
+                    window.location.reload();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            }).catch(err => {
+                alert("Network error.");
+                console.error(err);
+            }).finally(() => {
+                btn.textContent = "Run Auto Allotment";
+                btn.disabled = false;
+            });
+        });
+    });
+</script>
+{% endblock %}

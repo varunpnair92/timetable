@@ -2293,3 +2293,224 @@ def palette_allocate(request, subject_id, staff_id):
         TimetableEntry.objects.create(staff=staff, subject=subject, user=request.user)
     
     return redirect("timetable")
+
+import json
+from django.views.decorators.csrf import csrf_exempt
+from .models import LabPreference, ParallelSubjectGroup
+
+@login_required
+def auto_lab_allotment_view(request):
+    dp = get_current_period(request)
+    
+    batches = Batch.objects.filter(period=dp).prefetch_related('subjects')
+    lab_choices = SubjectEntry.LAB_CHOICES
+    
+    preferences = LabPreference.objects.filter(period=dp)
+    parallel_groups = ParallelSubjectGroup.objects.filter(period=dp)
+    
+    try:
+        sem = Semester.objects.get(name=dp)
+        layout_type = sem.layout_type
+    except Semester.DoesNotExist:
+        layout_type = 'classic'
+        
+    lab_timetables = {}
+    all_subjects = list(SubjectEntry.objects.filter(period=dp))
+    
+    for lab_code, lab_name in SubjectEntry.LAB_CHOICES:
+        slots = []
+        days_keys = ["M", "T", "W", "Th", "F"]
+        for dkey in days_keys:
+            day_labels = get_day_labels(dkey, layout_type)
+            row_slots = []
+            for lbl in day_labels:
+                row_slots.append({"hour_label": lbl, "subject": None})
+            slots.append(row_slots)
+            
+        lab_subjects = [s for s in all_subjects if s.LAB == lab_code]
+        
+        for sub in lab_subjects:
+            hours = [int(x) for x in sub.allotted_hours.split(",")]
+            row = {"M": 0, "T": 1, "W": 2, "Th": 3, "F": 4}[sub.day]
+            
+            adjusted_hours = []
+            if layout_type == 'new':
+                if sub.day == 'F':
+                    for hour in hours:
+                        if hour == 8: adjusted_hours.append(6)
+                        elif hour == 6: adjusted_hours.append(7)
+                        else: adjusted_hours.append(hour)
+                else:
+                    for hour in hours:
+                        adjusted_hours.append(hour)
+            else:
+                for hour in hours:
+                    if hour == 8: adjusted_hours.append(5)
+                    elif hour == 5: adjusted_hours.append(6)
+                    elif hour == 6: adjusted_hours.append(7)
+                    elif hour == 7: adjusted_hours.append(8)
+                    else: adjusted_hours.append(hour)
+                    
+            adj = sorted(set(adjusted_hours))
+            if not adj:
+                continue
+            start = adj[0] - 1
+            end = adj[-1] - 1
+            
+            max_index = 6 if layout_type == 'new' else 7
+            if start < 0: start = 0
+            if end > max_index: end = max_index
+            
+            for c in range(start, end + 1):
+                if c < len(slots[row]):
+                    if c == start:
+                        slots[row][c] = {
+                            "hour_label": slots[row][c]["hour_label"],
+                            "subject": sub.subject_name,
+                            "class_name": sub.class_name,
+                            "colspan": min(end, len(slots[row]) - 1) - start + 1,
+                        }
+                    else:
+                        slots[row][c] = None
+                        
+        lab_timetables[lab_code] = {"timetable_slots": slots, "name": lab_name}
+    
+    batch_data = []
+    for b in batches:
+        batch_data.append({
+            'id': b.id,
+            'name': b.name,
+            'subjects': [s.subject_name for s in b.subjects.all()]
+        })
+        
+    return render(request, 'auto_lab_allotment.html', {
+        'batch_data': json.dumps(batch_data),
+        'lab_choices': json.dumps(list(SubjectEntry.LAB_CHOICES)),
+        'lab_timetables': lab_timetables,
+        'layout_type': layout_type,
+    })
+
+@csrf_exempt
+@login_required
+def api_run_auto_lab_allotment(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=400)
+    
+    try:
+        dp = get_current_period(request)
+        data = json.loads(request.body)
+        
+        selected_batches = data.get('selected_batches', [])
+        deselected_subjects = data.get('deselected_subjects', {})
+        parallel_groups_data = data.get('parallel_groups', [])
+        lab_preferences_data = data.get('lab_preferences', [])
+        
+        with transaction.atomic():
+            LabPreference.objects.filter(period=dp).delete()
+            for pref in lab_preferences_data:
+                LabPreference.objects.create(
+                    lab_name=pref['lab'],
+                    allowed_days=pref['days'],
+                    allowed_hours=pref['hours'],
+                    day_gap=int(pref.get('gap', 1)),
+                    period=dp
+                )
+            
+            ParallelSubjectGroup.objects.filter(period=dp).delete()
+            for pg in parallel_groups_data:
+                batch = Batch.objects.get(id=pg['batch_id'])
+                ParallelSubjectGroup.objects.create(
+                    batch=batch,
+                    subject_1=pg['sub1'],
+                    subject_2=pg['sub2'],
+                    period=dp
+                )
+                
+            batches_to_allocate = Batch.objects.filter(id__in=selected_batches)
+            
+            for b in batches_to_allocate:
+                SubjectEntry.objects.filter(class_name=b.name, period=dp).delete()
+                
+            DAYS = ['M', 'T', 'W', 'Th', 'F']
+            
+            def is_batch_free(batch_name, day, hours):
+                hours_set = set(map(int, hours.split(',')))
+                existing = SubjectEntry.objects.filter(class_name=batch_name, day=day, period=dp)
+                for e in existing:
+                    if set(map(int, e.allotted_hours.split(','))).intersection(hours_set):
+                        return False
+                return True
+                
+            def is_lab_free(lab, day, hours):
+                hours_set = set(map(int, hours.split(',')))
+                existing = SubjectEntry.objects.filter(LAB=lab, day=day, period=dp)
+                for e in existing:
+                    if set(map(int, e.allotted_hours.split(','))).intersection(hours_set):
+                        return False
+                return True
+            
+            for batch in batches_to_allocate:
+                subjects = [s.subject_name for s in batch.subjects.all()]
+                desel = deselected_subjects.get(str(batch.id), [])
+                subjects_to_allocate = [s for s in subjects if s not in desel]
+                
+                pgs = ParallelSubjectGroup.objects.filter(batch=batch, period=dp)
+                parallel_pairs = [(pg.subject_1, pg.subject_2) for pg in pgs]
+                
+                allocated_for_batch = set()
+                
+                for s1, s2 in parallel_pairs:
+                    if s1 in subjects_to_allocate and s2 in subjects_to_allocate:
+                        allocated_for_batch.add(s1)
+                        allocated_for_batch.add(s2)
+                        
+                        allocated = False
+                        for day in DAYS:
+                            if allocated: break
+                            for block in ['1,2,3', '4,5,6', '5,6,7']:
+                                if allocated: break
+                                if not is_batch_free(batch.name, day, block):
+                                    continue
+                                    
+                                free_labs = []
+                                for l_code, l_name in SubjectEntry.LAB_CHOICES:
+                                    pref = LabPreference.objects.filter(lab_name=l_code, period=dp).first()
+                                    if pref:
+                                        if day not in pref.allowed_days.split(','): continue
+                                        if block not in pref.allowed_hours.split(','): continue
+                                    
+                                    if is_lab_free(l_code, day, block):
+                                        free_labs.append(l_code)
+                                        
+                                if len(free_labs) >= 2:
+                                    SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
+                                    SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[1], period=dp)
+                                    allocated = True
+                                    
+                for sub in subjects_to_allocate:
+                    if sub in allocated_for_batch: continue
+                    allocated = False
+                    for day in DAYS:
+                        if allocated: break
+                        for block in ['1,2,3', '4,5,6', '5,6,7']:
+                            if allocated: break
+                            if not is_batch_free(batch.name, day, block):
+                                continue
+                            
+                            for l_code, l_name in SubjectEntry.LAB_CHOICES:
+                                pref = LabPreference.objects.filter(lab_name=l_code, period=dp).first()
+                                if pref:
+                                    if day not in pref.allowed_days.split(','): continue
+                                    if block not in pref.allowed_hours.split(','): continue
+                                    
+                                if is_lab_free(l_code, day, block):
+                                    SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=l_code, period=dp)
+                                    allocated = True
+                                    break
+                                    
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
+

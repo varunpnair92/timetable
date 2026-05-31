@@ -148,4 +148,28 @@ class SubjectFacultyMap(models.Model):
     def __str__(self):
         return f"{self.subject.subject_name} → {self.faculty_names}"
 
+class LabPreference(models.Model):
+    lab_name = models.CharField(max_length=50, choices=SubjectEntry.LAB_CHOICES)
+    allowed_days = models.CharField(max_length=50, default='M,T,W,Th,F', help_text="Comma-separated list of allowed days, e.g., M,T,W")
+    allowed_hours = models.CharField(max_length=100, default='1,2,3', help_text="Comma-separated list of allowed starting hour blocks, e.g., 1,2,3 or 4,5,6")
+    day_gap = models.IntegerField(default=1, help_text="Gap in days required between lab sessions for the same batch")
+    period = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"{self.lab_name} Preferences ({self.period})"
         
+    class Meta:
+        db_table = 'labpreference'
+        unique_together = (('lab_name', 'period'),)
+
+class ParallelSubjectGroup(models.Model):
+    batch = models.ForeignKey(Batch, on_delete=models.CASCADE)
+    subject_1 = models.CharField(max_length=100)
+    subject_2 = models.CharField(max_length=100)
+    period = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"{self.batch.name}: {self.subject_1} || {self.subject_2} ({self.period})"
+
+    class Meta:
+        db_table = 'parallelsubjectgroup'
