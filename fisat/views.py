@@ -2494,6 +2494,27 @@ def api_run_auto_lab_allotment(request):
                         return False
                 return True
             
+            def is_unique_subject_free(sub_name, day, hours):
+                sub_lower = sub_name.lower().strip()
+                is_chem = 'chem' in sub_lower or sub_lower == 'ch'
+                is_phys = 'phys' in sub_lower or sub_lower in ['py', 'ph']
+                
+                if not (is_chem or is_phys):
+                    return True
+                    
+                hours_set = set(map(int, hours.split(',')))
+                existing = SubjectEntry.objects.filter(day=day, period=dp)
+                
+                for e in existing:
+                    e_lower = e.subject_name.lower().strip()
+                    e_is_chem = 'chem' in e_lower or e_lower == 'ch'
+                    e_is_phys = 'phys' in e_lower or e_lower in ['py', 'ph']
+                    
+                    if (is_chem and e_is_chem) or (is_phys and e_is_phys):
+                        if set(map(int, e.allotted_hours.split(','))).intersection(hours_set):
+                            return False
+                return True
+                
             def is_lab_eligible(lab_code, day, block):
                 if lab_code in global_excluded_labs:
                     return False
@@ -2580,6 +2601,7 @@ def api_run_auto_lab_allotment(request):
                                         time_key = f"{day}:{block}"
                                         if time_key in s1_ex_times or time_key in s2_ex_times: continue
                                         if not is_batch_free(batch, day, block): continue
+                                        if not is_unique_subject_free(s1, day, block) or not is_unique_subject_free(s2, day, block): continue
                                         
                                         if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
                                             possible_slots.append((day, block, l1, l2))
@@ -2616,6 +2638,7 @@ def api_run_auto_lab_allotment(request):
                                         time_key = f"{day}:{block}"
                                         if time_key in s1_ex_times or time_key in s2_ex_times: continue
                                         if not is_batch_free(batch, day, block): continue
+                                        if not is_unique_subject_free(s1, day, block) or not is_unique_subject_free(s2, day, block): continue
                                         
                                         if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
                                             possible_slots.append((day, block, l1, l2))
@@ -2673,6 +2696,7 @@ def api_run_auto_lab_allotment(request):
                                     time_key = f"{day}:{block}"
                                     if time_key in ex_times: continue
                                     if not is_batch_free(batch, day, block): continue
+                                    if not is_unique_subject_free(sub, day, block): continue
                                     
                                     if is_lab_eligible(target_lab, day, block):
                                         possible_slots.append((day, block, target_lab))
@@ -2708,6 +2732,7 @@ def api_run_auto_lab_allotment(request):
                                     time_key = f"{day}:{block}"
                                     if time_key in ex_times: continue
                                     if not is_batch_free(batch, day, block): continue
+                                    if not is_unique_subject_free(sub, day, block): continue
                                     
                                     if is_lab_eligible(target_lab, day, block):
                                         possible_slots.append((day, block, target_lab))
