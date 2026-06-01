@@ -2755,6 +2755,7 @@ def api_run_auto_lab_allotment(request):
             msg = f"Allocated {len(results)} batches. "
             if unallocated:
                 msg += f"Could not allocate: {', '.join(unallocated)}"
+                return JsonResponse({"status": "partial", "message": msg, "unallocated": unallocated})
                         
         return JsonResponse({"status": "success", "message": msg})
     except Exception as e:

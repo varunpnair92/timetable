@@ -16,6 +16,7 @@
             Run Auto Allotment
         </button>
     </div>
+    <div id="allotmentResult" class="hidden mb-6 p-4 rounded-lg shadow border"></div>
 
     <!-- Semester Switcher -->
     <div class="mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow flex items-center gap-4">
@@ -714,11 +715,30 @@
                 },
                 body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
+                const resDiv = document.getElementById('allotmentResult');
+                resDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'border-green-300', 'bg-yellow-100', 'text-yellow-800', 'border-yellow-300', 'bg-red-100', 'text-red-800', 'border-red-300');
+                
                 if(data.status === 'success') {
-                    alert("Allotment Successful! \n" + (data.message || ""));
-                    window.location.reload();
+                    resDiv.classList.add('bg-green-100', 'text-green-800', 'border-green-300');
+                    resDiv.innerHTML = `<h3 class="font-bold text-lg mb-2">✅ Allotment Successful!</h3><p>${data.message}</p><p class="mt-2 text-sm">Please go to the Timetable page to view the schedule.</p>`;
+                    // Optionally scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else if(data.status === 'partial') {
+                    resDiv.classList.add('bg-yellow-100', 'text-yellow-800', 'border-yellow-300');
+                    let html = `<h3 class="font-bold text-lg mb-2">⚠️ Partial Allotment Completed</h3>`;
+                    html += `<p class="mb-3">Some subjects could not be scheduled due to constraints or lack of free slots:</p>`;
+                    html += `<ul class="list-disc pl-5 space-y-1 mb-3">`;
+                    data.unallocated.forEach(u => {
+                        html += `<li><b>${u}</b></li>`;
+                    });
+                    html += `</ul>`;
+                    html += `<p class="text-sm">Please loosen constraints (e.g., allow more days, remove strict priority, or change labs) for these subjects and try running it again for the remaining batches.</p>`;
+                    resDiv.innerHTML = html;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                    alert("Error: " + data.error);
+                    resDiv.classList.add('bg-red-100', 'text-red-800', 'border-red-300');
+                    resDiv.innerHTML = `<h3 class="font-bold text-lg mb-2">❌ Error</h3><p>${data.error}</p>`;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             }).catch(err => {
                 alert("Network error.");
