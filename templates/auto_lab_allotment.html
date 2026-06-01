@@ -300,6 +300,12 @@
 
             const batch = batchData.find(b => b.id === batchId);
             
+            // Initialize active subject labs array to track click order
+            window.activeSubjectLabs = {};
+            batch.subjects.forEach(sub => {
+                window.activeSubjectLabs[sub] = (subjectLabs[batchId] && subjectLabs[batchId][sub]) ? [...subjectLabs[batchId][sub]] : [];
+            });
+            
             // Render Subjects
             subjectCheckboxContainer.innerHTML = '';
             batch.subjects.forEach(sub => {
@@ -309,10 +315,10 @@
                     isChecked = false;
                 }
                 let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : 1;
-                let subLabs = (subjectLabs[batchId] && subjectLabs[batchId][sub]) ? subjectLabs[batchId][sub] : [];
+                let subLabs = window.activeSubjectLabs[sub];
                 
                 let labsHtml = labChoices.map(([code, name]) => {
-                    let isLabChecked = subLabs.length === 0 || subLabs.includes(code);
+                    let isLabChecked = subLabs.includes(code);
                     return `
                         <label class="flex items-center space-x-1 text-xs cursor-pointer">
                             <input type="checkbox" class="batch-sub-lab-cb form-checkbox h-3 w-3 text-indigo-600" data-sub="${sub}" value="${code}" ${isLabChecked ? 'checked' : ''}>
@@ -334,13 +340,32 @@
                         </div>
                     </div>
                     <details class="text-xs text-gray-600 dark:text-gray-400 ml-6 mt-1">
-                        <summary class="cursor-pointer text-indigo-500 hover:text-indigo-700 font-semibold">Preferred Labs</summary>
+                        <summary class="cursor-pointer text-indigo-500 hover:text-indigo-700 font-semibold">
+                            Preferred Labs <span id="lab-priority-badge-${sub}" class="text-gray-400 font-normal ml-2">${subLabs.length > 0 ? "Priority: " + subLabs.join(', ') : "Any Lab"}</span>
+                        </summary>
                         <div class="flex flex-wrap gap-2 mt-1 bg-gray-50 dark:bg-gray-700 p-2 rounded">
                             ${labsHtml}
                         </div>
                     </details>
                 `;
                 subjectCheckboxContainer.appendChild(sDiv);
+                
+                // Attach event listener to track click order
+                setTimeout(() => {
+                    document.querySelectorAll(`.batch-sub-lab-cb[data-sub="${sub}"]`).forEach(cb => {
+                        cb.addEventListener('change', function() {
+                            if (this.checked) {
+                                window.activeSubjectLabs[sub].push(this.value);
+                            } else {
+                                window.activeSubjectLabs[sub] = window.activeSubjectLabs[sub].filter(l => l !== this.value);
+                            }
+                            const badge = document.getElementById(`lab-priority-badge-${sub}`);
+                            if (badge) {
+                                badge.textContent = window.activeSubjectLabs[sub].length > 0 ? "Priority: " + window.activeSubjectLabs[sub].join(', ') : "Any Lab";
+                            }
+                        });
+                    });
+                }, 0);
             });
             subjectSelectionDiv.classList.remove('hidden');
 
@@ -434,9 +459,8 @@
                         subjectSlots[batchId][sub] = parseInt(slotInput.value) || 1;
                     }
                     
-                    // find matching checked labs
-                    const labInputs = document.querySelectorAll(`.batch-sub-lab-cb[data-sub="${sub}"]:checked`);
-                    const checkedLabs = Array.from(labInputs).map(l => l.value);
+                    // retrieve tracked labs which maintains click order
+                    const checkedLabs = window.activeSubjectLabs[sub] || [];
                     subjectLabs[batchId][sub] = checkedLabs;
                 }
             });
