@@ -2495,9 +2495,9 @@ def api_run_auto_lab_allotment(request):
                 return True
             
             def is_unique_subject_free(sub_name, day, hours):
-                sub_lower = sub_name.lower().strip()
-                is_chem = 'chem' in sub_lower or sub_lower == 'ch'
-                is_phys = 'phys' in sub_lower or sub_lower in ['py', 'ph']
+                sub_upper = sub_name.strip().upper()
+                is_chem = sub_upper == 'CH'
+                is_phys = sub_upper == 'PHY'
                 
                 if not (is_chem or is_phys):
                     return True
@@ -2506,9 +2506,9 @@ def api_run_auto_lab_allotment(request):
                 existing = SubjectEntry.objects.filter(day=day, period=dp)
                 
                 for e in existing:
-                    e_lower = e.subject_name.lower().strip()
-                    e_is_chem = 'chem' in e_lower or e_lower == 'ch'
-                    e_is_phys = 'phys' in e_lower or e_lower in ['py', 'ph']
+                    e_upper = e.subject_name.strip().upper()
+                    e_is_chem = e_upper == 'CH'
+                    e_is_phys = e_upper == 'PHY'
                     
                     if (is_chem and e_is_chem) or (is_phys and e_is_phys):
                         if set(map(int, e.allotted_hours.split(','))).intersection(hours_set):
