@@ -2429,6 +2429,8 @@ def api_run_auto_lab_allotment(request):
         batch_preferences_data = data.get('batch_preferences', [])
         subject_slots_data = data.get('subject_slots', {})
         subject_labs_data = data.get('subject_labs', {})
+        subject_configs = data.get('subject_configs', {})
+        global_excluded_labs = data.get('global_excluded_labs', [])
         
         with transaction.atomic():
             LabPreference.objects.filter(period=dp).delete()
@@ -2493,6 +2495,8 @@ def api_run_auto_lab_allotment(request):
                 return True
             
             def is_lab_eligible(lab_code, day, block):
+                if lab_code in global_excluded_labs:
+                    return False
                 pref = LabPreference.objects.filter(lab_name=lab_code, period=dp).first()
                 if pref:
                     if day not in pref.allowed_days.split(','): return False
@@ -2520,12 +2524,19 @@ def api_run_auto_lab_allotment(request):
                         
                         pref_labs_s1 = subject_labs_data.get(str(batch.id), {}).get(s1, [])
                         labs_s1 = pref_labs_s1 if pref_labs_s1 else [l[0] for l in SubjectEntry.LAB_CHOICES]
+                        if subject_configs.get(str(batch.id), {}).get(s1, {}).get('strictPriority') and pref_labs_s1:
+                            labs_s1 = [pref_labs_s1[0]]
+                            
                         pref_labs_s2 = subject_labs_data.get(str(batch.id), {}).get(s2, [])
                         labs_s2 = pref_labs_s2 if pref_labs_s2 else [l[0] for l in SubjectEntry.LAB_CHOICES]
-                        
+                        if subject_configs.get(str(batch.id), {}).get(s2, {}).get('strictPriority') and pref_labs_s2:
+                            labs_s2 = [pref_labs_s2[0]]
+                            
                         pairs_to_try = []
                         for l1 in labs_s1:
+                            if l1 in global_excluded_labs: continue
                             for l2 in labs_s2:
+                                if l2 in global_excluded_labs: continue
                                 if l1 != l2:
                                     pairs_to_try.append((l1, l2))
                                     
@@ -2540,15 +2551,22 @@ def api_run_auto_lab_allotment(request):
                         for l1, l2 in pairs_to_try:
                             if slots_allocated >= slots_needed: break
                             
+                            s1_ex_days = subject_configs.get(str(batch.id), {}).get(s1, {}).get('excludedDays', [])
+                            s2_ex_days = subject_configs.get(str(batch.id), {}).get(s2, {}).get('excludedDays', [])
+                            s1_ex_blocks = subject_configs.get(str(batch.id), {}).get(s1, {}).get('excludedBlocks', [])
+                            s2_ex_blocks = subject_configs.get(str(batch.id), {}).get(s2, {}).get('excludedBlocks', [])
+                            
                             for day in batch_days:
                                 if slots_allocated >= slots_needed: break
                                 if day in assigned_days: continue
+                                if day in s1_ex_days or day in s2_ex_days: continue
                                 
                                 default_blocks = ['1,2,3', '4,5,6', '5,6,7']
                                 blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
                                 
                                 for block in blocks_to_try:
                                     if slots_allocated >= slots_needed: break
+                                    if block in s1_ex_blocks or block in s2_ex_blocks: continue
                                     if not is_batch_free(batch, day, block): continue
                                     
                                     if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
@@ -2567,10 +2585,18 @@ def api_run_auto_lab_allotment(request):
                     pref_labs = subject_labs_data.get(str(batch.id), {}).get(sub, [])
                     labs_to_check = pref_labs if pref_labs else [l[0] for l in SubjectEntry.LAB_CHOICES]
                     
+                    if subject_configs.get(str(batch.id), {}).get(sub, {}).get('strictPriority') and pref_labs:
+                        labs_to_check = [pref_labs[0]]
+                        
+                    labs_to_check = [l for l in labs_to_check if l not in global_excluded_labs]
+                    
                     slots_needed = int(subject_slots_data.get(str(batch.id), {}).get(sub, 1))
                     slots_allocated = 0
                     assigned_blocks = set()
                     assigned_days = set()
+                    
+                    ex_days = subject_configs.get(str(batch.id), {}).get(sub, {}).get('excludedDays', [])
+                    ex_blocks = subject_configs.get(str(batch.id), {}).get(sub, {}).get('excludedBlocks', [])
                     
                     for target_lab in labs_to_check:
                         if slots_allocated >= slots_needed: break
@@ -2578,12 +2604,14 @@ def api_run_auto_lab_allotment(request):
                         for day in batch_days:
                             if slots_allocated >= slots_needed: break
                             if day in assigned_days: continue
+                            if day in ex_days: continue
                             
                             default_blocks = ['1,2,3', '4,5,6', '5,6,7']
                             blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
                             
                             for block in blocks_to_try:
                                 if slots_allocated >= slots_needed: break
+                                if block in ex_blocks: continue
                                 if not is_batch_free(batch, day, block): continue
                                 
                                 if is_lab_eligible(target_lab, day, block):

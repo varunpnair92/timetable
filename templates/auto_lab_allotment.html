@@ -131,6 +131,15 @@
                 <ul id="prefList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
                 </ul>
             </div>
+            
+            <!-- Global Excluded Labs -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2 text-red-600 dark:text-red-400">Globally Exclude Labs</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Check labs to completely exclude them from auto allotment.</p>
+                <div id="globalExcludedLabsContainer" class="flex flex-col gap-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -205,6 +214,8 @@
         let labPreferences = {}; // lab_code -> {days, hours, gap}
         let subjectSlots = {}; // batchId -> { subjectName: count }
         let subjectLabs = {}; // batchId -> { subjectName: [lab_code, ...] }
+        let subjectConfigs = {}; // batchId -> { subjectName: { strictPriority: bool, excludedDays: [], excludedBlocks: [] } }
+        let globalExcludedLabs = new Set(); // Set of lab_codes
 
         function saveState() {
             const state = {
@@ -214,7 +225,9 @@
                 batchPreferences: batchPreferences,
                 labPreferences: labPreferences,
                 subjectSlots: subjectSlots,
-                subjectLabs: subjectLabs
+                subjectLabs: subjectLabs,
+                subjectConfigs: subjectConfigs,
+                globalExcludedLabs: Array.from(globalExcludedLabs)
             };
             for (let k in deselectedSubjects) {
                 if (deselectedSubjects[k] instanceof Set) {
@@ -237,6 +250,8 @@
                 labPreferences = state.labPreferences || {};
                 subjectSlots = state.subjectSlots || {};
                 subjectLabs = state.subjectLabs || {};
+                subjectConfigs = state.subjectConfigs || {};
+                globalExcludedLabs = new Set(state.globalExcludedLabs || []);
                 deselectedSubjects = {};
                 for (let k in (state.deselectedSubjects || {})) {
                     deselectedSubjects[k] = new Set(state.deselectedSubjects[k]);
@@ -316,6 +331,7 @@
                 }
                 let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : 1;
                 let subLabs = window.activeSubjectLabs[sub];
+                let subConfig = (subjectConfigs[batchId] && subjectConfigs[batchId][sub]) ? subjectConfigs[batchId][sub] : {strictPriority: false, excludedDays: [], excludedBlocks: []};
                 
                 let labsHtml = labChoices.map(([code, name]) => {
                     let isLabChecked = subLabs.includes(code);
@@ -341,10 +357,38 @@
                     </div>
                     <details class="text-xs text-gray-600 dark:text-gray-400 ml-6 mt-1">
                         <summary class="cursor-pointer text-indigo-500 hover:text-indigo-700 font-semibold">
-                            Preferred Labs <span id="lab-priority-badge-${sub}" class="text-gray-400 font-normal ml-2">${subLabs.length > 0 ? "Priority: " + subLabs.join(', ') : "Any Lab"}</span>
+                            Subject Constraints & Preferences <span id="lab-priority-badge-${sub}" class="text-gray-400 font-normal ml-2">${subLabs.length > 0 ? "Priority: " + subLabs.join(', ') : "Any Lab"}</span>
                         </summary>
-                        <div class="flex flex-wrap gap-2 mt-1 bg-gray-50 dark:bg-gray-700 p-2 rounded">
-                            ${labsHtml}
+                        <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded border dark:border-gray-600 space-y-3">
+                            <div>
+                                <strong class="block mb-1 text-gray-700 dark:text-gray-300">Preferred Labs (in order):</strong>
+                                <div class="flex flex-wrap gap-2">
+                                    ${labsHtml}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 cursor-pointer">
+                                    <input type="checkbox" class="batch-sub-strict-cb form-checkbox h-3 w-3 text-red-500" data-sub="${sub}" ${subConfig.strictPriority ? 'checked' : ''}>
+                                    <span class="font-bold text-red-600 dark:text-red-400">Strict 1st Priority Only (Do not fallback)</span>
+                                </label>
+                            </div>
+                            
+                            <div>
+                                <strong class="block mb-1 text-gray-700 dark:text-gray-300">Exclude Days:</strong>
+                                <div class="flex flex-wrap gap-2">
+                                    ${ALL_DAYS.map(d => `<label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-day-cb form-checkbox h-3 w-3" data-sub="${sub}" value="${d}" ${subConfig.excludedDays.includes(d) ? 'checked' : ''}><span>${DAY_LABELS[d].substring(0,3)}</span></label>`).join('')}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <strong class="block mb-1 text-gray-700 dark:text-gray-300">Exclude Blocks:</strong>
+                                <div class="flex flex-wrap gap-3">
+                                    <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-block-cb form-checkbox h-3 w-3" data-sub="${sub}" value="1,2,3" ${subConfig.excludedBlocks.includes('1,2,3') ? 'checked' : ''}><span>Morning (1,2,3)</span></label>
+                                    <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-block-cb form-checkbox h-3 w-3" data-sub="${sub}" value="4,5,6" ${subConfig.excludedBlocks.includes('4,5,6') ? 'checked' : ''}><span>Afternoon 1 (4,5,6)</span></label>
+                                    <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-block-cb form-checkbox h-3 w-3" data-sub="${sub}" value="5,6,7" ${subConfig.excludedBlocks.includes('5,6,7') ? 'checked' : ''}><span>Afternoon 2 (5,6,7)</span></label>
+                                </div>
+                            </div>
                         </div>
                     </details>
                 `;
@@ -442,10 +486,11 @@
             const batchId = parseInt(mainBatchSelect.value);
             if (!batchId) return;
 
-            // Save Deselected Subjects, Slots, and Labs
+            // Save Deselected Subjects, Slots, Labs, and Configs
             if(!deselectedSubjects[batchId]) deselectedSubjects[batchId] = new Set();
             if(!subjectSlots[batchId]) subjectSlots[batchId] = {};
             if(!subjectLabs[batchId]) subjectLabs[batchId] = {};
+            if(!subjectConfigs[batchId]) subjectConfigs[batchId] = {};
             
             deselectedSubjects[batchId].clear();
             document.querySelectorAll('.batch-sub-cb').forEach(cb => {
@@ -462,6 +507,17 @@
                     // retrieve tracked labs which maintains click order
                     const checkedLabs = window.activeSubjectLabs[sub] || [];
                     subjectLabs[batchId][sub] = checkedLabs;
+                    
+                    // save configs
+                    const isStrict = document.querySelector(`.batch-sub-strict-cb[data-sub="${sub}"]`)?.checked || false;
+                    const exDays = Array.from(document.querySelectorAll(`.batch-sub-ex-day-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
+                    const exBlocks = Array.from(document.querySelectorAll(`.batch-sub-ex-block-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
+                    
+                    subjectConfigs[batchId][sub] = {
+                        strictPriority: isStrict,
+                        excludedDays: exDays,
+                        excludedBlocks: exBlocks
+                    };
                 }
             });
 
@@ -528,6 +584,7 @@
             selectedBatches.delete(bId);
             delete deselectedSubjects[bId];
             delete batchPreferences[bId];
+            delete subjectConfigs[bId];
             parallelGroups = parallelGroups.filter(p => p.batch_id !== bId);
             
             saveState();
@@ -571,6 +628,32 @@
         }
         window.removePref = (lab) => { delete labPreferences[lab]; saveState(); renderPrefs(); };
 
+        function renderGlobalExcludedLabs() {
+            const container = document.getElementById('globalExcludedLabsContainer');
+            container.innerHTML = '';
+            labChoices.forEach(([code, name]) => {
+                const isChecked = globalExcludedLabs.has(code);
+                let d = document.createElement('div');
+                d.innerHTML = `
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" class="global-exclude-cb form-checkbox h-4 w-4 text-red-600" value="${code}" ${isChecked ? 'checked' : ''}>
+                        <span>${code} - ${name}</span>
+                    </label>
+                `;
+                container.appendChild(d);
+            });
+            
+            // Add listeners
+            document.querySelectorAll('.global-exclude-cb').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    if (this.checked) globalExcludedLabs.add(this.value);
+                    else globalExcludedLabs.delete(this.value);
+                    saveState();
+                });
+            });
+        }
+        renderGlobalExcludedLabs();
+        
         // Run
         document.getElementById('runBtn').addEventListener('click', () => {
             if(selectedBatches.size === 0) {
@@ -604,7 +687,9 @@
                 lab_preferences: prefArr,
                 batch_preferences: bPrefArr,
                 subject_slots: subjectSlots,
-                subject_labs: subjectLabs
+                subject_labs: subjectLabs,
+                subject_configs: subjectConfigs,
+                global_excluded_labs: Array.from(globalExcludedLabs)
             };
 
             const btn = document.getElementById('runBtn');
