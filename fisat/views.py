@@ -2543,11 +2543,20 @@ def api_run_auto_lab_allotment(request):
                                 if not is_batch_free(batch, day, block):
                                     continue
                                     
-                                free_labs = get_eligible_labs(batch, s1, day, block)
-                                        
-                                if len(free_labs) >= 2:
-                                    SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
-                                    SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[1], period=dp)
+                                free_labs_s1 = get_eligible_labs(batch, s1, day, block)
+                                free_labs_s2 = get_eligible_labs(batch, s2, day, block)
+                                
+                                assigned = False
+                                for l1 in free_labs_s1:
+                                    for l2 in free_labs_s2:
+                                        if l1 != l2:
+                                            SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=day, allotted_hours=block, LAB=l1, period=dp)
+                                            SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=day, allotted_hours=block, LAB=l2, period=dp)
+                                            assigned = True
+                                            break
+                                    if assigned: break
+                                
+                                if assigned:
                                     slots_allocated += 1
                                     break # move to next day
                         
