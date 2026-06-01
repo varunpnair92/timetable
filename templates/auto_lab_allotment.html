@@ -189,6 +189,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+      try {
         const batchData = JSON.parse(document.getElementById('batch-data').textContent);
         const labChoices = JSON.parse(document.getElementById('lab-choices').textContent);
         
@@ -529,6 +530,10 @@
                 btn.disabled = false;
             });
         });
+      } catch(e) {
+        alert("JS Error: " + e.message);
+        console.error(e);
+      }
     });
 </body>
 </html>
