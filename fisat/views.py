@@ -2123,9 +2123,10 @@ def manage_batches(request):
         elif action == "add_subject":
             batch_id = request.POST.get('batch_id')
             subject_name = request.POST.get('subject_name')
+            hours = int(request.POST.get('hours', 1))
             if batch_id and subject_name:
                 batch = Batch.objects.get(id=batch_id)
-                BatchSubject.objects.create(batch=batch, subject_name=subject_name)
+                BatchSubject.objects.create(batch=batch, subject_name=subject_name, hours=hours)
         elif action == "assign_batch_to_semester":
             batch_names = request.POST.getlist('batch_names')
             target_period = request.POST.get('period')
@@ -2396,7 +2397,7 @@ def auto_lab_allotment_view(request):
         batch_data.append({
             'id': b.id,
             'name': b.name,
-            'subjects': [s.subject_name for s in b.subjects.all()]
+            'subjects': [{'name': s.subject_name, 'hours': s.hours} for s in b.subjects.all()]
         })
         
     semesters = Semester.objects.all().order_by('name')

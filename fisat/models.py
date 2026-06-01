@@ -39,6 +39,7 @@ class Batch(models.Model):
 class BatchSubject(models.Model):
     batch = models.ForeignKey(Batch, related_name='subjects', on_delete=models.CASCADE)
     subject_name = models.CharField(max_length=100)
+    hours = models.IntegerField(default=1)
 
     def __str__(self):
         return f"{self.subject_name} ({self.batch.name})"

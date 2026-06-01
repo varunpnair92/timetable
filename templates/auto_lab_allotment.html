@@ -323,19 +323,21 @@
             
             // Initialize active subject labs array to track click order
             window.activeSubjectLabs = {};
-            batch.subjects.forEach(sub => {
+            batch.subjects.forEach(subObj => {
+                const sub = subObj.name;
                 window.activeSubjectLabs[sub] = (subjectLabs[batchId] && subjectLabs[batchId][sub]) ? [...subjectLabs[batchId][sub]] : [];
             });
             
             // Render Subjects
             subjectCheckboxContainer.innerHTML = '';
-            batch.subjects.forEach(sub => {
+            batch.subjects.forEach(subObj => {
+                const sub = subObj.name;
                 let sDiv = document.createElement('div');
                 let isChecked = true;
                 if (deselectedSubjects[batchId] && deselectedSubjects[batchId].has(sub)) {
                     isChecked = false;
                 }
-                let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : 1;
+                let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : subObj.hours;
                 let subLabs = window.activeSubjectLabs[sub];
                 let subConfig = (subjectConfigs[batchId] && subjectConfigs[batchId][sub]) ? subjectConfigs[batchId][sub] : {strictPriority: false, allowSplitLabs: false, excludedTimes: []};
                 
@@ -439,7 +441,8 @@
             // Render Parallel Options
             pSub1Select.innerHTML = '<option value="">Subject 1</option>';
             pSub2Select.innerHTML = '<option value="">Subject 2</option>';
-            batch.subjects.forEach(sub => {
+            batch.subjects.forEach(subObj => {
+                const sub = subObj.name;
                 pSub1Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
                 pSub2Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
             });

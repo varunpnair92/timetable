@@ -98,6 +98,10 @@
                     <label>Subject Name (e.g., OS)</label>
                     <input type="text" name="subject_name" required>
                 </div>
+                <div class="form-group">
+                    <label>Hours (Slots per week)</label>
+                    <input type="number" name="hours" min="1" value="1" required>
+                </div>
                 <button type="submit">Add Subject</button>
             </form>
 
@@ -190,7 +194,7 @@
                         <td>
                             <ul>
                             {% for subject in batch.subjects.all %}
-                                <li>{{ subject.subject_name }}</li>
+                                <li>{{ subject.subject_name }} ({{ subject.hours }} slots)</li>
                             {% empty %}
                                 <li><em>No subjects added</em></li>
                             {% endfor %}
