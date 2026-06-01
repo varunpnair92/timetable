@@ -2551,22 +2551,20 @@ def api_run_auto_lab_allotment(request):
                         for l1, l2 in pairs_to_try:
                             if slots_allocated >= slots_needed: break
                             
-                            s1_ex_days = subject_configs.get(str(batch.id), {}).get(s1, {}).get('excludedDays', [])
-                            s2_ex_days = subject_configs.get(str(batch.id), {}).get(s2, {}).get('excludedDays', [])
-                            s1_ex_blocks = subject_configs.get(str(batch.id), {}).get(s1, {}).get('excludedBlocks', [])
-                            s2_ex_blocks = subject_configs.get(str(batch.id), {}).get(s2, {}).get('excludedBlocks', [])
+                            s1_ex_times = subject_configs.get(str(batch.id), {}).get(s1, {}).get('excludedTimes', [])
+                            s2_ex_times = subject_configs.get(str(batch.id), {}).get(s2, {}).get('excludedTimes', [])
                             
                             for day in batch_days:
                                 if slots_allocated >= slots_needed: break
                                 if day in assigned_days: continue
-                                if day in s1_ex_days or day in s2_ex_days: continue
                                 
                                 default_blocks = ['1,2,3', '4,5,6', '5,6,7']
                                 blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
                                 
                                 for block in blocks_to_try:
                                     if slots_allocated >= slots_needed: break
-                                    if block in s1_ex_blocks or block in s2_ex_blocks: continue
+                                    time_key = f"{day}:{block}"
+                                    if time_key in s1_ex_times or time_key in s2_ex_times: continue
                                     if not is_batch_free(batch, day, block): continue
                                     
                                     if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
@@ -2595,8 +2593,7 @@ def api_run_auto_lab_allotment(request):
                     assigned_blocks = set()
                     assigned_days = set()
                     
-                    ex_days = subject_configs.get(str(batch.id), {}).get(sub, {}).get('excludedDays', [])
-                    ex_blocks = subject_configs.get(str(batch.id), {}).get(sub, {}).get('excludedBlocks', [])
+                    ex_times = subject_configs.get(str(batch.id), {}).get(sub, {}).get('excludedTimes', [])
                     
                     for target_lab in labs_to_check:
                         if slots_allocated >= slots_needed: break
@@ -2604,14 +2601,14 @@ def api_run_auto_lab_allotment(request):
                         for day in batch_days:
                             if slots_allocated >= slots_needed: break
                             if day in assigned_days: continue
-                            if day in ex_days: continue
                             
                             default_blocks = ['1,2,3', '4,5,6', '5,6,7']
                             blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
                             
                             for block in blocks_to_try:
                                 if slots_allocated >= slots_needed: break
-                                if block in ex_blocks: continue
+                                time_key = f"{day}:{block}"
+                                if time_key in ex_times: continue
                                 if not is_batch_free(batch, day, block): continue
                                 
                                 if is_lab_eligible(target_lab, day, block):

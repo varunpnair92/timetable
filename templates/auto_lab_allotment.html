@@ -331,7 +331,7 @@
                 }
                 let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : 1;
                 let subLabs = window.activeSubjectLabs[sub];
-                let subConfig = (subjectConfigs[batchId] && subjectConfigs[batchId][sub]) ? subjectConfigs[batchId][sub] : {strictPriority: false, excludedDays: [], excludedBlocks: []};
+                let subConfig = (subjectConfigs[batchId] && subjectConfigs[batchId][sub]) ? subjectConfigs[batchId][sub] : {strictPriority: false, excludedTimes: []};
                 
                 let labsHtml = labChoices.map(([code, name]) => {
                     let isLabChecked = subLabs.includes(code);
@@ -375,18 +375,28 @@
                             </div>
                             
                             <div>
-                                <strong class="block mb-1 text-gray-700 dark:text-gray-300">Exclude Days:</strong>
-                                <div class="flex flex-wrap gap-2">
-                                    ${ALL_DAYS.map(d => `<label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-day-cb form-checkbox h-3 w-3" data-sub="${sub}" value="${d}" ${subConfig.excludedDays.includes(d) ? 'checked' : ''}><span>${DAY_LABELS[d].substring(0,3)}</span></label>`).join('')}
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <strong class="block mb-1 text-gray-700 dark:text-gray-300">Exclude Blocks:</strong>
-                                <div class="flex flex-wrap gap-3">
-                                    <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-block-cb form-checkbox h-3 w-3" data-sub="${sub}" value="1,2,3" ${subConfig.excludedBlocks.includes('1,2,3') ? 'checked' : ''}><span>Morning (1,2,3)</span></label>
-                                    <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-block-cb form-checkbox h-3 w-3" data-sub="${sub}" value="4,5,6" ${subConfig.excludedBlocks.includes('4,5,6') ? 'checked' : ''}><span>Afternoon 1 (4,5,6)</span></label>
-                                    <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" class="batch-sub-ex-block-cb form-checkbox h-3 w-3" data-sub="${sub}" value="5,6,7" ${subConfig.excludedBlocks.includes('5,6,7') ? 'checked' : ''}><span>Afternoon 2 (5,6,7)</span></label>
+                                <strong class="block mb-2 text-gray-700 dark:text-gray-300">Exclude Specific Times:</strong>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-center text-xs border-collapse">
+                                        <thead>
+                                            <tr class="bg-gray-200 dark:bg-gray-600">
+                                                <th class="border dark:border-gray-500 p-1">Day</th>
+                                                <th class="border dark:border-gray-500 p-1">1,2,3 (Morning)</th>
+                                                <th class="border dark:border-gray-500 p-1">4,5,6 (Afternoon 1)</th>
+                                                <th class="border dark:border-gray-500 p-1">5,6,7 (Afternoon 2)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${ALL_DAYS.map(d => `
+                                                <tr>
+                                                    <td class="border dark:border-gray-500 p-1 font-bold">${DAY_LABELS[d].substring(0,3)}</td>
+                                                    <td class="border dark:border-gray-500 p-1 hover:bg-gray-100 dark:hover:bg-gray-600"><input type="checkbox" class="batch-sub-ex-time-cb form-checkbox h-3 w-3 cursor-pointer" data-sub="${sub}" value="${d}:1,2,3" ${(subConfig.excludedTimes || []).includes(`${d}:1,2,3`) ? 'checked' : ''}></td>
+                                                    <td class="border dark:border-gray-500 p-1 hover:bg-gray-100 dark:hover:bg-gray-600"><input type="checkbox" class="batch-sub-ex-time-cb form-checkbox h-3 w-3 cursor-pointer" data-sub="${sub}" value="${d}:4,5,6" ${(subConfig.excludedTimes || []).includes(`${d}:4,5,6`) ? 'checked' : ''}></td>
+                                                    <td class="border dark:border-gray-500 p-1 hover:bg-gray-100 dark:hover:bg-gray-600"><input type="checkbox" class="batch-sub-ex-time-cb form-checkbox h-3 w-3 cursor-pointer" data-sub="${sub}" value="${d}:5,6,7" ${(subConfig.excludedTimes || []).includes(`${d}:5,6,7`) ? 'checked' : ''}></td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -510,13 +520,11 @@
                     
                     // save configs
                     const isStrict = document.querySelector(`.batch-sub-strict-cb[data-sub="${sub}"]`)?.checked || false;
-                    const exDays = Array.from(document.querySelectorAll(`.batch-sub-ex-day-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
-                    const exBlocks = Array.from(document.querySelectorAll(`.batch-sub-ex-block-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
+                    const exTimes = Array.from(document.querySelectorAll(`.batch-sub-ex-time-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
                     
                     subjectConfigs[batchId][sub] = {
                         strictPriority: isStrict,
-                        excludedDays: exDays,
-                        excludedBlocks: exBlocks
+                        excludedTimes: exTimes
                     };
                 }
             });
