@@ -2535,10 +2535,15 @@ def api_run_auto_lab_allotment(request):
                             int(subject_slots_data.get(str(batch.id), {}).get(s2, 1))
                         )
                         slots_allocated = 0
+                        assigned_blocks = set()
                         
                         for day in batch_days:
                             if slots_allocated >= slots_needed: break
-                            for block in ['1,2,3', '4,5,6', '5,6,7']:
+                            
+                            default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                            blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
+                            
+                            for block in blocks_to_try:
                                 if slots_allocated >= slots_needed: break
                                 if not is_batch_free(batch, day, block):
                                     continue
@@ -2558,6 +2563,7 @@ def api_run_auto_lab_allotment(request):
                                 
                                 if assigned:
                                     slots_allocated += 1
+                                    assigned_blocks.add(block)
                                     break # move to next day
                         
                         if slots_allocated < slots_needed:
@@ -2567,10 +2573,15 @@ def api_run_auto_lab_allotment(request):
                     if sub in allocated_for_batch: continue
                     slots_needed = int(subject_slots_data.get(str(batch.id), {}).get(sub, 1))
                     slots_allocated = 0
+                    assigned_blocks = set()
                     
                     for day in batch_days:
                         if slots_allocated >= slots_needed: break
-                        for block in ['1,2,3', '4,5,6', '5,6,7']:
+                        
+                        default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                        blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
+                        
+                        for block in blocks_to_try:
                             if slots_allocated >= slots_needed: break
                             if not is_batch_free(batch, day, block):
                                 continue
@@ -2579,6 +2590,7 @@ def api_run_auto_lab_allotment(request):
                             if free_labs:
                                 SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
                                 slots_allocated += 1
+                                assigned_blocks.add(block)
                                 break # move to next day
                     
                     if slots_allocated < slots_needed:
