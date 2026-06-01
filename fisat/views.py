@@ -2503,24 +2503,33 @@ def api_run_auto_lab_allotment(request):
                     if block not in pref.allowed_hours.split(','): return False
                 return is_lab_free(lab_code, day, block)
             
-            for batch in batches_to_allocate:
-                subjects = [s.subject_name for s in batch.subjects.all()]
-                desel = deselected_subjects.get(str(batch.id), [])
-                subjects_to_allocate = [s for s in subjects if s not in desel]
-                
-                pgs = ParallelSubjectGroup.objects.filter(batch=batch, period=dp)
-                parallel_pairs = [(pg.subject_1, pg.subject_2) for pg in pgs]
-                
-                # Determine day order for this batch
-                pref_days = batch_preferred_days.get(str(batch.id), [])
-                batch_days = pref_days if pref_days else DAYS
-                
-                allocated_for_batch = set()
-                
-                for s1, s2 in parallel_pairs:
-                    if s1 in subjects_to_allocate and s2 in subjects_to_allocate:
-                        allocated_for_batch.add(s1)
-                        allocated_for_batch.add(s2)
+            allocated_for_batch = {batch.id: set() for batch in batches_to_allocate}
+            
+            for phase in ['strict', 'normal']:
+                for batch in batches_to_allocate:
+                    subjects = [s.subject_name for s in batch.subjects.all()]
+                    desel = deselected_subjects.get(str(batch.id), [])
+                    subjects_to_allocate = [s for s in subjects if s not in desel]
+                    
+                    pgs = ParallelSubjectGroup.objects.filter(batch=batch, period=dp)
+                    parallel_pairs = [(pg.subject_1, pg.subject_2) for pg in pgs]
+                    
+                    # Determine day order for this batch
+                    pref_days = batch_preferred_days.get(str(batch.id), [])
+                    batch_days = pref_days if pref_days else DAYS
+                    
+                    for s1, s2 in parallel_pairs:
+                        if s1 in subjects_to_allocate and s2 in subjects_to_allocate:
+                            is_strict_s1 = subject_configs.get(str(batch.id), {}).get(s1, {}).get('strictPriority')
+                            is_strict_s2 = subject_configs.get(str(batch.id), {}).get(s2, {}).get('strictPriority')
+                            is_pair_strict = is_strict_s1 or is_strict_s2
+                            
+                            if phase == 'strict' and not is_pair_strict: continue
+                            if phase == 'normal' and is_pair_strict: continue
+                            
+                            if s1 in allocated_for_batch[batch.id] or s2 in allocated_for_batch[batch.id]: continue
+                            allocated_for_batch[batch.id].add(s1)
+                            allocated_for_batch[batch.id].add(s2)
                         
                         pref_labs_s1 = subject_labs_data.get(str(batch.id), {}).get(s1, [])
                         labs_s1 = pref_labs_s1 if pref_labs_s1 else [l[0] for l in SubjectEntry.LAB_CHOICES]
@@ -2623,7 +2632,11 @@ def api_run_auto_lab_allotment(request):
                                 unallocated.append(f"{batch.name} - {s1}||{s2} (only got 0/{slots_needed} slots)")
                                     
                 for sub in subjects_to_allocate:
-                    if sub in allocated_for_batch: continue
+                    if sub in allocated_for_batch[batch.id]: continue
+                    
+                    is_strict = subject_configs.get(str(batch.id), {}).get(sub, {}).get('strictPriority')
+                    if phase == 'strict' and not is_strict: continue
+                    if phase == 'normal' and is_strict: continue
                     pref_labs = subject_labs_data.get(str(batch.id), {}).get(sub, [])
                     labs_to_check = pref_labs if pref_labs else [l[0] for l in SubjectEntry.LAB_CHOICES]
                     
@@ -2709,7 +2722,8 @@ def api_run_auto_lab_allotment(request):
                         else:
                             unallocated.append(f"{batch.name} - {sub} (only got 0/{slots_needed} slots)")
                 
-                results.append(f"{batch.name}: {len(subjects_to_allocate)} subjects")
+                if phase == 'normal':
+                    results.append(f"{batch.name}: {len(subjects_to_allocate)} subjects")
             
             msg = f"Allocated {len(results)} batches. "
             if unallocated:
