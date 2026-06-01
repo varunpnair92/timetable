@@ -2543,6 +2543,24 @@ def api_run_auto_lab_allotment(request):
                 elif duration >= 4:
                     return ['1,2,3,4', '4,5,6,7']
                 return ['1,2,3']
+
+            def get_ordered_blocks_with_alternation(assigned_blocks, default_blocks):
+                if not assigned_blocks:
+                    return default_blocks
+                mornings = sum(1 for b in assigned_blocks if int(b.split(',')[0]) <= 3)
+                afternoons = len(assigned_blocks) - mornings
+                prefer_morning = afternoons >= mornings
+                
+                preferred = []
+                non_preferred = []
+                for b in default_blocks:
+                    if b in assigned_blocks: continue
+                    is_morning = int(b.split(',')[0]) <= 3
+                    if (prefer_morning and is_morning) or (not prefer_morning and not is_morning):
+                        preferred.append(b)
+                    else:
+                        non_preferred.append(b)
+                return preferred + non_preferred + [b for b in default_blocks if b in assigned_blocks]
             
             allocated_for_batch = {batch.id: set() for batch in batches_to_allocate}
             
@@ -2616,13 +2634,29 @@ def api_run_auto_lab_allotment(request):
                                 assigned_days_sim = set()
                                 assigned_blocks_sim = set()
                                 
-                                for day in batch_days:
+                                for required_gap in [1, 0]:
                                     if len(possible_slots) >= slots_needed: break
-                                    if day in assigned_days_sim: continue
-                                    
-                                    duration = max(subject_durations.get(s1, 1), subject_durations.get(s2, 1))
-                                    default_blocks = get_blocks_for_duration(duration)
-                                    blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
+                                    for day in batch_days:
+                                        if len(possible_slots) >= slots_needed: break
+                                        if day in assigned_days_sim: continue
+                                        
+                                        if required_gap == 1 and assigned_days_sim:
+                                            try:
+                                                day_idx = DAYS.index(day)
+                                                has_conflict = False
+                                                for assigned_day in assigned_days_sim:
+                                                    assigned_idx = DAYS.index(assigned_day)
+                                                    if abs(day_idx - assigned_idx) <= 1:
+                                                        has_conflict = True
+                                                        break
+                                                if has_conflict:
+                                                    continue
+                                            except ValueError:
+                                                pass
+                                        
+                                        duration = max(subject_durations.get(s1, 1), subject_durations.get(s2, 1))
+                                        default_blocks = get_blocks_for_duration(duration)
+                                        blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                     
                                     for block in blocks_to_try:
                                         if len(possible_slots) >= slots_needed: break
@@ -2654,13 +2688,29 @@ def api_run_auto_lab_allotment(request):
                             
                             for l1, l2 in pairs_to_try:
                                 if len(possible_slots) >= slots_needed: break
-                                for day in batch_days:
+                                for required_gap in [1, 0]:
                                     if len(possible_slots) >= slots_needed: break
-                                    if day in assigned_days_sim: continue
-                                    
-                                    duration = max(subject_durations.get(s1, 1), subject_durations.get(s2, 1))
-                                    default_blocks = get_blocks_for_duration(duration)
-                                    blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
+                                    for day in batch_days:
+                                        if len(possible_slots) >= slots_needed: break
+                                        if day in assigned_days_sim: continue
+                                        
+                                        if required_gap == 1 and assigned_days_sim:
+                                            try:
+                                                day_idx = DAYS.index(day)
+                                                has_conflict = False
+                                                for assigned_day in assigned_days_sim:
+                                                    assigned_idx = DAYS.index(assigned_day)
+                                                    if abs(day_idx - assigned_idx) <= 1:
+                                                        has_conflict = True
+                                                        break
+                                                if has_conflict:
+                                                    continue
+                                            except ValueError:
+                                                pass
+                                        
+                                        duration = max(subject_durations.get(s1, 1), subject_durations.get(s2, 1))
+                                        default_blocks = get_blocks_for_duration(duration)
+                                        blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                     
                                     for block in blocks_to_try:
                                         if len(possible_slots) >= slots_needed: break
@@ -2714,13 +2764,29 @@ def api_run_auto_lab_allotment(request):
                             assigned_days_sim = set()
                             assigned_blocks_sim = set()
                             
-                            for day in batch_days:
+                            for required_gap in [1, 0]:
                                 if len(possible_slots) >= slots_needed: break
-                                if day in assigned_days_sim: continue
-                                
-                                duration = subject_durations.get(sub, 1)
-                                default_blocks = get_blocks_for_duration(duration)
-                                blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
+                                for day in batch_days:
+                                    if len(possible_slots) >= slots_needed: break
+                                    if day in assigned_days_sim: continue
+                                    
+                                    if required_gap == 1 and assigned_days_sim:
+                                        try:
+                                            day_idx = DAYS.index(day)
+                                            has_conflict = False
+                                            for assigned_day in assigned_days_sim:
+                                                assigned_idx = DAYS.index(assigned_day)
+                                                if abs(day_idx - assigned_idx) <= 1:
+                                                    has_conflict = True
+                                                    break
+                                            if has_conflict:
+                                                continue
+                                        except ValueError:
+                                            pass
+                                    
+                                    duration = subject_durations.get(sub, 1)
+                                    default_blocks = get_blocks_for_duration(duration)
+                                    blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                 
                                 for block in blocks_to_try:
                                     if len(possible_slots) >= slots_needed: break
@@ -2751,13 +2817,29 @@ def api_run_auto_lab_allotment(request):
                         
                         for target_lab in labs_to_check:
                             if len(possible_slots) >= slots_needed: break
-                            for day in batch_days:
+                            for required_gap in [1, 0]:
                                 if len(possible_slots) >= slots_needed: break
-                                if day in assigned_days_sim: continue
-                                
-                                duration = subject_durations.get(sub, 1)
-                                default_blocks = get_blocks_for_duration(duration)
-                                blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
+                                for day in batch_days:
+                                    if len(possible_slots) >= slots_needed: break
+                                    if day in assigned_days_sim: continue
+                                    
+                                    if required_gap == 1 and assigned_days_sim:
+                                        try:
+                                            day_idx = DAYS.index(day)
+                                            has_conflict = False
+                                            for assigned_day in assigned_days_sim:
+                                                assigned_idx = DAYS.index(assigned_day)
+                                                if abs(day_idx - assigned_idx) <= 1:
+                                                    has_conflict = True
+                                                    break
+                                            if has_conflict:
+                                                continue
+                                        except ValueError:
+                                            pass
+                                    
+                                    duration = subject_durations.get(sub, 1)
+                                    default_blocks = get_blocks_for_duration(duration)
+                                    blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                 
                                 for block in blocks_to_try:
                                     if len(possible_slots) >= slots_needed: break
