@@ -168,6 +168,13 @@
 
 </div>
 
+<!-- DEBUG: Remove after fixing -->
+<div style="background: #ffe0e0; padding: 10px; margin: 10px; border: 2px solid red; font-family: monospace; font-size: 12px;">
+    <strong>DEBUG INFO (remove later):</strong><br>
+    <strong>Current Period (dp):</strong> {{ current_view_sem }}<br>
+    <strong>Batch Data JSON:</strong> <pre style="white-space: pre-wrap;">{{ batch_data }}</pre>
+</div>
+
 <!-- Data from Backend -->
 <script id="batch-data" type="application/json">{{ batch_data|safe }}</script>
 <script id="lab-choices" type="application/json">{{ lab_choices|safe }}</script>
