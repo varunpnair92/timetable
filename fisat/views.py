@@ -2170,8 +2170,7 @@ def manage_batches(request):
     if active_sem and 'selected_period' not in request.session:
         request.session['selected_period'] = active_sem.name
         
-    view_sem_param = request.GET.get('view_sem')
-    current_view_sem = view_sem_param or request.session.get('selected_period') or dp
+    current_view_sem = request.session.get('selected_period') or dp
     batches = Batch.objects.filter(period=current_view_sem).prefetch_related('subjects').all()
     
     # Group all existing batches and their subjects across all semesters
