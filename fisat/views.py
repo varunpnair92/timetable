@@ -2542,17 +2542,18 @@ def api_run_auto_lab_allotment(request):
                     for s1, s2 in parallel_pairs:
                         s1_valid = s1 in subjects_to_allocate or s1 in ['CH', 'PHY']
                         s2_valid = s2 in subjects_to_allocate or s2 in ['CH', 'PHY']
-                        if s1_valid and s2_valid:
-                            is_strict_s1 = subject_configs.get(str(batch.id), {}).get(s1, {}).get('strictPriority')
-                            is_strict_s2 = subject_configs.get(str(batch.id), {}).get(s2, {}).get('strictPriority')
-                            is_pair_strict = is_strict_s1 or is_strict_s2
-                            
-                            if phase == 'strict' and not is_pair_strict: continue
-                            if phase == 'normal' and is_pair_strict: continue
-                            
-                            if s1 in allocated_for_batch[batch.id] or s2 in allocated_for_batch[batch.id]: continue
-                            allocated_for_batch[batch.id].add(s1)
-                            allocated_for_batch[batch.id].add(s2)
+                        if not (s1_valid and s2_valid): continue
+                        
+                        is_strict_s1 = subject_configs.get(str(batch.id), {}).get(s1, {}).get('strictPriority')
+                        is_strict_s2 = subject_configs.get(str(batch.id), {}).get(s2, {}).get('strictPriority')
+                        is_pair_strict = is_strict_s1 or is_strict_s2
+                        
+                        if phase == 'strict' and not is_pair_strict: continue
+                        if phase == 'normal' and is_pair_strict: continue
+                        
+                        if s1 in allocated_for_batch[batch.id] or s2 in allocated_for_batch[batch.id]: continue
+                        allocated_for_batch[batch.id].add(s1)
+                        allocated_for_batch[batch.id].add(s2)
                         
                         pref_labs_s1 = subject_labs_data.get(str(batch.id), {}).get(s1, [])
                         labs_s1 = pref_labs_s1 if pref_labs_s1 else [l[0] for l in SubjectEntry.LAB_CHOICES]
