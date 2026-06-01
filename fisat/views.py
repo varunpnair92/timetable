@@ -2397,6 +2397,7 @@ def auto_lab_allotment_view(request):
 
     return render(request, 'auto_lab_allotment.html', {
         'batch_data': json.dumps(batch_data),
+        'batches': batches,
         'lab_choices': json.dumps(list(SubjectEntry.LAB_CHOICES)),
         'lab_timetables': lab_timetables,
         'layout_type': layout_type,
