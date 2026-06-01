@@ -190,11 +190,29 @@
                 <tbody>
                     {% for batch in batches %}
                     <tr>
-                        <td><strong>{{ batch.name }}</strong></td>
+                        <td>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>{{ batch.name }}</strong>
+                                <form method="POST" style="margin:0; display:inline;" onsubmit="return confirm('Are you sure you want to delete this batch and all its subjects from this semester?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_batch">
+                                    <input type="hidden" name="batch_id" value="{{ batch.id }}">
+                                    <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; cursor: pointer;">Delete Batch</button>
+                                </form>
+                            </div>
+                        </td>
                         <td>
                             <ul>
                             {% for subject in batch.subjects.all %}
-                                <li>{{ subject.subject_name }} ({{ subject.hours }} slots)</li>
+                                <li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <span>{{ subject.subject_name }} ({{ subject.hours }} slots)</span>
+                                    <form method="POST" style="margin:0; display:inline;" onsubmit="return confirm('Remove subject {{ subject.subject_name }} from this batch?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_subject">
+                                        <input type="hidden" name="subject_id" value="{{ subject.id }}">
+                                        <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 1px 6px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">Remove</button>
+                                    </form>
+                                </li>
                             {% empty %}
                                 <li><em>No subjects added</em></li>
                             {% endfor %}
