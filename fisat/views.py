@@ -2532,12 +2532,24 @@ def api_run_auto_lab_allotment(request):
                     if day not in pref.allowed_days.split(','): return False
                     if block not in pref.allowed_hours.split(','): return False
                 return is_lab_free(lab_code, day, block)
+
+            def get_blocks_for_duration(duration):
+                if duration == 1:
+                    return ['1','2','3','4','5','6','7']
+                elif duration == 2:
+                    return ['1,2', '3,4', '5,6']
+                elif duration == 3:
+                    return ['1,2,3', '4,5,6', '5,6,7']
+                elif duration >= 4:
+                    return ['1,2,3,4', '4,5,6,7']
+                return ['1,2,3']
             
             allocated_for_batch = {batch.id: set() for batch in batches_to_allocate}
             
             for phase in ['strict', 'normal']:
                 for batch in batches_to_allocate:
                     subjects = [s.subject_name for s in batch.subjects.all()]
+                    subject_durations = {s.subject_name: s.hours for s in batch.subjects.all()}
                     desel = deselected_subjects.get(str(batch.id), [])
                     subjects_to_allocate = [s for s in subjects if s not in desel]
                     
@@ -2608,7 +2620,8 @@ def api_run_auto_lab_allotment(request):
                                     if len(possible_slots) >= slots_needed: break
                                     if day in assigned_days_sim: continue
                                     
-                                    default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                                    duration = max(subject_durations.get(s1, 1), subject_durations.get(s2, 1))
+                                    default_blocks = get_blocks_for_duration(duration)
                                     blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
                                     
                                     for block in blocks_to_try:
@@ -2645,7 +2658,8 @@ def api_run_auto_lab_allotment(request):
                                     if len(possible_slots) >= slots_needed: break
                                     if day in assigned_days_sim: continue
                                     
-                                    default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                                    duration = max(subject_durations.get(s1, 1), subject_durations.get(s2, 1))
+                                    default_blocks = get_blocks_for_duration(duration)
                                     blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
                                     
                                     for block in blocks_to_try:
@@ -2704,7 +2718,8 @@ def api_run_auto_lab_allotment(request):
                                 if len(possible_slots) >= slots_needed: break
                                 if day in assigned_days_sim: continue
                                 
-                                default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                                duration = subject_durations.get(sub, 1)
+                                default_blocks = get_blocks_for_duration(duration)
                                 blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
                                 
                                 for block in blocks_to_try:
@@ -2740,7 +2755,8 @@ def api_run_auto_lab_allotment(request):
                                 if len(possible_slots) >= slots_needed: break
                                 if day in assigned_days_sim: continue
                                 
-                                default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                                duration = subject_durations.get(sub, 1)
+                                default_blocks = get_blocks_for_duration(duration)
                                 blocks_to_try = [b for b in default_blocks if b not in assigned_blocks_sim] + [b for b in default_blocks if b in assigned_blocks_sim]
                                 
                                 for block in blocks_to_try:

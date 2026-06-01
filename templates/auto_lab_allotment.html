@@ -337,7 +337,7 @@
                 if (deselectedSubjects[batchId] && deselectedSubjects[batchId].has(sub)) {
                     isChecked = false;
                 }
-                let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : subObj.hours;
+                let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : 1;
                 let subLabs = window.activeSubjectLabs[sub];
                 let subConfig = (subjectConfigs[batchId] && subjectConfigs[batchId][sub]) ? subjectConfigs[batchId][sub] : {strictPriority: false, allowSplitLabs: false, excludedTimes: []};
                 
@@ -356,10 +356,10 @@
                     <div class="flex items-center justify-between">
                         <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
                             <input type="checkbox" class="batch-sub-cb form-checkbox h-4 w-4 text-blue-600" value="${sub}" ${isChecked ? 'checked' : ''}>
-                            <span class="font-bold">${sub}</span>
+                            <span class="font-bold">${sub}</span> <span class="text-xs text-gray-500 ml-1">(${subObj.hours} hr)</span>
                         </label>
                         <div class="flex items-center text-xs text-gray-600 dark:text-gray-400">
-                            <span class="mr-1">Slots:</span>
+                            <span class="mr-1">Slots Needed (per week):</span>
                             <input type="number" class="batch-sub-slots w-12 border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800" value="${slots}" min="1" max="5" data-sub="${sub}">
                         </div>
                     </div>
