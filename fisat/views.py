@@ -2448,6 +2448,8 @@ def api_run_auto_lab_allotment(request):
                 SubjectEntry.objects.filter(class_name=b.name, period=dp).delete()
                 
             DAYS = ['M', 'T', 'W', 'Th', 'F']
+            results = []
+            unallocated = []
             
             # Map batch_id to preferences
             batch_gaps = {str(b['batch_id']): b['gap'] for b in batch_preferences_data}
@@ -2550,8 +2552,17 @@ def api_run_auto_lab_allotment(request):
                             if free_labs:
                                 SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
                                 allocated = True
-                                    
-        return JsonResponse({"status": "success"})
+                    
+                    if not allocated:
+                        unallocated.append(f"{batch.name} - {sub}")
+                
+                results.append(f"{batch.name}: {len(subjects_to_allocate)} subjects")
+            
+            msg = f"Allocated {len(results)} batches. "
+            if unallocated:
+                msg += f"Could not allocate: {', '.join(unallocated)}"
+                        
+        return JsonResponse({"status": "success", "message": msg})
     except Exception as e:
         import traceback
         traceback.print_exc()

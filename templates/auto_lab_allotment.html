@@ -193,14 +193,55 @@
         const batchData = JSON.parse(document.getElementById('batch-data').textContent);
         const labChoices = JSON.parse(document.getElementById('lab-choices').textContent);
         
-        // --- State ---
+        const STORAGE_KEY = 'autoLabAllotment_{{ current_view_sem }}';
+        const ALL_DAYS = ['M', 'T', 'W', 'Th', 'F'];
+        const DAY_LABELS = {'M': 'Monday', 'T': 'Tuesday', 'W': 'Wednesday', 'Th': 'Thursday', 'F': 'Friday'};
+
+        // --- State (with localStorage persistence) ---
         let selectedBatches = new Set();
         let deselectedSubjects = {}; // batchId -> Set of subject names
         let parallelGroups = []; // {batch_id, batch_name, sub1, sub2}
         let batchPreferences = {}; // batch_id -> {gap, preferredLabs: [], preferredDays: []}
         let labPreferences = {}; // lab_code -> {days, hours, gap}
-        const ALL_DAYS = ['M', 'T', 'W', 'Th', 'F'];
-        const DAY_LABELS = {'M': 'Monday', 'T': 'Tuesday', 'W': 'Wednesday', 'Th': 'Thursday', 'F': 'Friday'};
+
+        function saveState() {
+            const state = {
+                selectedBatches: Array.from(selectedBatches),
+                deselectedSubjects: {},
+                parallelGroups: parallelGroups,
+                batchPreferences: batchPreferences,
+                labPreferences: labPreferences
+            };
+            for (let k in deselectedSubjects) {
+                if (deselectedSubjects[k] instanceof Set) {
+                    state.deselectedSubjects[k] = Array.from(deselectedSubjects[k]);
+                } else {
+                    state.deselectedSubjects[k] = deselectedSubjects[k];
+                }
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return;
+            try {
+                const state = JSON.parse(saved);
+                selectedBatches = new Set(state.selectedBatches || []);
+                parallelGroups = state.parallelGroups || [];
+                batchPreferences = state.batchPreferences || {};
+                labPreferences = state.labPreferences || {};
+                deselectedSubjects = {};
+                for (let k in (state.deselectedSubjects || {})) {
+                    deselectedSubjects[k] = new Set(state.deselectedSubjects[k]);
+                }
+            } catch(e) {
+                console.error('Failed to load saved state:', e);
+            }
+        }
+
+        // Load saved state
+        loadState();
 
         // Initialize UI Elements
         const mainBatchSelect = document.getElementById('mainBatchSelect');
@@ -233,6 +274,10 @@
 
         // Batch options are now rendered server-side in the HTML template
         console.log('Batch data loaded:', batchData.length, 'batches');
+
+        // Render saved state on page load
+        renderConfiguredBatches();
+        renderPrefs();
 
         // Handle Batch Selection
         mainBatchSelect.addEventListener('change', (e) => {
@@ -344,6 +389,7 @@
         }
         window.removeParallel = (idx, batchId) => { 
             parallelGroups.splice(idx, 1); 
+            saveState();
             renderParallelForCurrentBatch(batchId); 
         };
 
@@ -383,7 +429,8 @@
             // Add to configured set
             selectedBatches.add(batchId);
 
-            // Re-render configured list
+            // Save and re-render
+            saveState();
             renderConfiguredBatches();
 
             // Reset form
@@ -431,6 +478,7 @@
             delete batchPreferences[bId];
             parallelGroups = parallelGroups.filter(p => p.batch_id !== bId);
             
+            saveState();
             // if this batch is currently selected in the dropdown, refresh it
             if (parseInt(mainBatchSelect.value) === bId) {
                 mainBatchSelect.dispatchEvent(new Event('change'));
@@ -452,6 +500,7 @@
             } else {
                 labPreferences[lab] = {days, hours, gap};
             }
+            saveState();
             renderPrefs();
         });
 
@@ -468,7 +517,7 @@
                 prefList.appendChild(li);
             }
         }
-        window.removePref = (lab) => { delete labPreferences[lab]; renderPrefs(); };
+        window.removePref = (lab) => { delete labPreferences[lab]; saveState(); renderPrefs(); };
 
         // Run
         document.getElementById('runBtn').addEventListener('click', () => {
@@ -517,7 +566,7 @@
                 body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
                 if(data.status === 'success') {
-                    alert("Allotment Successful!");
+                    alert("Allotment Successful! \n" + (data.message || ""));
                     window.location.reload();
                 } else {
                     alert("Error: " + data.error);
