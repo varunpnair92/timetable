@@ -2580,7 +2580,10 @@ def api_run_auto_lab_allotment(request):
                         assigned_blocks = set()
                         assigned_days = set()
                         
-                        has_priority = len(pref_labs_s1) > 0 or len(pref_labs_s2) > 0
+                        allow_split_s1 = subject_configs.get(str(batch.id), {}).get(s1, {}).get('allowSplitLabs')
+                        allow_split_s2 = subject_configs.get(str(batch.id), {}).get(s2, {}).get('allowSplitLabs')
+                        has_priority = (len(pref_labs_s1) > 0 or len(pref_labs_s2) > 0) and not (allow_split_s1 or allow_split_s2)
+                        
                         s1_ex_times = subject_configs.get(str(batch.id), {}).get(s1, {}).get('excludedTimes', [])
                         s2_ex_times = subject_configs.get(str(batch.id), {}).get(s2, {}).get('excludedTimes', [])
                         
@@ -2677,7 +2680,8 @@ def api_run_auto_lab_allotment(request):
                     
                     ex_times = subject_configs.get(str(batch.id), {}).get(sub, {}).get('excludedTimes', [])
                     
-                    has_priority = len(pref_labs) > 0
+                    allow_split = subject_configs.get(str(batch.id), {}).get(sub, {}).get('allowSplitLabs')
+                    has_priority = len(pref_labs) > 0 and not allow_split
                     
                     if has_priority:
                         success = False
