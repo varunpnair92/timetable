@@ -2497,11 +2497,10 @@ def api_run_auto_lab_allotment(request):
                 pref_labs = subject_labs_data.get(str(batch_obj.id), {}).get(sub_name, [])
                 
                 eligible = []
-                for l_code, l_name in SubjectEntry.LAB_CHOICES:
-                    # Filter by batch preferred labs
-                    if pref_labs and l_code not in pref_labs:
-                        continue
-                    
+                # Use preferred order if provided, otherwise check all labs
+                labs_to_check = pref_labs if pref_labs else [l[0] for l in SubjectEntry.LAB_CHOICES]
+                
+                for l_code in labs_to_check:
                     # Check global lab preferences
                     pref = LabPreference.objects.filter(lab_name=l_code, period=dp).first()
                     if pref:
