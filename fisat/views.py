@@ -2540,7 +2540,9 @@ def api_run_auto_lab_allotment(request):
                     batch_days = pref_days if pref_days else DAYS
                     
                     for s1, s2 in parallel_pairs:
-                        if s1 in subjects_to_allocate and s2 in subjects_to_allocate:
+                        s1_valid = s1 in subjects_to_allocate or s1 in ['CH', 'PHY']
+                        s2_valid = s2 in subjects_to_allocate or s2 in ['CH', 'PHY']
+                        if s1_valid and s2_valid:
                             is_strict_s1 = subject_configs.get(str(batch.id), {}).get(s1, {}).get('strictPriority')
                             is_strict_s2 = subject_configs.get(str(batch.id), {}).get(s2, {}).get('strictPriority')
                             is_pair_strict = is_strict_s1 or is_strict_s2

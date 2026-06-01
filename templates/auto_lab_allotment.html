@@ -430,6 +430,8 @@
                 pSub1Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
                 pSub2Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
             });
+            pSub2Select.insertAdjacentHTML('beforeend', `<option value="CH">CH</option>`);
+            pSub2Select.insertAdjacentHTML('beforeend', `<option value="PHY">PHY</option>`);
             renderParallelForCurrentBatch(batchId);
             parallelSubjectDiv.classList.remove('hidden');
 
