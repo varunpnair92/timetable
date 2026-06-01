@@ -2420,6 +2420,7 @@ def api_run_auto_lab_allotment(request):
         parallel_groups_data = data.get('parallel_groups', [])
         lab_preferences_data = data.get('lab_preferences', [])
         batch_preferences_data = data.get('batch_preferences', [])
+        subject_slots_data = data.get('subject_slots', {})
         
         with transaction.atomic():
             LabPreference.objects.filter(period=dp).delete()
@@ -2523,11 +2524,16 @@ def api_run_auto_lab_allotment(request):
                         allocated_for_batch.add(s1)
                         allocated_for_batch.add(s2)
                         
-                        allocated = False
+                        slots_needed = max(
+                            int(subject_slots_data.get(str(batch.id), {}).get(s1, 1)),
+                            int(subject_slots_data.get(str(batch.id), {}).get(s2, 1))
+                        )
+                        slots_allocated = 0
+                        
                         for day in batch_days:
-                            if allocated: break
+                            if slots_allocated >= slots_needed: break
                             for block in ['1,2,3', '4,5,6', '5,6,7']:
-                                if allocated: break
+                                if slots_allocated >= slots_needed: break
                                 if not is_batch_free(batch, day, block):
                                     continue
                                     
@@ -2536,25 +2542,32 @@ def api_run_auto_lab_allotment(request):
                                 if len(free_labs) >= 2:
                                     SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
                                     SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[1], period=dp)
-                                    allocated = True
+                                    slots_allocated += 1
+                                    break # move to next day
+                        
+                        if slots_allocated < slots_needed:
+                            unallocated.append(f"{batch.name} - {s1}||{s2} (only got {slots_allocated}/{slots_needed} slots)")
                                     
                 for sub in subjects_to_allocate:
                     if sub in allocated_for_batch: continue
-                    allocated = False
+                    slots_needed = int(subject_slots_data.get(str(batch.id), {}).get(sub, 1))
+                    slots_allocated = 0
+                    
                     for day in batch_days:
-                        if allocated: break
+                        if slots_allocated >= slots_needed: break
                         for block in ['1,2,3', '4,5,6', '5,6,7']:
-                            if allocated: break
+                            if slots_allocated >= slots_needed: break
                             if not is_batch_free(batch, day, block):
                                 continue
                             
                             free_labs = get_eligible_labs(batch, day, block)
                             if free_labs:
                                 SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
-                                allocated = True
+                                slots_allocated += 1
+                                break # move to next day
                     
-                    if not allocated:
-                        unallocated.append(f"{batch.name} - {sub}")
+                    if slots_allocated < slots_needed:
+                        unallocated.append(f"{batch.name} - {sub} (only got {slots_allocated}/{slots_needed} slots)")
                 
                 results.append(f"{batch.name}: {len(subjects_to_allocate)} subjects")
             

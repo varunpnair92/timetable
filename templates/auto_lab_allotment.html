@@ -203,6 +203,7 @@
         let parallelGroups = []; // {batch_id, batch_name, sub1, sub2}
         let batchPreferences = {}; // batch_id -> {gap, preferredLabs: [], preferredDays: []}
         let labPreferences = {}; // lab_code -> {days, hours, gap}
+        let subjectSlots = {}; // batchId -> { subjectName: count }
 
         function saveState() {
             const state = {
@@ -210,7 +211,8 @@
                 deselectedSubjects: {},
                 parallelGroups: parallelGroups,
                 batchPreferences: batchPreferences,
-                labPreferences: labPreferences
+                labPreferences: labPreferences,
+                subjectSlots: subjectSlots
             };
             for (let k in deselectedSubjects) {
                 if (deselectedSubjects[k] instanceof Set) {
@@ -231,6 +233,7 @@
                 parallelGroups = state.parallelGroups || [];
                 batchPreferences = state.batchPreferences || {};
                 labPreferences = state.labPreferences || {};
+                subjectSlots = state.subjectSlots || {};
                 deselectedSubjects = {};
                 for (let k in (state.deselectedSubjects || {})) {
                     deselectedSubjects[k] = new Set(state.deselectedSubjects[k]);
@@ -302,11 +305,17 @@
                 if (deselectedSubjects[batchId] && deselectedSubjects[batchId].has(sub)) {
                     isChecked = false;
                 }
+                let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : 1;
+                sDiv.className = "flex items-center justify-between";
                 sDiv.innerHTML = `
                     <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
                         <input type="checkbox" class="batch-sub-cb form-checkbox h-4 w-4 text-blue-600" value="${sub}" ${isChecked ? 'checked' : ''}>
                         <span>${sub}</span>
                     </label>
+                    <div class="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                        <span class="mr-1">Slots:</span>
+                        <input type="number" class="batch-sub-slots w-12 border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800" value="${slots}" min="1" max="5" data-sub="${sub}">
+                    </div>
                 `;
                 subjectCheckboxContainer.appendChild(sDiv);
             });
@@ -398,12 +407,21 @@
             const batchId = parseInt(mainBatchSelect.value);
             if (!batchId) return;
 
-            // Save Deselected Subjects
+            // Save Deselected Subjects and Slots
             if(!deselectedSubjects[batchId]) deselectedSubjects[batchId] = new Set();
+            if(!subjectSlots[batchId]) subjectSlots[batchId] = {};
+            
             deselectedSubjects[batchId].clear();
             document.querySelectorAll('.batch-sub-cb').forEach(cb => {
+                const sub = cb.value;
                 if (!cb.checked) {
-                    deselectedSubjects[batchId].add(cb.value);
+                    deselectedSubjects[batchId].add(sub);
+                } else {
+                    // find matching slot input
+                    const slotInput = document.querySelector(`.batch-sub-slots[data-sub="${sub}"]`);
+                    if (slotInput) {
+                        subjectSlots[batchId][sub] = parseInt(slotInput.value) || 1;
+                    }
                 }
             });
 
@@ -550,7 +568,8 @@
                 deselected_subjects: deselObj,
                 parallel_groups: parallelGroups,
                 lab_preferences: prefArr,
-                batch_preferences: bPrefArr
+                batch_preferences: bPrefArr,
+                subject_slots: subjectSlots
             };
 
             const btn = document.getElementById('runBtn');
