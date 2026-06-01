@@ -201,9 +201,10 @@
         let selectedBatches = new Set();
         let deselectedSubjects = {}; // batchId -> Set of subject names
         let parallelGroups = []; // {batch_id, batch_name, sub1, sub2}
-        let batchPreferences = {}; // batch_id -> {gap, preferredLabs: [], preferredDays: []}
+        let batchPreferences = {}; // batch_id -> {gap, preferredDays: []}
         let labPreferences = {}; // lab_code -> {days, hours, gap}
         let subjectSlots = {}; // batchId -> { subjectName: count }
+        let subjectLabs = {}; // batchId -> { subjectName: [lab_code, ...] }
 
         function saveState() {
             const state = {
@@ -212,7 +213,8 @@
                 parallelGroups: parallelGroups,
                 batchPreferences: batchPreferences,
                 labPreferences: labPreferences,
-                subjectSlots: subjectSlots
+                subjectSlots: subjectSlots,
+                subjectLabs: subjectLabs
             };
             for (let k in deselectedSubjects) {
                 if (deselectedSubjects[k] instanceof Set) {
@@ -234,6 +236,7 @@
                 batchPreferences = state.batchPreferences || {};
                 labPreferences = state.labPreferences || {};
                 subjectSlots = state.subjectSlots || {};
+                subjectLabs = state.subjectLabs || {};
                 deselectedSubjects = {};
                 for (let k in (state.deselectedSubjects || {})) {
                     deselectedSubjects[k] = new Set(state.deselectedSubjects[k]);
@@ -306,16 +309,36 @@
                     isChecked = false;
                 }
                 let slots = (subjectSlots[batchId] && subjectSlots[batchId][sub]) ? subjectSlots[batchId][sub] : 1;
-                sDiv.className = "flex items-center justify-between";
+                let subLabs = (subjectLabs[batchId] && subjectLabs[batchId][sub]) ? subjectLabs[batchId][sub] : [];
+                
+                let labsHtml = labChoices.map(([code, name]) => {
+                    let isLabChecked = subLabs.length === 0 || subLabs.includes(code);
+                    return `
+                        <label class="flex items-center space-x-1 text-xs cursor-pointer">
+                            <input type="checkbox" class="batch-sub-lab-cb form-checkbox h-3 w-3 text-indigo-600" data-sub="${sub}" value="${code}" ${isLabChecked ? 'checked' : ''}>
+                            <span>${code}</span>
+                        </label>
+                    `;
+                }).join('');
+
+                sDiv.className = "mb-2 border-b pb-2 dark:border-gray-700";
                 sDiv.innerHTML = `
-                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
-                        <input type="checkbox" class="batch-sub-cb form-checkbox h-4 w-4 text-blue-600" value="${sub}" ${isChecked ? 'checked' : ''}>
-                        <span>${sub}</span>
-                    </label>
-                    <div class="flex items-center text-xs text-gray-600 dark:text-gray-400">
-                        <span class="mr-1">Slots:</span>
-                        <input type="number" class="batch-sub-slots w-12 border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800" value="${slots}" min="1" max="5" data-sub="${sub}">
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
+                            <input type="checkbox" class="batch-sub-cb form-checkbox h-4 w-4 text-blue-600" value="${sub}" ${isChecked ? 'checked' : ''}>
+                            <span class="font-bold">${sub}</span>
+                        </label>
+                        <div class="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                            <span class="mr-1">Slots:</span>
+                            <input type="number" class="batch-sub-slots w-12 border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800" value="${slots}" min="1" max="5" data-sub="${sub}">
+                        </div>
                     </div>
+                    <details class="text-xs text-gray-600 dark:text-gray-400 ml-6 mt-1">
+                        <summary class="cursor-pointer text-indigo-500 hover:text-indigo-700 font-semibold">Preferred Labs</summary>
+                        <div class="flex flex-wrap gap-2 mt-1 bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                            ${labsHtml}
+                        </div>
+                    </details>
                 `;
                 subjectCheckboxContainer.appendChild(sDiv);
             });
@@ -331,21 +354,8 @@
             renderParallelForCurrentBatch(batchId);
             parallelSubjectDiv.classList.remove('hidden');
 
-            // Render Lab Priority Checkboxes
-            labPriorityContainer.innerHTML = '';
-            const savedLabs = batchPreferences[batchId] ? batchPreferences[batchId].preferredLabs : [];
-            labChoices.forEach(([code, name]) => {
-                const isChecked = savedLabs.length === 0 || savedLabs.includes(code);
-                let d = document.createElement('div');
-                d.innerHTML = `
-                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
-                        <input type="checkbox" class="batch-lab-cb form-checkbox h-4 w-4 text-indigo-600" value="${code}" ${isChecked ? 'checked' : ''}>
-                        <span>${name}</span>
-                    </label>
-                `;
-                labPriorityContainer.appendChild(d);
-            });
-            labPriorityDiv.classList.remove('hidden');
+                // Removed per-batch lab priority section
+                labPriorityDiv.classList.add('hidden');
 
             // Render Day Priority Checkboxes
             dayPriorityContainer.innerHTML = '';
@@ -407,9 +417,10 @@
             const batchId = parseInt(mainBatchSelect.value);
             if (!batchId) return;
 
-            // Save Deselected Subjects and Slots
+            // Save Deselected Subjects, Slots, and Labs
             if(!deselectedSubjects[batchId]) deselectedSubjects[batchId] = new Set();
             if(!subjectSlots[batchId]) subjectSlots[batchId] = {};
+            if(!subjectLabs[batchId]) subjectLabs[batchId] = {};
             
             deselectedSubjects[batchId].clear();
             document.querySelectorAll('.batch-sub-cb').forEach(cb => {
@@ -422,14 +433,15 @@
                     if (slotInput) {
                         subjectSlots[batchId][sub] = parseInt(slotInput.value) || 1;
                     }
+                    
+                    // find matching checked labs
+                    const labInputs = document.querySelectorAll(`.batch-sub-lab-cb[data-sub="${sub}"]:checked`);
+                    const checkedLabs = Array.from(labInputs).map(l => l.value);
+                    subjectLabs[batchId][sub] = checkedLabs;
                 }
             });
 
-            // Save Preferred Labs
-            const preferredLabs = [];
-            document.querySelectorAll('.batch-lab-cb').forEach(cb => {
-                if (cb.checked) preferredLabs.push(cb.value);
-            });
+            // Removed batch-level preferredLabs
 
             // Save Preferred Days
             const preferredDays = [];
@@ -440,7 +452,6 @@
             // Save Batch Preferences
             batchPreferences[batchId] = { 
                 gap: parseInt(prefBatchGap.value),
-                preferredLabs: preferredLabs,
                 preferredDays: preferredDays
             };
 
@@ -470,7 +481,6 @@
                 const pgs = parallelGroups.filter(p => p.batch_id === bId);
                 
                 let pgsText = pgs.length > 0 ? pgs.map(p => `${p.sub1}||${p.sub2}`).join(', ') : 'None';
-                let labsText = (prefs.preferredLabs && prefs.preferredLabs.length > 0) ? prefs.preferredLabs.join(', ') : 'All';
                 let daysText = (prefs.preferredDays && prefs.preferredDays.length > 0) ? prefs.preferredDays.join(', ') : 'All';
                 
                 let li = document.createElement('li');
@@ -480,7 +490,7 @@
                         <strong class="text-lg text-gray-800 dark:text-gray-200">${batch.name}</strong>
                         <div class="text-xs mt-1 space-y-0.5">
                             <div>📅 Days: ${daysText} | ⏱ Gap: ${gap}</div>
-                            <div>🏢 Labs: ${labsText}</div>
+                            <div>🏢 Labs: (Per-Subject)</div>
                             <div>🔗 Parallel: ${pgsText}</div>
                         </div>
                     </div>
