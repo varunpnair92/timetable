@@ -35,86 +35,87 @@
     </div>
 
     <!-- MAIN CONFIGURATION SECTION -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         
-        <!-- Batch & Subject Selection -->
+        <!-- Batch Configuration -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Select Batches</h2>
-            <div id="batchContainer" class="space-y-4 max-h-96 overflow-y-auto pr-2">
-                <!-- Dynamically populated via JS -->
-            </div>
-        </div>
-
-        <!-- Parallel Subject Groups -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Parallel Subjects</h2>
-            <div class="mb-4 space-y-3">
-                <select id="pBatchSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="">Select Batch...</option>
-                </select>
-                <div class="flex gap-2">
-                    <select id="pSub1Select" class="w-1/2 p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="">Subject 1</option>
-                    </select>
-                    <select id="pSub2Select" class="w-1/2 p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="">Subject 2</option>
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Configure Batch</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Batch</label>
+                    <select id="mainBatchSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">-- Choose Batch --</option>
                     </select>
                 </div>
-                <button id="addParallelBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded transition">
-                    + Add Parallel Group
+                
+                <div id="subjectSelectionDiv" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subjects (Uncheck to exclude)</label>
+                    <div id="subjectCheckboxContainer" class="grid grid-cols-2 gap-2 p-2 border rounded dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                </div>
+
+                <div id="parallelSubjectDiv" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parallel Subjects (Optional)</label>
+                    <div class="flex gap-2">
+                        <select id="pSub1Select" class="w-1/2 p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Subject 1</option>
+                        </select>
+                        <select id="pSub2Select" class="w-1/2 p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Subject 2</option>
+                        </select>
+                    </div>
+                    <ul id="currentParallelGroupList" class="mt-2 space-y-1 text-sm text-gray-700 dark:text-gray-300"></ul>
+                    <button id="addParallelBtn" class="mt-2 text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded transition">
+                        + Add Parallel Group
+                    </button>
+                </div>
+
+                <div id="batchGapDiv" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day Gap Between Sessions</label>
+                    <input type="number" id="prefBatchGap" value="1" min="0" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+
+                <button id="addBatchToAllotmentBtn" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition shadow-lg">
+                    Add Batch to Allotment
                 </button>
             </div>
-            <ul id="parallelList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300">
-                <!-- List added parallel groups -->
-            </ul>
         </div>
 
-        <!-- Lab Preferences -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Lab Preferences</h2>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apply to Lab</label>
-                <select id="prefLabSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
-                    <option value="ALL">All Labs</option>
-                </select>
-                
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Allowed Days (comma separated)</label>
-                <input type="text" id="prefDays" value="M,T,W,Th,F" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" placeholder="e.g. M,T,W">
-                
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Allowed Hours (comma separated)</label>
-                <input type="text" id="prefHours" value="1,2,3" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" placeholder="e.g. 1,2,3 or 4,5,6">
-                
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day Gap Between Sessions</label>
-                <input type="number" id="prefGap" value="1" min="0" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
-                
-                <button id="addPrefBtn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded transition">
-                    Save Preference
-                </button>
+        <!-- Right Column: Configured Batches & Global Lab Preferences -->
+        <div class="space-y-6">
+            <!-- Configured Batches List -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Batches Ready for Allotment</h2>
+                <ul id="configuredBatchesList" class="space-y-3 max-h-60 overflow-y-auto pr-2 text-sm text-gray-700 dark:text-gray-300">
+                    <li class="text-gray-400 italic" id="emptyBatchState">No batches configured yet.</li>
+                </ul>
             </div>
-            <ul id="prefList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
-                <!-- List preferences -->
-            </ul>
-        </div>
 
-        <!-- Batch Preferences -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Batch Preferences</h2>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apply to Batch</label>
-                <select id="prefBatchSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
-                    <option value="ALL">All Batches</option>
-                </select>
-                
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day Gap Between Sessions</label>
-                <input type="number" id="prefBatchGap" value="1" min="0" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" title="E.g., 1 means if a session is on Monday, the next is on Wednesday.">
-                
-                <button id="addBatchPrefBtn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 rounded transition">
-                    Save Batch Pref
-                </button>
+            <!-- Global Lab Preferences -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 border-b pb-2">Global Lab Preferences</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apply to Lab</label>
+                    <select id="prefLabSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
+                        <option value="ALL">All Labs</option>
+                    </select>
+                    
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Allowed Days (comma separated)</label>
+                    <input type="text" id="prefDays" value="M,T,W,Th,F" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" placeholder="e.g. M,T,W">
+                    
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Allowed Hours (comma separated)</label>
+                    <input type="text" id="prefHours" value="1,2,3" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3" placeholder="e.g. 1,2,3 or 4,5,6">
+                    
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day Gap Between Sessions</label>
+                    <input type="number" id="prefGap" value="1" min="0" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-3">
+                    
+                    <button id="addPrefBtn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded transition">
+                        Save Lab Preference
+                    </button>
+                </div>
+                <ul id="prefList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
+                </ul>
             </div>
-            <ul id="batchPrefList" class="space-y-2 mt-4 text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
-                <!-- List batch preferences -->
-            </ul>
         </div>
     </div>
 
@@ -180,19 +181,25 @@
         let selectedBatches = new Set();
         let deselectedSubjects = {}; // batchId -> Set of subject names
         let parallelGroups = []; // {batch_id, batch_name, sub1, sub2}
-        let labPreferences = {}; // lab_code -> {days, hours, gap}
         let batchPreferences = {}; // batch_id -> {gap}
+        let labPreferences = {}; // lab_code -> {days, hours, gap}
 
         // Initialize UI Elements
-        const batchContainer = document.getElementById('batchContainer');
-        const pBatchSelect = document.getElementById('pBatchSelect');
-        const prefLabSelect = document.getElementById('prefLabSelect');
-        const prefBatchSelect = document.getElementById('prefBatchSelect');
+        const mainBatchSelect = document.getElementById('mainBatchSelect');
+        const subjectSelectionDiv = document.getElementById('subjectSelectionDiv');
+        const subjectCheckboxContainer = document.getElementById('subjectCheckboxContainer');
+        const parallelSubjectDiv = document.getElementById('parallelSubjectDiv');
         const pSub1Select = document.getElementById('pSub1Select');
         const pSub2Select = document.getElementById('pSub2Select');
-        const parallelList = document.getElementById('parallelList');
+        const currentParallelGroupList = document.getElementById('currentParallelGroupList');
+        const batchGapDiv = document.getElementById('batchGapDiv');
+        const prefBatchGap = document.getElementById('prefBatchGap');
+        const addBatchToAllotmentBtn = document.getElementById('addBatchToAllotmentBtn');
+        const configuredBatchesList = document.getElementById('configuredBatchesList');
+        const emptyBatchState = document.getElementById('emptyBatchState');
+
+        const prefLabSelect = document.getElementById('prefLabSelect');
         const prefList = document.getElementById('prefList');
-        const batchPrefList = document.getElementById('batchPrefList');
 
         // Populate Lab Choices
         labChoices.forEach(([code, name]) => {
@@ -202,111 +209,162 @@
             prefLabSelect.appendChild(opt);
         });
 
-        // Render Batches
+        // Populate Main Batch Select
         batchData.forEach(batch => {
-            // Add to parallel select
             let opt = document.createElement('option');
             opt.value = batch.id;
             opt.textContent = batch.name;
-            pBatchSelect.appendChild(opt);
+            mainBatchSelect.appendChild(opt);
+        });
 
-            // Add to batch pref select
-            let optB = document.createElement('option');
-            optB.value = batch.id;
-            optB.textContent = batch.name;
-            prefBatchSelect.appendChild(optB);
+        // Handle Batch Selection
+        mainBatchSelect.addEventListener('change', (e) => {
+            const batchId = parseInt(e.target.value);
+            if (!batchId) {
+                subjectSelectionDiv.classList.add('hidden');
+                parallelSubjectDiv.classList.add('hidden');
+                batchGapDiv.classList.add('hidden');
+                addBatchToAllotmentBtn.classList.add('hidden');
+                return;
+            }
 
-            // Add to batch list
-            let div = document.createElement('div');
-            div.className = "border rounded p-3 bg-gray-50 dark:bg-gray-700 dark:border-gray-600";
+            const batch = batchData.find(b => b.id === batchId);
             
-            let header = document.createElement('div');
-            header.className = "flex items-center justify-between bg-gray-200 dark:bg-gray-600 p-2 rounded";
-            header.innerHTML = `
-                <label class="flex items-center space-x-2 font-bold cursor-pointer text-gray-800 dark:text-gray-200">
-                    <input type="checkbox" class="batch-cb form-checkbox h-4 w-4 text-blue-600" value="${batch.id}" checked>
-                    <span>${batch.name}</span>
-                </label>
-            `;
-            div.appendChild(header);
-
-            let subList = document.createElement('div');
-            subList.className = "mt-3 pl-4 grid grid-cols-2 gap-2";
+            // Render Subjects
+            subjectCheckboxContainer.innerHTML = '';
             batch.subjects.forEach(sub => {
                 let sDiv = document.createElement('div');
+                let isChecked = true;
+                if (deselectedSubjects[batchId] && deselectedSubjects[batchId].has(sub)) {
+                    isChecked = false;
+                }
                 sDiv.innerHTML = `
-                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-1 rounded border dark:border-gray-600">
-                        <input type="checkbox" class="sub-cb form-checkbox h-3 w-3 text-red-500" data-batch="${batch.id}" value="${sub}" checked>
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" class="batch-sub-cb form-checkbox h-4 w-4 text-blue-600" value="${sub}" ${isChecked ? 'checked' : ''}>
                         <span>${sub}</span>
                     </label>
                 `;
-                subList.appendChild(sDiv);
+                subjectCheckboxContainer.appendChild(sDiv);
             });
-            div.appendChild(subList);
+            subjectSelectionDiv.classList.remove('hidden');
 
-            // Add to selectedBatches initially because it's checked by default
-            selectedBatches.add(batch.id);
-
-            // Handlers
-            header.querySelector('.batch-cb').addEventListener('change', (e) => {
-                if(e.target.checked) selectedBatches.add(batch.id);
-                else selectedBatches.delete(batch.id);
-            });
-
-            subList.querySelectorAll('.sub-cb').forEach(cb => {
-                cb.addEventListener('change', (e) => {
-                    if(!deselectedSubjects[batch.id]) deselectedSubjects[batch.id] = new Set();
-                    if(!e.target.checked) {
-                        deselectedSubjects[batch.id].add(e.target.value);
-                    } else {
-                        deselectedSubjects[batch.id].delete(e.target.value);
-                    }
-                });
-            });
-
-            batchContainer.appendChild(div);
-        });
-
-        // Parallel Logic
-        pBatchSelect.addEventListener('change', (e) => {
-            const batchId = parseInt(e.target.value);
+            // Render Parallel Options
             pSub1Select.innerHTML = '<option value="">Subject 1</option>';
             pSub2Select.innerHTML = '<option value="">Subject 2</option>';
-            if(batchId) {
-                const batch = batchData.find(b => b.id === batchId);
-                batch.subjects.forEach(sub => {
-                    pSub1Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
-                    pSub2Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
-                });
-            }
+            batch.subjects.forEach(sub => {
+                pSub1Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
+                pSub2Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
+            });
+            renderParallelForCurrentBatch(batchId);
+            parallelSubjectDiv.classList.remove('hidden');
+
+            // Render Batch Gap
+            prefBatchGap.value = batchPreferences[batchId] ? batchPreferences[batchId].gap : 1;
+            batchGapDiv.classList.remove('hidden');
+
+            addBatchToAllotmentBtn.classList.remove('hidden');
         });
 
+        // Add Parallel Group
         document.getElementById('addParallelBtn').addEventListener('click', () => {
-            const bId = parseInt(pBatchSelect.value);
+            const bId = parseInt(mainBatchSelect.value);
             const sub1 = pSub1Select.value;
             const sub2 = pSub2Select.value;
             if(bId && sub1 && sub2 && sub1 !== sub2) {
-                const bName = pBatchSelect.options[pBatchSelect.selectedIndex].text;
+                const bName = mainBatchSelect.options[mainBatchSelect.selectedIndex].text;
                 parallelGroups.push({batch_id: bId, batch_name: bName, sub1, sub2});
-                renderParallel();
+                renderParallelForCurrentBatch(bId);
             }
         });
 
-        function renderParallel() {
-            parallelList.innerHTML = '';
+        function renderParallelForCurrentBatch(batchId) {
+            currentParallelGroupList.innerHTML = '';
             parallelGroups.forEach((pg, idx) => {
-                let li = document.createElement('li');
-                li.className = "flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded";
-                li.innerHTML = `
-                    <span><b>${pg.batch_name}:</b> ${pg.sub1} || ${pg.sub2}</span>
-                    <button class="text-red-500 hover:text-red-700 font-bold" onclick="removeParallel(${idx})">×</button>
-                `;
-                parallelList.appendChild(li);
+                if (pg.batch_id === batchId) {
+                    let li = document.createElement('li');
+                    li.className = "flex justify-between items-center bg-gray-200 dark:bg-gray-600 p-1 px-2 rounded";
+                    li.innerHTML = `
+                        <span>${pg.sub1} || ${pg.sub2}</span>
+                        <button class="text-red-500 hover:text-red-700 font-bold ml-2" onclick="removeParallel(${idx}, ${batchId})">×</button>
+                    `;
+                    currentParallelGroupList.appendChild(li);
+                }
             });
         }
-        window.removeParallel = (idx) => { parallelGroups.splice(idx, 1); renderParallel(); };
+        window.removeParallel = (idx, batchId) => { 
+            parallelGroups.splice(idx, 1); 
+            renderParallelForCurrentBatch(batchId); 
+        };
 
-        // Pref Logic
+        // Add Batch to Allotment Config
+        addBatchToAllotmentBtn.addEventListener('click', () => {
+            const batchId = parseInt(mainBatchSelect.value);
+            if (!batchId) return;
+
+            // Save Deselected Subjects
+            if(!deselectedSubjects[batchId]) deselectedSubjects[batchId] = new Set();
+            deselectedSubjects[batchId].clear();
+            document.querySelectorAll('.batch-sub-cb').forEach(cb => {
+                if (!cb.checked) {
+                    deselectedSubjects[batchId].add(cb.value);
+                }
+            });
+
+            // Save Batch Gap
+            batchPreferences[batchId] = { gap: parseInt(prefBatchGap.value) };
+
+            // Add to configured set
+            selectedBatches.add(batchId);
+
+            // Re-render configured list
+            renderConfiguredBatches();
+
+            // Reset form
+            mainBatchSelect.value = "";
+            mainBatchSelect.dispatchEvent(new Event('change'));
+        });
+
+        function renderConfiguredBatches() {
+            if (selectedBatches.size === 0) {
+                configuredBatchesList.innerHTML = '<li class="text-gray-400 italic" id="emptyBatchState">No batches configured yet.</li>';
+                return;
+            }
+            configuredBatchesList.innerHTML = '';
+            
+            selectedBatches.forEach(bId => {
+                const batch = batchData.find(b => b.id === bId);
+                const gap = batchPreferences[bId] ? batchPreferences[bId].gap : 1;
+                const pgs = parallelGroups.filter(p => p.batch_id === bId);
+                
+                let pgsText = pgs.length > 0 ? pgs.map(p => `${p.sub1}||${p.sub2}`).join(', ') : 'None';
+                
+                let li = document.createElement('li');
+                li.className = "border rounded p-3 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 flex justify-between items-start";
+                li.innerHTML = `
+                    <div>
+                        <strong class="text-lg text-gray-800 dark:text-gray-200">${batch.name}</strong>
+                        <div class="text-xs mt-1">Gap: ${gap} | Parallel: ${pgsText}</div>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700 font-bold px-2 py-1 bg-red-100 dark:bg-red-900 rounded" onclick="removeConfiguredBatch(${bId})">Remove</button>
+                `;
+                configuredBatchesList.appendChild(li);
+            });
+        }
+
+        window.removeConfiguredBatch = (bId) => {
+            selectedBatches.delete(bId);
+            delete deselectedSubjects[bId];
+            delete batchPreferences[bId];
+            parallelGroups = parallelGroups.filter(p => p.batch_id !== bId);
+            
+            // if this batch is currently selected in the dropdown, refresh it
+            if (parseInt(mainBatchSelect.value) === bId) {
+                mainBatchSelect.dispatchEvent(new Event('change'));
+            }
+            renderConfiguredBatches();
+        };
+
+        // Lab Pref Logic
         document.getElementById('addPrefBtn').addEventListener('click', () => {
             const lab = prefLabSelect.value;
             const days = document.getElementById('prefDays').value;
@@ -337,37 +395,6 @@
             }
         }
         window.removePref = (lab) => { delete labPreferences[lab]; renderPrefs(); };
-
-        // Batch Pref Logic
-        document.getElementById('addBatchPrefBtn').addEventListener('click', () => {
-            const batchId = prefBatchSelect.value;
-            const gap = document.getElementById('prefBatchGap').value;
-            
-            if(batchId === 'ALL') {
-                batchData.forEach(b => {
-                    batchPreferences[b.id] = { gap: parseInt(gap) };
-                });
-            } else {
-                batchPreferences[batchId] = { gap: parseInt(gap) };
-            }
-            renderBatchPrefs();
-        });
-
-        function renderBatchPrefs() {
-            batchPrefList.innerHTML = '';
-            for(let bId in batchPreferences) {
-                let p = batchPreferences[bId];
-                let bName = batchData.find(b => b.id == bId)?.name || bId;
-                let li = document.createElement('li');
-                li.className = "flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded";
-                li.innerHTML = `
-                    <span><b>${bName}:</b> Gap: ${p.gap}</span>
-                    <button class="text-red-500 hover:text-red-700 font-bold" onclick="removeBatchPref('${bId}')">×</button>
-                `;
-                batchPrefList.appendChild(li);
-            }
-        }
-        window.removeBatchPref = (bId) => { delete batchPreferences[bId]; renderBatchPrefs(); };
 
         // Run
         document.getElementById('runBtn').addEventListener('click', () => {
