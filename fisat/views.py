@@ -2248,11 +2248,18 @@ def subject_entry_view(request):
             
             return redirect('subject_entry')
     
-    batches = Batch.objects.filter(period=dp)
+    semesters = Semester.objects.all().order_by('name')
+    active_sem = semesters.filter(is_active=True).first()
+    current_view_sem = get_current_period(request)
+
+    batches = Batch.objects.filter(period=current_view_sem)
     lab_choices = SubjectEntry.LAB_CHOICES
     return render(request, 'subject_entry.html', {
         'batches': batches,
-        'lab_choices': lab_choices
+        'lab_choices': lab_choices,
+        'semesters': semesters,
+        'active_sem': active_sem,
+        'current_view_sem': current_view_sem
     })
 
 def get_batch_subjects(request, batch_id):
