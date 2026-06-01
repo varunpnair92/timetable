@@ -210,12 +210,17 @@
         });
 
         // Populate Main Batch Select
-        batchData.forEach(batch => {
-            let opt = document.createElement('option');
-            opt.value = batch.id;
-            opt.textContent = batch.name;
-            mainBatchSelect.appendChild(opt);
-        });
+        if (batchData.length === 0) {
+            mainBatchSelect.innerHTML = '<option value="">-- No Batches Available for this Semester --</option>';
+            mainBatchSelect.disabled = true;
+        } else {
+            batchData.forEach(batch => {
+                let opt = document.createElement('option');
+                opt.value = batch.id;
+                opt.textContent = batch.name;
+                mainBatchSelect.appendChild(opt);
+            });
+        }
 
         // Handle Batch Selection
         mainBatchSelect.addEventListener('change', (e) => {
