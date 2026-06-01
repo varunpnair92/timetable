@@ -2768,3 +2768,22 @@ def api_run_auto_lab_allotment(request):
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
 
+
+@csrf_exempt
+@login_required
+def api_clear_all_allotments(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=400)
+    
+    try:
+        dp = get_current_period(request)
+        with transaction.atomic():
+            SubjectEntry.objects.filter(period=dp).delete()
+            LabPreference.objects.filter(period=dp).delete()
+            ParallelSubjectGroup.objects.filter(period=dp).delete()
+            
+        return JsonResponse({"status": "success", "message": "All lab allotments and configurations for this semester have been cleared."})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
