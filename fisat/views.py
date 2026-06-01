@@ -2492,24 +2492,12 @@ def api_run_auto_lab_allotment(request):
                         return False
                 return True
             
-            def get_eligible_labs(batch_obj, sub_name, day, block):
-                """Get labs eligible for this subject, respecting preferences and availability."""
-                pref_labs = subject_labs_data.get(str(batch_obj.id), {}).get(sub_name, [])
-                
-                eligible = []
-                # Use preferred order if provided, otherwise check all labs
-                labs_to_check = pref_labs if pref_labs else [l[0] for l in SubjectEntry.LAB_CHOICES]
-                
-                for l_code in labs_to_check:
-                    # Check global lab preferences
-                    pref = LabPreference.objects.filter(lab_name=l_code, period=dp).first()
-                    if pref:
-                        if day not in pref.allowed_days.split(','): continue
-                        if block not in pref.allowed_hours.split(','): continue
-                    
-                    if is_lab_free(l_code, day, block):
-                        eligible.append(l_code)
-                return eligible
+            def is_lab_eligible(lab_code, day, block):
+                pref = LabPreference.objects.filter(lab_name=lab_code, period=dp).first()
+                if pref:
+                    if day not in pref.allowed_days.split(','): return False
+                    if block not in pref.allowed_hours.split(','): return False
+                return is_lab_free(lab_code, day, block)
             
             for batch in batches_to_allocate:
                 subjects = [s.subject_name for s in batch.subjects.all()]
@@ -2530,68 +2518,80 @@ def api_run_auto_lab_allotment(request):
                         allocated_for_batch.add(s1)
                         allocated_for_batch.add(s2)
                         
+                        pref_labs_s1 = subject_labs_data.get(str(batch.id), {}).get(s1, [])
+                        labs_s1 = pref_labs_s1 if pref_labs_s1 else [l[0] for l in SubjectEntry.LAB_CHOICES]
+                        pref_labs_s2 = subject_labs_data.get(str(batch.id), {}).get(s2, [])
+                        labs_s2 = pref_labs_s2 if pref_labs_s2 else [l[0] for l in SubjectEntry.LAB_CHOICES]
+                        
+                        pairs_to_try = []
+                        for l1 in labs_s1:
+                            for l2 in labs_s2:
+                                if l1 != l2:
+                                    pairs_to_try.append((l1, l2))
+                                    
                         slots_needed = max(
                             int(subject_slots_data.get(str(batch.id), {}).get(s1, 1)),
                             int(subject_slots_data.get(str(batch.id), {}).get(s2, 1))
                         )
                         slots_allocated = 0
                         assigned_blocks = set()
+                        assigned_days = set()
                         
-                        for day in batch_days:
+                        for l1, l2 in pairs_to_try:
                             if slots_allocated >= slots_needed: break
                             
-                            default_blocks = ['1,2,3', '4,5,6', '5,6,7']
-                            blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
-                            
-                            for block in blocks_to_try:
+                            for day in batch_days:
                                 if slots_allocated >= slots_needed: break
-                                if not is_batch_free(batch, day, block):
-                                    continue
+                                if day in assigned_days: continue
+                                
+                                default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                                blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
+                                
+                                for block in blocks_to_try:
+                                    if slots_allocated >= slots_needed: break
+                                    if not is_batch_free(batch, day, block): continue
                                     
-                                free_labs_s1 = get_eligible_labs(batch, s1, day, block)
-                                free_labs_s2 = get_eligible_labs(batch, s2, day, block)
-                                
-                                assigned = False
-                                for l1 in free_labs_s1:
-                                    for l2 in free_labs_s2:
-                                        if l1 != l2:
-                                            SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=day, allotted_hours=block, LAB=l1, period=dp)
-                                            SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=day, allotted_hours=block, LAB=l2, period=dp)
-                                            assigned = True
-                                            break
-                                    if assigned: break
-                                
-                                if assigned:
-                                    slots_allocated += 1
-                                    assigned_blocks.add(block)
-                                    break # move to next day
+                                    if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
+                                        SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=day, allotted_hours=block, LAB=l1, period=dp)
+                                        SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=day, allotted_hours=block, LAB=l2, period=dp)
+                                        slots_allocated += 1
+                                        assigned_blocks.add(block)
+                                        assigned_days.add(day)
+                                        break # move to next day
                         
                         if slots_allocated < slots_needed:
                             unallocated.append(f"{batch.name} - {s1}||{s2} (only got {slots_allocated}/{slots_needed} slots)")
                                     
                 for sub in subjects_to_allocate:
                     if sub in allocated_for_batch: continue
+                    pref_labs = subject_labs_data.get(str(batch.id), {}).get(sub, [])
+                    labs_to_check = pref_labs if pref_labs else [l[0] for l in SubjectEntry.LAB_CHOICES]
+                    
                     slots_needed = int(subject_slots_data.get(str(batch.id), {}).get(sub, 1))
                     slots_allocated = 0
                     assigned_blocks = set()
+                    assigned_days = set()
                     
-                    for day in batch_days:
+                    for target_lab in labs_to_check:
                         if slots_allocated >= slots_needed: break
                         
-                        default_blocks = ['1,2,3', '4,5,6', '5,6,7']
-                        blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
-                        
-                        for block in blocks_to_try:
+                        for day in batch_days:
                             if slots_allocated >= slots_needed: break
-                            if not is_batch_free(batch, day, block):
-                                continue
+                            if day in assigned_days: continue
                             
-                            free_labs = get_eligible_labs(batch, sub, day, block)
-                            if free_labs:
-                                SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
-                                slots_allocated += 1
-                                assigned_blocks.add(block)
-                                break # move to next day
+                            default_blocks = ['1,2,3', '4,5,6', '5,6,7']
+                            blocks_to_try = [b for b in default_blocks if b not in assigned_blocks] + [b for b in default_blocks if b in assigned_blocks]
+                            
+                            for block in blocks_to_try:
+                                if slots_allocated >= slots_needed: break
+                                if not is_batch_free(batch, day, block): continue
+                                
+                                if is_lab_eligible(target_lab, day, block):
+                                    SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=target_lab, period=dp)
+                                    slots_allocated += 1
+                                    assigned_blocks.add(block)
+                                    assigned_days.add(day)
+                                    break # move to next day
                     
                     if slots_allocated < slots_needed:
                         unallocated.append(f"{batch.name} - {sub} (only got {slots_allocated}/{slots_needed} slots)")
