@@ -2449,8 +2449,10 @@ def api_run_auto_lab_allotment(request):
                 
             DAYS = ['M', 'T', 'W', 'Th', 'F']
             
-            # Map batch_id to gap
+            # Map batch_id to preferences
             batch_gaps = {str(b['batch_id']): b['gap'] for b in batch_preferences_data}
+            batch_preferred_labs = {str(b['batch_id']): b.get('preferred_labs', []) for b in batch_preferences_data}
+            batch_preferred_days = {str(b['batch_id']): b.get('preferred_days', []) for b in batch_preferences_data}
             
             def is_batch_free(batch_obj, day, hours):
                 hours_set = set(map(int, hours.split(',')))
@@ -2480,6 +2482,26 @@ def api_run_auto_lab_allotment(request):
                         return False
                 return True
             
+            def get_eligible_labs(batch_obj, day, block):
+                """Get labs eligible for this batch, respecting preferences and availability."""
+                pref_labs = batch_preferred_labs.get(str(batch_obj.id), [])
+                
+                eligible = []
+                for l_code, l_name in SubjectEntry.LAB_CHOICES:
+                    # Filter by batch preferred labs
+                    if pref_labs and l_code not in pref_labs:
+                        continue
+                    
+                    # Check global lab preferences
+                    pref = LabPreference.objects.filter(lab_name=l_code, period=dp).first()
+                    if pref:
+                        if day not in pref.allowed_days.split(','): continue
+                        if block not in pref.allowed_hours.split(','): continue
+                    
+                    if is_lab_free(l_code, day, block):
+                        eligible.append(l_code)
+                return eligible
+            
             for batch in batches_to_allocate:
                 subjects = [s.subject_name for s in batch.subjects.all()]
                 desel = deselected_subjects.get(str(batch.id), [])
@@ -2487,6 +2509,10 @@ def api_run_auto_lab_allotment(request):
                 
                 pgs = ParallelSubjectGroup.objects.filter(batch=batch, period=dp)
                 parallel_pairs = [(pg.subject_1, pg.subject_2) for pg in pgs]
+                
+                # Determine day order for this batch
+                pref_days = batch_preferred_days.get(str(batch.id), [])
+                batch_days = pref_days if pref_days else DAYS
                 
                 allocated_for_batch = set()
                 
@@ -2496,22 +2522,14 @@ def api_run_auto_lab_allotment(request):
                         allocated_for_batch.add(s2)
                         
                         allocated = False
-                        for day in DAYS:
+                        for day in batch_days:
                             if allocated: break
                             for block in ['1,2,3', '4,5,6', '5,6,7']:
                                 if allocated: break
                                 if not is_batch_free(batch, day, block):
                                     continue
                                     
-                                free_labs = []
-                                for l_code, l_name in SubjectEntry.LAB_CHOICES:
-                                    pref = LabPreference.objects.filter(lab_name=l_code, period=dp).first()
-                                    if pref:
-                                        if day not in pref.allowed_days.split(','): continue
-                                        if block not in pref.allowed_hours.split(','): continue
-                                    
-                                    if is_lab_free(l_code, day, block):
-                                        free_labs.append(l_code)
+                                free_labs = get_eligible_labs(batch, day, block)
                                         
                                 if len(free_labs) >= 2:
                                     SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
@@ -2521,23 +2539,17 @@ def api_run_auto_lab_allotment(request):
                 for sub in subjects_to_allocate:
                     if sub in allocated_for_batch: continue
                     allocated = False
-                    for day in DAYS:
+                    for day in batch_days:
                         if allocated: break
                         for block in ['1,2,3', '4,5,6', '5,6,7']:
                             if allocated: break
                             if not is_batch_free(batch, day, block):
                                 continue
                             
-                            for l_code, l_name in SubjectEntry.LAB_CHOICES:
-                                pref = LabPreference.objects.filter(lab_name=l_code, period=dp).first()
-                                if pref:
-                                    if day not in pref.allowed_days.split(','): continue
-                                    if block not in pref.allowed_hours.split(','): continue
-                                    
-                                if is_lab_free(l_code, day, block):
-                                    SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=l_code, period=dp)
-                                    allocated = True
-                                    break
+                            free_labs = get_eligible_labs(batch, day, block)
+                            if free_labs:
+                                SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=day, allotted_hours=block, LAB=free_labs[0], period=dp)
+                                allocated = True
                                     
         return JsonResponse({"status": "success"})
     except Exception as e:

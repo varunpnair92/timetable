@@ -73,6 +73,18 @@
                     </button>
                 </div>
 
+                <div id="labPriorityDiv" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Labs (select labs for this batch)</label>
+                    <div id="labPriorityContainer" class="grid grid-cols-2 gap-2 p-2 border rounded dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                </div>
+
+                <div id="dayPriorityDiv" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Days</label>
+                    <div id="dayPriorityContainer" class="flex flex-wrap gap-3 p-2 border rounded dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                </div>
+
                 <div id="batchGapDiv" class="hidden">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day Gap Between Sessions</label>
                     <input type="number" id="prefBatchGap" value="1" min="0" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -171,13 +183,6 @@
 
 </div>
 
-<!-- DEBUG: Remove after fixing -->
-<div style="background: #ffe0e0; padding: 10px; margin: 10px; border: 2px solid red; font-family: monospace; font-size: 12px;">
-    <strong>DEBUG INFO (remove later):</strong><br>
-    <strong>Current Period (dp):</strong> {{ current_view_sem }}<br>
-    <strong>Batch Data JSON:</strong> <pre style="white-space: pre-wrap;">{{ batch_data }}</pre>
-</div>
-
 <!-- Data from Backend -->
 <script id="batch-data" type="application/json">{{ batch_data|safe }}</script>
 <script id="lab-choices" type="application/json">{{ lab_choices|safe }}</script>
@@ -191,8 +196,10 @@
         let selectedBatches = new Set();
         let deselectedSubjects = {}; // batchId -> Set of subject names
         let parallelGroups = []; // {batch_id, batch_name, sub1, sub2}
-        let batchPreferences = {}; // batch_id -> {gap}
+        let batchPreferences = {}; // batch_id -> {gap, preferredLabs: [], preferredDays: []}
         let labPreferences = {}; // lab_code -> {days, hours, gap}
+        const ALL_DAYS = ['M', 'T', 'W', 'Th', 'F'];
+        const DAY_LABELS = {'M': 'Monday', 'T': 'Tuesday', 'W': 'Wednesday', 'Th': 'Thursday', 'F': 'Friday'};
 
         // Initialize UI Elements
         const mainBatchSelect = document.getElementById('mainBatchSelect');
@@ -210,6 +217,10 @@
 
         const prefLabSelect = document.getElementById('prefLabSelect');
         const prefList = document.getElementById('prefList');
+        const labPriorityDiv = document.getElementById('labPriorityDiv');
+        const labPriorityContainer = document.getElementById('labPriorityContainer');
+        const dayPriorityDiv = document.getElementById('dayPriorityDiv');
+        const dayPriorityContainer = document.getElementById('dayPriorityContainer');
 
         // Populate Lab Choices
         labChoices.forEach(([code, name]) => {
@@ -228,6 +239,8 @@
             if (!batchId) {
                 subjectSelectionDiv.classList.add('hidden');
                 parallelSubjectDiv.classList.add('hidden');
+                labPriorityDiv.classList.add('hidden');
+                dayPriorityDiv.classList.add('hidden');
                 batchGapDiv.classList.add('hidden');
                 addBatchToAllotmentBtn.classList.add('hidden');
                 return;
@@ -262,6 +275,38 @@
             });
             renderParallelForCurrentBatch(batchId);
             parallelSubjectDiv.classList.remove('hidden');
+
+            // Render Lab Priority Checkboxes
+            labPriorityContainer.innerHTML = '';
+            const savedLabs = batchPreferences[batchId] ? batchPreferences[batchId].preferredLabs : [];
+            labChoices.forEach(([code, name]) => {
+                const isChecked = savedLabs.length === 0 || savedLabs.includes(code);
+                let d = document.createElement('div');
+                d.innerHTML = `
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" class="batch-lab-cb form-checkbox h-4 w-4 text-indigo-600" value="${code}" ${isChecked ? 'checked' : ''}>
+                        <span>${name}</span>
+                    </label>
+                `;
+                labPriorityContainer.appendChild(d);
+            });
+            labPriorityDiv.classList.remove('hidden');
+
+            // Render Day Priority Checkboxes
+            dayPriorityContainer.innerHTML = '';
+            const savedDays = batchPreferences[batchId] ? batchPreferences[batchId].preferredDays : [];
+            ALL_DAYS.forEach(day => {
+                const isChecked = savedDays.length === 0 || savedDays.includes(day);
+                let d = document.createElement('div');
+                d.innerHTML = `
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" class="batch-day-cb form-checkbox h-4 w-4 text-green-600" value="${day}" ${isChecked ? 'checked' : ''}>
+                        <span>${DAY_LABELS[day]}</span>
+                    </label>
+                `;
+                dayPriorityContainer.appendChild(d);
+            });
+            dayPriorityDiv.classList.remove('hidden');
 
             // Render Batch Gap
             prefBatchGap.value = batchPreferences[batchId] ? batchPreferences[batchId].gap : 1;
@@ -315,8 +360,24 @@
                 }
             });
 
-            // Save Batch Gap
-            batchPreferences[batchId] = { gap: parseInt(prefBatchGap.value) };
+            // Save Preferred Labs
+            const preferredLabs = [];
+            document.querySelectorAll('.batch-lab-cb').forEach(cb => {
+                if (cb.checked) preferredLabs.push(cb.value);
+            });
+
+            // Save Preferred Days
+            const preferredDays = [];
+            document.querySelectorAll('.batch-day-cb').forEach(cb => {
+                if (cb.checked) preferredDays.push(cb.value);
+            });
+
+            // Save Batch Preferences
+            batchPreferences[batchId] = { 
+                gap: parseInt(prefBatchGap.value),
+                preferredLabs: preferredLabs,
+                preferredDays: preferredDays
+            };
 
             // Add to configured set
             selectedBatches.add(batchId);
@@ -338,17 +399,24 @@
             
             selectedBatches.forEach(bId => {
                 const batch = batchData.find(b => b.id === bId);
-                const gap = batchPreferences[bId] ? batchPreferences[bId].gap : 1;
+                const prefs = batchPreferences[bId] || {};
+                const gap = prefs.gap || 1;
                 const pgs = parallelGroups.filter(p => p.batch_id === bId);
                 
                 let pgsText = pgs.length > 0 ? pgs.map(p => `${p.sub1}||${p.sub2}`).join(', ') : 'None';
+                let labsText = (prefs.preferredLabs && prefs.preferredLabs.length > 0) ? prefs.preferredLabs.join(', ') : 'All';
+                let daysText = (prefs.preferredDays && prefs.preferredDays.length > 0) ? prefs.preferredDays.join(', ') : 'All';
                 
                 let li = document.createElement('li');
                 li.className = "border rounded p-3 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 flex justify-between items-start";
                 li.innerHTML = `
                     <div>
                         <strong class="text-lg text-gray-800 dark:text-gray-200">${batch.name}</strong>
-                        <div class="text-xs mt-1">Gap: ${gap} | Parallel: ${pgsText}</div>
+                        <div class="text-xs mt-1 space-y-0.5">
+                            <div>📅 Days: ${daysText} | ⏱ Gap: ${gap}</div>
+                            <div>🏢 Labs: ${labsText}</div>
+                            <div>🔗 Parallel: ${pgsText}</div>
+                        </div>
                     </div>
                     <button class="text-red-500 hover:text-red-700 font-bold px-2 py-1 bg-red-100 dark:bg-red-900 rounded" onclick="removeConfiguredBatch(${bId})">Remove</button>
                 `;
@@ -422,7 +490,9 @@
 
             const bPrefArr = Object.keys(batchPreferences).map(k => ({
                 batch_id: k,
-                gap: batchPreferences[k].gap
+                gap: batchPreferences[k].gap,
+                preferred_labs: batchPreferences[k].preferredLabs || [],
+                preferred_days: batchPreferences[k].preferredDays || []
             }));
 
             const payload = {
