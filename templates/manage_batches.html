@@ -163,7 +163,17 @@
         </div>
 
         <div class="section list-section">
-            <h3>Existing Batches & Subjects</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0;">Existing Batches & Subjects</h3>
+                <form method="GET">
+                    <label style="display: inline-block; margin-right: 5px;">View Semester:</label>
+                    <select name="view_sem" onchange="this.form.submit()" style="width: auto; display: inline-block;">
+                        {% for sem in semesters %}
+                        <option value="{{ sem.name }}" {% if sem.name == current_view_sem %}selected{% endif %}>{{ sem.name }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
             <table>
                 <thead>
                     <tr>
