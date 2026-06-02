@@ -2121,12 +2121,18 @@ def manage_batches(request):
             if batch_name:
                 Batch.objects.get_or_create(name=batch_name, period=dp)
         elif action == "add_subject":
-            batch_id = request.POST.get('batch_id')
-            subject_name = request.POST.get('subject_name')
+            batch_ids = request.POST.getlist('batch_id')
+            subject_names_raw = request.POST.get('subject_name', '')
             hours = int(request.POST.get('hours', 1))
-            if batch_id and subject_name:
-                batch = Batch.objects.get(id=batch_id)
-                BatchSubject.objects.create(batch=batch, subject_name=subject_name, hours=hours)
+            if batch_ids and subject_names_raw:
+                subject_names = [s.strip() for s in subject_names_raw.split(',') if s.strip()]
+                for batch_id in batch_ids:
+                    try:
+                        batch = Batch.objects.get(id=batch_id)
+                        for subject_name in subject_names:
+                            BatchSubject.objects.create(batch=batch, subject_name=subject_name, hours=hours)
+                    except Batch.DoesNotExist:
+                        pass
         elif action == "assign_batch_to_semester":
             batch_names = request.POST.getlist('batch_names')
             target_period = request.POST.get('period')
