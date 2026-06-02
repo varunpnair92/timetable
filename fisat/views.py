@@ -2474,7 +2474,7 @@ def api_run_auto_lab_allotment(request):
             batches_to_allocate = Batch.objects.filter(id__in=selected_batches)
             
             for b in batches_to_allocate:
-                SubjectEntry.objects.filter(class_name=b.name, period=dp).delete()
+                SubjectEntry.objects.filter(class_name=b.name, period=dp, is_auto_assigned=True).delete()
                 
             DAYS = ['M', 'T', 'W', 'Th', 'F']
             results = []
@@ -2688,8 +2688,8 @@ def api_run_auto_lab_allotment(request):
                                             
                                 if len(possible_slots) == slots_needed:
                                     for (d, b, lab1, lab2) in possible_slots:
-                                        SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=d, allotted_hours=b, LAB=lab1, period=dp)
-                                        SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=d, allotted_hours=b, LAB=lab2, period=dp)
+                                        SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=d, allotted_hours=b, LAB=lab1, period=dp, is_auto_assigned=True)
+                                        SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=d, allotted_hours=b, LAB=lab2, period=dp, is_auto_assigned=True)
                                     slots_allocated = slots_needed
                                     success = True
                                     break
@@ -2743,8 +2743,8 @@ def api_run_auto_lab_allotment(request):
                                             
                             if len(possible_slots) == slots_needed:
                                 for (d, b, lab1, lab2) in possible_slots:
-                                    SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=d, allotted_hours=b, LAB=lab1, period=dp)
-                                    SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=d, allotted_hours=b, LAB=lab2, period=dp)
+                                    SubjectEntry.objects.create(subject_name=s1, class_name=batch.name, day=d, allotted_hours=b, LAB=lab1, period=dp, is_auto_assigned=True)
+                                    SubjectEntry.objects.create(subject_name=s2, class_name=batch.name, day=d, allotted_hours=b, LAB=lab2, period=dp, is_auto_assigned=True)
                                 slots_allocated = slots_needed
                             else:
                                 unallocated.append(f"{batch.name} - {s1}||{s2} (only got 0/{slots_needed} slots)")
@@ -2821,7 +2821,7 @@ def api_run_auto_lab_allotment(request):
                                         
                                 if len(possible_slots) == slots_needed:
                                     for (d, b, lab) in possible_slots:
-                                        SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=d, allotted_hours=b, LAB=lab, period=dp)
+                                        SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=d, allotted_hours=b, LAB=lab, period=dp, is_auto_assigned=True)
                                     slots_allocated = slots_needed
                                     success = True
                                     break
@@ -2876,7 +2876,7 @@ def api_run_auto_lab_allotment(request):
                                         
                             if len(possible_slots) == slots_needed:
                                 for (d, b, lab) in possible_slots:
-                                    SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=d, allotted_hours=b, LAB=lab, period=dp)
+                                    SubjectEntry.objects.create(subject_name=sub, class_name=batch.name, day=d, allotted_hours=b, LAB=lab, period=dp, is_auto_assigned=True)
                                 slots_allocated = slots_needed
                             else:
                                 unallocated.append(f"{batch.name} - {sub} (only got 0/{slots_needed} slots)")
@@ -2905,7 +2905,7 @@ def api_clear_all_allotments(request):
     try:
         dp = get_current_period(request)
         with transaction.atomic():
-            SubjectEntry.objects.filter(period=dp).delete()
+            SubjectEntry.objects.filter(period=dp, is_auto_assigned=True).delete()
             LabPreference.objects.filter(period=dp).delete()
             ParallelSubjectGroup.objects.filter(period=dp).delete()
             

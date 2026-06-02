@@ -74,6 +74,7 @@ class SubjectEntry(models.Model):
     LAB = models.CharField(max_length=50, choices=LAB_CHOICES)
     allotted_hours = models.CharField(max_length=10)  # e.g., '1,2,3' or '4,5,6'
     period = models.CharField(max_length=20, default='2025-dec')
+    is_auto_assigned = models.BooleanField(default=False)
 
 
     
