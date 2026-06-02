@@ -337,13 +337,8 @@
             });
             mergedSubjects = Array.from(uniqueSubjects.values());
 
-            if (selectedOptions.length > 1) {
-                parallelSubjectDiv.classList.add('hidden'); // Parallel subjects too complex for multi-select
-                labPriorityDiv.classList.add('hidden');
-            } else {
-                parallelSubjectDiv.classList.remove('hidden');
-                labPriorityDiv.classList.remove('hidden');
-            }
+            parallelSubjectDiv.classList.remove('hidden');
+            labPriorityDiv.classList.remove('hidden');
             
             subjectSelectionDiv.classList.remove('hidden');
             dayPriorityDiv.classList.remove('hidden');
@@ -470,14 +465,14 @@
             // Render Parallel Options
             pSub1Select.innerHTML = '<option value="">Subject 1</option>';
             pSub2Select.innerHTML = '<option value="">Subject 2</option>';
-            batch.subjects.forEach(subObj => {
+            mergedSubjects.forEach(subObj => {
                 const sub = subObj.name;
                 pSub1Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
                 pSub2Select.insertAdjacentHTML('beforeend', `<option value="${sub}">${sub}</option>`);
             });
             pSub2Select.insertAdjacentHTML('beforeend', `<option value="CH">CH</option>`);
             pSub2Select.insertAdjacentHTML('beforeend', `<option value="PHY">PHY</option>`);
-            renderParallelForCurrentBatch(batchId);
+            renderParallelForCurrentBatch();
             parallelSubjectDiv.classList.remove('hidden');
 
                 // Removed per-batch lab priority section
@@ -508,34 +503,48 @@
 
         // Add Parallel Group
         document.getElementById('addParallelBtn').addEventListener('click', () => {
-            const bId = parseInt(mainBatchSelect.value);
+            const selectedOptions = Array.from(mainBatchSelect.selectedOptions);
             const sub1 = pSub1Select.value;
             const sub2 = pSub2Select.value;
-            if(bId && sub1 && sub2 && sub1 !== sub2) {
-                const bName = mainBatchSelect.options[mainBatchSelect.selectedIndex].text;
-                parallelGroups.push({batch_id: bId, batch_name: bName, sub1, sub2});
-                renderParallelForCurrentBatch(bId);
+            if(selectedOptions.length > 0 && sub1 && sub2 && sub1 !== sub2) {
+                selectedOptions.forEach(opt => {
+                    const bId = parseInt(opt.value);
+                    const bName = opt.text;
+                    const exists = parallelGroups.some(p => p.batch_id === bId && p.sub1 === sub1 && p.sub2 === sub2);
+                    if (!exists) {
+                        parallelGroups.push({batch_id: bId, batch_name: bName, sub1, sub2});
+                    }
+                });
+                renderParallelForCurrentBatch();
             }
         });
 
-        function renderParallelForCurrentBatch(batchId) {
+        function renderParallelForCurrentBatch() {
             currentParallelGroupList.innerHTML = '';
-            parallelGroups.forEach((pg, idx) => {
-                if (pg.batch_id === batchId) {
-                    let li = document.createElement('li');
-                    li.className = "flex justify-between items-center bg-gray-200 dark:bg-gray-600 p-1 px-2 rounded";
-                    li.innerHTML = `
-                        <span>${pg.sub1} || ${pg.sub2}</span>
-                        <button class="text-red-500 hover:text-red-700 font-bold ml-2" onclick="removeParallel(${idx}, ${batchId})">×</button>
-                    `;
-                    currentParallelGroupList.appendChild(li);
+            const selectedIds = Array.from(mainBatchSelect.selectedOptions).map(o => parseInt(o.value));
+            const uniqueGroups = [];
+            parallelGroups.forEach(pg => {
+                if (selectedIds.includes(pg.batch_id)) {
+                    if (!uniqueGroups.some(u => u.sub1 === pg.sub1 && u.sub2 === pg.sub2)) {
+                        uniqueGroups.push(pg);
+                    }
                 }
             });
+            uniqueGroups.forEach(pg => {
+                let li = document.createElement('li');
+                li.className = "flex justify-between items-center bg-gray-200 dark:bg-gray-600 p-1 px-2 rounded";
+                li.innerHTML = `
+                    <span>${pg.sub1} || ${pg.sub2}</span>
+                    <button class="text-red-500 hover:text-red-700 font-bold ml-2" onclick="removeParallel('${pg.sub1}', '${pg.sub2}')">×</button>
+                `;
+                currentParallelGroupList.appendChild(li);
+            });
         }
-        window.removeParallel = (idx, batchId) => { 
-            parallelGroups.splice(idx, 1); 
+        window.removeParallel = (sub1, sub2) => { 
+            const selectedIds = Array.from(mainBatchSelect.selectedOptions).map(o => parseInt(o.value));
+            parallelGroups = parallelGroups.filter(p => !(selectedIds.includes(p.batch_id) && p.sub1 === sub1 && p.sub2 === sub2));
             saveState();
-            renderParallelForCurrentBatch(batchId); 
+            renderParallelForCurrentBatch(); 
         };
 
         // Add Batch to Allotment Config
