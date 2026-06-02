@@ -2664,18 +2664,18 @@ def api_run_auto_lab_allotment(request):
                                         default_blocks = get_blocks_for_duration(duration)
                                         blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                     
-                                    for block in blocks_to_try:
-                                        if len(possible_slots) >= slots_needed: break
-                                        time_key = f"{day}:{block}"
-                                        if time_key in s1_ex_times or time_key in s2_ex_times: continue
-                                        if not is_batch_free(batch, day, block): continue
-                                        if not is_unique_subject_free(s1, day, block) or not is_unique_subject_free(s2, day, block): continue
-                                        
-                                        if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
-                                            possible_slots.append((day, block, l1, l2))
-                                            assigned_days_sim.add(day)
-                                            assigned_blocks_sim.add(block)
-                                            break
+                                        for block in blocks_to_try:
+                                            if len(possible_slots) >= slots_needed: break
+                                            time_key = f"{day}:{block}"
+                                            if time_key in s1_ex_times or time_key in s2_ex_times: continue
+                                            if not is_batch_free(batch, day, block): continue
+                                            if not is_unique_subject_free(s1, day, block) or not is_unique_subject_free(s2, day, block): continue
+                                            
+                                            if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
+                                                possible_slots.append((day, block, l1, l2))
+                                                assigned_days_sim.add(day)
+                                                assigned_blocks_sim.add(block)
+                                                break
                                             
                                 if len(possible_slots) == slots_needed:
                                     for (d, b, lab1, lab2) in possible_slots:
@@ -2719,18 +2719,18 @@ def api_run_auto_lab_allotment(request):
                                         default_blocks = get_blocks_for_duration(duration)
                                         blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                     
-                                    for block in blocks_to_try:
-                                        if len(possible_slots) >= slots_needed: break
-                                        time_key = f"{day}:{block}"
-                                        if time_key in s1_ex_times or time_key in s2_ex_times: continue
-                                        if not is_batch_free(batch, day, block): continue
-                                        if not is_unique_subject_free(s1, day, block) or not is_unique_subject_free(s2, day, block): continue
-                                        
-                                        if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
-                                            possible_slots.append((day, block, l1, l2))
-                                            assigned_days_sim.add(day)
-                                            assigned_blocks_sim.add(block)
-                                            break
+                                        for block in blocks_to_try:
+                                            if len(possible_slots) >= slots_needed: break
+                                            time_key = f"{day}:{block}"
+                                            if time_key in s1_ex_times or time_key in s2_ex_times: continue
+                                            if not is_batch_free(batch, day, block): continue
+                                            if not is_unique_subject_free(s1, day, block) or not is_unique_subject_free(s2, day, block): continue
+                                            
+                                            if is_lab_eligible(l1, day, block) and is_lab_eligible(l2, day, block):
+                                                possible_slots.append((day, block, l1, l2))
+                                                assigned_days_sim.add(day)
+                                                assigned_blocks_sim.add(block)
+                                                break
                                             
                             if len(possible_slots) == slots_needed:
                                 for (d, b, lab1, lab2) in possible_slots:
@@ -2797,18 +2797,18 @@ def api_run_auto_lab_allotment(request):
                                     default_blocks = get_blocks_for_duration(duration)
                                     blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                 
-                                for block in blocks_to_try:
-                                    if len(possible_slots) >= slots_needed: break
-                                    time_key = f"{day}:{block}"
-                                    if time_key in ex_times: continue
-                                    if not is_batch_free(batch, day, block): continue
-                                    if not is_unique_subject_free(sub, day, block): continue
-                                    
-                                    if is_lab_eligible(target_lab, day, block):
-                                        possible_slots.append((day, block, target_lab))
-                                        assigned_days_sim.add(day)
-                                        assigned_blocks_sim.add(block)
-                                        break
+                                    for block in blocks_to_try:
+                                        if len(possible_slots) >= slots_needed: break
+                                        time_key = f"{day}:{block}"
+                                        if time_key in ex_times: continue
+                                        if not is_batch_free(batch, day, block): continue
+                                        if not is_unique_subject_free(sub, day, block): continue
+                                        
+                                        if is_lab_eligible(target_lab, day, block):
+                                            possible_slots.append((day, block, target_lab))
+                                            assigned_days_sim.add(day)
+                                            assigned_blocks_sim.add(block)
+                                            break
                                         
                             if len(possible_slots) == slots_needed:
                                 for (d, b, lab) in possible_slots:
@@ -2852,18 +2852,18 @@ def api_run_auto_lab_allotment(request):
                                     default_blocks = get_blocks_for_duration(duration)
                                     blocks_to_try = get_ordered_blocks_with_alternation(assigned_blocks_sim, default_blocks)
                                 
-                                for block in blocks_to_try:
-                                    if len(possible_slots) >= slots_needed: break
-                                    time_key = f"{day}:{block}"
-                                    if time_key in ex_times: continue
-                                    if not is_batch_free(batch, day, block): continue
-                                    if not is_unique_subject_free(sub, day, block): continue
-                                    
-                                    if is_lab_eligible(target_lab, day, block):
-                                        possible_slots.append((day, block, target_lab))
-                                        assigned_days_sim.add(day)
-                                        assigned_blocks_sim.add(block)
-                                        break
+                                    for block in blocks_to_try:
+                                        if len(possible_slots) >= slots_needed: break
+                                        time_key = f"{day}:{block}"
+                                        if time_key in ex_times: continue
+                                        if not is_batch_free(batch, day, block): continue
+                                        if not is_unique_subject_free(sub, day, block): continue
+                                        
+                                        if is_lab_eligible(target_lab, day, block):
+                                            possible_slots.append((day, block, target_lab))
+                                            assigned_days_sim.add(day)
+                                            assigned_blocks_sim.add(block)
+                                            break
                                         
                         if len(possible_slots) == slots_needed:
                             for (d, b, lab) in possible_slots:
