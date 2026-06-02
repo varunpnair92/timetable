@@ -584,6 +584,10 @@
             
             selectedBatches.forEach(bId => {
                 const batch = batchData.find(b => b.id === bId);
+                if (!batch) {
+                    selectedBatches.delete(bId);
+                    return;
+                }
                 const prefs = batchPreferences[bId] || {};
                 const gap = prefs.gap || 1;
                 const pgs = parallelGroups.filter(p => p.batch_id === bId);
