@@ -55,7 +55,7 @@
                         <option value="{{ batch.id }}">{{ batch.name }}</option>
                         {% endfor %}
                     </select>
-                    <small class="text-gray-500 mt-1 block">Hold Ctrl/Cmd to select multiple batches. Subject-specific options only appear when a single batch is selected.</small>
+                    <small class="text-gray-500 mt-1 block">Hold Ctrl/Cmd to select multiple batches. Subject-specific options will apply to all selected batches.</small>
                 </div>
                 
                 <div id="subjectSelectionDiv" class="hidden">
@@ -320,31 +320,46 @@
                 return;
             }
             
-            if (selectedOptions.length > 1) {
-                subjectSelectionDiv.classList.add('hidden');
-                parallelSubjectDiv.classList.add('hidden');
-                labPriorityDiv.classList.add('hidden');
-                
-                dayPriorityDiv.classList.remove('hidden');
-                batchGapDiv.classList.remove('hidden');
-                addBatchToAllotmentBtn.classList.remove('hidden');
-                return;
-            }
-
-            // Single Batch Selected
-            const batchId = selectedOptions[0];
-            const batch = batchData.find(b => b.id === batchId);
+            // Determine subjects to show (merged if multiple)
+            let mergedSubjects = [];
+            const batchId = selectedOptions[0]; // use first batch's state as default
+            const selectedBatchObjects = selectedOptions.map(bId => batchData.find(b => b.id === bId)).filter(b => b);
+            const uniqueSubjects = new Map();
             
+            selectedBatchObjects.forEach(b => {
+                b.subjects.forEach(subObj => {
+                    if (!uniqueSubjects.has(subObj.name)) {
+                        uniqueSubjects.set(subObj.name, subObj);
+                    } else if (subObj.hours > uniqueSubjects.get(subObj.name).hours) {
+                        uniqueSubjects.set(subObj.name, subObj);
+                    }
+                });
+            });
+            mergedSubjects = Array.from(uniqueSubjects.values());
+
+            if (selectedOptions.length > 1) {
+                parallelSubjectDiv.classList.add('hidden'); // Parallel subjects too complex for multi-select
+                labPriorityDiv.classList.add('hidden');
+            } else {
+                parallelSubjectDiv.classList.remove('hidden');
+                labPriorityDiv.classList.remove('hidden');
+            }
+            
+            subjectSelectionDiv.classList.remove('hidden');
+            dayPriorityDiv.classList.remove('hidden');
+            batchGapDiv.classList.remove('hidden');
+            addBatchToAllotmentBtn.classList.remove('hidden');
+
             // Initialize active subject labs array to track click order
             window.activeSubjectLabs = {};
-            batch.subjects.forEach(subObj => {
+            mergedSubjects.forEach(subObj => {
                 const sub = subObj.name;
                 window.activeSubjectLabs[sub] = (subjectLabs[batchId] && subjectLabs[batchId][sub]) ? [...subjectLabs[batchId][sub]] : [];
             });
             
             // Render Subjects
             subjectCheckboxContainer.innerHTML = '';
-            batch.subjects.forEach(subObj => {
+            mergedSubjects.forEach(subObj => {
                 const sub = subObj.name;
                 let sDiv = document.createElement('div');
                 let isChecked = true;
@@ -536,50 +551,37 @@
                 if(!subjectLabs[batchId]) subjectLabs[batchId] = {};
                 if(!subjectConfigs[batchId]) subjectConfigs[batchId] = {};
                 
-                if (isSingle) {
-                    deselectedSubjects[batchId].clear();
-                    document.querySelectorAll('.batch-sub-cb').forEach(cb => {
-                        const sub = cb.value;
-                        if (!cb.checked) {
-                            deselectedSubjects[batchId].add(sub);
-                        } else {
-                            const slotInput = document.querySelector(`.batch-sub-slots[data-sub="${sub}"]`);
-                            if (slotInput) {
-                                subjectSlots[batchId][sub] = parseInt(slotInput.value) || 1;
-                            }
-                            
-                            const checkedLabs = window.activeSubjectLabs[sub] || [];
-                            subjectLabs[batchId][sub] = checkedLabs;
-                            
-                            const isStrict = document.querySelector(`.batch-sub-strict-cb[data-sub="${sub}"]`)?.checked || false;
-                            const allowSplit = document.querySelector(`.batch-sub-split-cb[data-sub="${sub}"]`)?.checked || false;
-                            const exTimes = Array.from(document.querySelectorAll(`.batch-sub-ex-time-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
-                            
-                            subjectConfigs[batchId][sub] = {
-                                strictPriority: isStrict,
-                                allowSplitLabs: allowSplit,
-                                excludedTimes: exTimes
-                            };
+                deselectedSubjects[batchId].clear();
+                const batch = batchData.find(b => b.id === batchId);
+                const batchSubjectNames = batch ? batch.subjects.map(s => s.name) : [];
+                
+                document.querySelectorAll('.batch-sub-cb').forEach(cb => {
+                    const sub = cb.value;
+                    // Only apply to this batch if it actually has this subject
+                    if (!batchSubjectNames.includes(sub)) return;
+                    
+                    if (!cb.checked) {
+                        deselectedSubjects[batchId].add(sub);
+                    } else {
+                        const slotInput = document.querySelector(`.batch-sub-slots[data-sub="${sub}"]`);
+                        if (slotInput) {
+                            subjectSlots[batchId][sub] = parseInt(slotInput.value) || 1;
                         }
-                    });
-                } else {
-                    // For multiple, default subjects to 1 slot and default configs if not already set
-                    const batch = batchData.find(b => b.id === batchId);
-                    if (batch) {
-                        batch.subjects.forEach(subObj => {
-                            const sub = subObj.name;
-                            if (!(sub in subjectSlots[batchId])) subjectSlots[batchId][sub] = 1;
-                            if (!(sub in subjectConfigs[batchId])) {
-                                subjectConfigs[batchId][sub] = {
-                                    strictPriority: false, allowSplitLabs: false, excludedTimes: []
-                                };
-                            }
-                            if (!(sub in subjectLabs[batchId])) {
-                                subjectLabs[batchId][sub] = [];
-                            }
-                        });
+                        
+                        const checkedLabs = window.activeSubjectLabs[sub] || [];
+                        subjectLabs[batchId][sub] = checkedLabs;
+                        
+                        const isStrict = document.querySelector(`.batch-sub-strict-cb[data-sub="${sub}"]`)?.checked || false;
+                        const allowSplit = document.querySelector(`.batch-sub-split-cb[data-sub="${sub}"]`)?.checked || false;
+                        const exTimes = Array.from(document.querySelectorAll(`.batch-sub-ex-time-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
+                        
+                        subjectConfigs[batchId][sub] = {
+                            strictPriority: isStrict,
+                            allowSplitLabs: allowSplit,
+                            excludedTimes: exTimes
+                        };
                     }
-                }
+                });
 
                 // Save Preferred Days
                 const preferredDays = [];
