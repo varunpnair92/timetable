@@ -2460,13 +2460,16 @@ def api_run_auto_lab_allotment(request):
             
             ParallelSubjectGroup.objects.filter(period=dp).delete()
             for pg in parallel_groups_data:
-                batch = Batch.objects.get(id=pg['batch_id'])
-                ParallelSubjectGroup.objects.create(
-                    batch=batch,
-                    subject_1=pg['sub1'],
-                    subject_2=pg['sub2'],
-                    period=dp
-                )
+                try:
+                    batch = Batch.objects.get(id=pg['batch_id'])
+                    ParallelSubjectGroup.objects.create(
+                        batch=batch,
+                        subject_1=pg['sub1'],
+                        subject_2=pg['sub2'],
+                        period=dp
+                    )
+                except Batch.DoesNotExist:
+                    continue
                 
             batches_to_allocate = Batch.objects.filter(id__in=selected_batches)
             
