@@ -49,12 +49,13 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Batch</label>
-                    <select id="mainBatchSelect" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <select id="mainBatchSelect" multiple class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" style="height: 120px;">
                         <option value="">-- Choose Batch --</option>
                         {% for batch in batches %}
                         <option value="{{ batch.id }}">{{ batch.name }}</option>
                         {% endfor %}
                     </select>
+                    <small class="text-gray-500 mt-1 block">Hold Ctrl/Cmd to select multiple batches. Subject-specific options only appear when a single batch is selected.</small>
                 </div>
                 
                 <div id="subjectSelectionDiv" class="hidden">
@@ -308,8 +309,8 @@
 
         // Handle Batch Selection
         mainBatchSelect.addEventListener('change', (e) => {
-            const batchId = parseInt(e.target.value);
-            if (!batchId) {
+            const selectedOptions = Array.from(e.target.selectedOptions).map(o => parseInt(o.value)).filter(v => !isNaN(v));
+            if (selectedOptions.length === 0) {
                 subjectSelectionDiv.classList.add('hidden');
                 parallelSubjectDiv.classList.add('hidden');
                 labPriorityDiv.classList.add('hidden');
@@ -318,7 +319,20 @@
                 addBatchToAllotmentBtn.classList.add('hidden');
                 return;
             }
+            
+            if (selectedOptions.length > 1) {
+                subjectSelectionDiv.classList.add('hidden');
+                parallelSubjectDiv.classList.add('hidden');
+                labPriorityDiv.classList.add('hidden');
+                
+                dayPriorityDiv.classList.remove('hidden');
+                batchGapDiv.classList.remove('hidden');
+                addBatchToAllotmentBtn.classList.remove('hidden');
+                return;
+            }
 
+            // Single Batch Selected
+            const batchId = selectedOptions[0];
             const batch = batchData.find(b => b.id === batchId);
             
             // Initialize active subject labs array to track click order
@@ -511,67 +525,84 @@
 
         // Add Batch to Allotment Config
         addBatchToAllotmentBtn.addEventListener('click', () => {
-            const batchId = parseInt(mainBatchSelect.value);
-            if (!batchId) return;
+            const selectedOptions = Array.from(mainBatchSelect.selectedOptions).map(o => parseInt(o.value)).filter(v => !isNaN(v));
+            if (selectedOptions.length === 0) return;
 
-            // Save Deselected Subjects, Slots, Labs, and Configs
-            if(!deselectedSubjects[batchId]) deselectedSubjects[batchId] = new Set();
-            if(!subjectSlots[batchId]) subjectSlots[batchId] = {};
-            if(!subjectLabs[batchId]) subjectLabs[batchId] = {};
-            if(!subjectConfigs[batchId]) subjectConfigs[batchId] = {};
-            
-            deselectedSubjects[batchId].clear();
-            document.querySelectorAll('.batch-sub-cb').forEach(cb => {
-                const sub = cb.value;
-                if (!cb.checked) {
-                    deselectedSubjects[batchId].add(sub);
+            const isSingle = selectedOptions.length === 1;
+
+            selectedOptions.forEach(batchId => {
+                if(!deselectedSubjects[batchId]) deselectedSubjects[batchId] = new Set();
+                if(!subjectSlots[batchId]) subjectSlots[batchId] = {};
+                if(!subjectLabs[batchId]) subjectLabs[batchId] = {};
+                if(!subjectConfigs[batchId]) subjectConfigs[batchId] = {};
+                
+                if (isSingle) {
+                    deselectedSubjects[batchId].clear();
+                    document.querySelectorAll('.batch-sub-cb').forEach(cb => {
+                        const sub = cb.value;
+                        if (!cb.checked) {
+                            deselectedSubjects[batchId].add(sub);
+                        } else {
+                            const slotInput = document.querySelector(`.batch-sub-slots[data-sub="${sub}"]`);
+                            if (slotInput) {
+                                subjectSlots[batchId][sub] = parseInt(slotInput.value) || 1;
+                            }
+                            
+                            const checkedLabs = window.activeSubjectLabs[sub] || [];
+                            subjectLabs[batchId][sub] = checkedLabs;
+                            
+                            const isStrict = document.querySelector(`.batch-sub-strict-cb[data-sub="${sub}"]`)?.checked || false;
+                            const allowSplit = document.querySelector(`.batch-sub-split-cb[data-sub="${sub}"]`)?.checked || false;
+                            const exTimes = Array.from(document.querySelectorAll(`.batch-sub-ex-time-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
+                            
+                            subjectConfigs[batchId][sub] = {
+                                strictPriority: isStrict,
+                                allowSplitLabs: allowSplit,
+                                excludedTimes: exTimes
+                            };
+                        }
+                    });
                 } else {
-                    // find matching slot input
-                    const slotInput = document.querySelector(`.batch-sub-slots[data-sub="${sub}"]`);
-                    if (slotInput) {
-                        subjectSlots[batchId][sub] = parseInt(slotInput.value) || 1;
+                    // For multiple, default subjects to 1 slot and default configs if not already set
+                    const batch = batchData.find(b => b.id === batchId);
+                    if (batch) {
+                        batch.subjects.forEach(subObj => {
+                            const sub = subObj.name;
+                            if (!(sub in subjectSlots[batchId])) subjectSlots[batchId][sub] = 1;
+                            if (!(sub in subjectConfigs[batchId])) {
+                                subjectConfigs[batchId][sub] = {
+                                    strictPriority: false, allowSplitLabs: false, excludedTimes: []
+                                };
+                            }
+                            if (!(sub in subjectLabs[batchId])) {
+                                subjectLabs[batchId][sub] = [];
+                            }
+                        });
                     }
-                    
-                    // retrieve tracked labs which maintains click order
-                    const checkedLabs = window.activeSubjectLabs[sub] || [];
-                    subjectLabs[batchId][sub] = checkedLabs;
-                    
-                    // save configs
-                    const isStrict = document.querySelector(`.batch-sub-strict-cb[data-sub="${sub}"]`)?.checked || false;
-                    const allowSplit = document.querySelector(`.batch-sub-split-cb[data-sub="${sub}"]`)?.checked || false;
-                    const exTimes = Array.from(document.querySelectorAll(`.batch-sub-ex-time-cb[data-sub="${sub}"]:checked`)).map(c => c.value);
-                    
-                    subjectConfigs[batchId][sub] = {
-                        strictPriority: isStrict,
-                        allowSplitLabs: allowSplit,
-                        excludedTimes: exTimes
-                    };
                 }
+
+                // Save Preferred Days
+                const preferredDays = [];
+                document.querySelectorAll('.batch-day-cb').forEach(cb => {
+                    if (cb.checked) preferredDays.push(cb.value);
+                });
+
+                // Save Batch Preferences
+                batchPreferences[batchId] = { 
+                    gap: parseInt(prefBatchGap.value),
+                    preferredDays: preferredDays
+                };
+
+                // Add to configured set
+                selectedBatches.add(batchId);
             });
-
-            // Removed batch-level preferredLabs
-
-            // Save Preferred Days
-            const preferredDays = [];
-            document.querySelectorAll('.batch-day-cb').forEach(cb => {
-                if (cb.checked) preferredDays.push(cb.value);
-            });
-
-            // Save Batch Preferences
-            batchPreferences[batchId] = { 
-                gap: parseInt(prefBatchGap.value),
-                preferredDays: preferredDays
-            };
-
-            // Add to configured set
-            selectedBatches.add(batchId);
 
             // Save and re-render
             saveState();
             renderConfiguredBatches();
 
             // Reset form
-            mainBatchSelect.value = "";
+            Array.from(mainBatchSelect.options).forEach(opt => opt.selected = false);
             mainBatchSelect.dispatchEvent(new Event('change'));
         });
 
