@@ -2562,6 +2562,10 @@ def api_run_auto_lab_allotment(request):
                         non_preferred.append(b)
                 return preferred + non_preferred + [b for b in default_blocks if b in assigned_blocks]
             
+            def get_batch_lab_days(batch_name):
+                entries = SubjectEntry.objects.filter(class_name=batch_name, period=dp, subject_name__isnull=False)
+                return set([e.day for e in entries])
+            
             allocated_for_batch = {batch.id: set() for batch in batches_to_allocate}
             
             for phase in ['strict', 'normal']:
@@ -2627,6 +2631,7 @@ def api_run_auto_lab_allotment(request):
                         s1_ex_times = subject_configs.get(str(batch.id), {}).get(s1, {}).get('excludedTimes', [])
                         s2_ex_times = subject_configs.get(str(batch.id), {}).get(s2, {}).get('excludedTimes', [])
                         
+                        global_batch_lab_days = get_batch_lab_days(batch.name)
                         if has_priority:
                             success = False
                             for l1, l2 in pairs_to_try:
@@ -2638,13 +2643,14 @@ def api_run_auto_lab_allotment(request):
                                     if len(possible_slots) >= slots_needed: break
                                     for day in batch_days:
                                         if len(possible_slots) >= slots_needed: break
-                                        if day in assigned_days_sim: continue
+                                        total_occupied_days = global_batch_lab_days.union(assigned_days_sim)
+                                        if day in total_occupied_days: continue
                                         
-                                        if required_gap == 1 and assigned_days_sim:
+                                        if required_gap == 1 and total_occupied_days:
                                             try:
                                                 day_idx = DAYS.index(day)
                                                 has_conflict = False
-                                                for assigned_day in assigned_days_sim:
+                                                for assigned_day in total_occupied_days:
                                                     assigned_idx = DAYS.index(assigned_day)
                                                     if abs(day_idx - assigned_idx) <= 1:
                                                         has_conflict = True
@@ -2692,13 +2698,14 @@ def api_run_auto_lab_allotment(request):
                                     if len(possible_slots) >= slots_needed: break
                                     for day in batch_days:
                                         if len(possible_slots) >= slots_needed: break
-                                        if day in assigned_days_sim: continue
+                                        total_occupied_days = global_batch_lab_days.union(assigned_days_sim)
+                                        if day in total_occupied_days: continue
                                         
-                                        if required_gap == 1 and assigned_days_sim:
+                                        if required_gap == 1 and total_occupied_days:
                                             try:
                                                 day_idx = DAYS.index(day)
                                                 has_conflict = False
-                                                for assigned_day in assigned_days_sim:
+                                                for assigned_day in total_occupied_days:
                                                     assigned_idx = DAYS.index(assigned_day)
                                                     if abs(day_idx - assigned_idx) <= 1:
                                                         has_conflict = True
@@ -2758,6 +2765,7 @@ def api_run_auto_lab_allotment(request):
                     has_priority = len(pref_labs) > 0 and not allow_split
                     
                     if has_priority:
+                        global_batch_lab_days = get_batch_lab_days(batch.name)
                         success = False
                         for target_lab in labs_to_check:
                             possible_slots = []
@@ -2768,13 +2776,14 @@ def api_run_auto_lab_allotment(request):
                                 if len(possible_slots) >= slots_needed: break
                                 for day in batch_days:
                                     if len(possible_slots) >= slots_needed: break
-                                    if day in assigned_days_sim: continue
+                                    total_occupied_days = global_batch_lab_days.union(assigned_days_sim)
+                                    if day in total_occupied_days: continue
                                     
-                                    if required_gap == 1 and assigned_days_sim:
+                                    if required_gap == 1 and total_occupied_days:
                                         try:
                                             day_idx = DAYS.index(day)
                                             has_conflict = False
-                                            for assigned_day in assigned_days_sim:
+                                            for assigned_day in total_occupied_days:
                                                 assigned_idx = DAYS.index(assigned_day)
                                                 if abs(day_idx - assigned_idx) <= 1:
                                                     has_conflict = True
@@ -2811,6 +2820,7 @@ def api_run_auto_lab_allotment(request):
                         if not success:
                             unallocated.append(f"{batch.name} - {sub} (only got 0/{slots_needed} slots)")
                     else:
+                        global_batch_lab_days = get_batch_lab_days(batch.name)
                         possible_slots = []
                         assigned_days_sim = set()
                         assigned_blocks_sim = set()
@@ -2821,13 +2831,14 @@ def api_run_auto_lab_allotment(request):
                                 if len(possible_slots) >= slots_needed: break
                                 for day in batch_days:
                                     if len(possible_slots) >= slots_needed: break
-                                    if day in assigned_days_sim: continue
+                                    total_occupied_days = global_batch_lab_days.union(assigned_days_sim)
+                                    if day in total_occupied_days: continue
                                     
-                                    if required_gap == 1 and assigned_days_sim:
+                                    if required_gap == 1 and total_occupied_days:
                                         try:
                                             day_idx = DAYS.index(day)
                                             has_conflict = False
-                                            for assigned_day in assigned_days_sim:
+                                            for assigned_day in total_occupied_days:
                                                 assigned_idx = DAYS.index(assigned_day)
                                                 if abs(day_idx - assigned_idx) <= 1:
                                                     has_conflict = True
