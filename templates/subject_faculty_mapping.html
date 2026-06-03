@@ -69,7 +69,7 @@
             <td>
                 <input type="text"
                        name="faculty_{{ sub.id }}"
-                       value="{{ mapping.sub.id.faculty_names|default:'' }}">
+                       value="{{ sub.faculty_names }}">
             </td>
         </tr>
         {% endfor %}

@@ -1958,16 +1958,14 @@ def subject_faculty_mapping(request):
     dp = get_current_period(request)
     subjects = SubjectEntry.objects.filter(period=dp).order_by("class_name", "subject_name", "id")
 
-    # Load existing mappings
-    mapping = {m.subject_id: m for m in SubjectFacultyMap.objects.filter(period=dp)}
-
     if request.method == "POST":
         for sub in subjects:
             field_name = f"faculty_{sub.id}"
             faculty_val = request.POST.get(field_name, "").strip()
 
             if faculty_val == "":
-                continue  # skip empty
+                SubjectFacultyMap.objects.filter(subject=sub, period=dp).delete()
+                continue
 
             # update OR create
             obj, created = SubjectFacultyMap.objects.update_or_create(
@@ -1979,9 +1977,13 @@ def subject_faculty_mapping(request):
         messages.success(request, "Faculty mapping updated successfully.")
         return redirect("subject_faculty_mapping")
 
+    # Load existing mappings
+    mapping = {m.subject_id: m for m in SubjectFacultyMap.objects.filter(period=dp)}
+    for sub in subjects:
+        sub.faculty_names = mapping.get(sub.id).faculty_names if sub.id in mapping else ""
+
     return render(request, "subject_faculty_mapping.html", {
-        "subjects": subjects,
-        "mapping": mapping
+        "subjects": subjects
     })
 
 #for calculate and download workload
