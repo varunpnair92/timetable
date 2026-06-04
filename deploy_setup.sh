@@ -9,7 +9,7 @@ PROJECT_NAME="timetable"
 APP_NAME="fisatlab"
 DB_NAME="fisatdb"
 DB_USER="fisat"
-DB_PASS="pwdfisat"
+DB_PASS="vinayaka"
 
 # The system user that will run the app
 USER="varun"
@@ -28,7 +28,7 @@ sudo apt install -y python3-pip python3-venv python3-dev libpq-dev postgresql po
 # 2. Set up PostgreSQL Database
 echo ">>> Configuring PostgreSQL Database..."
 sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" || echo "Database already exists"
-sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" || echo "User already exists"
+sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" || sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
 sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
@@ -76,7 +76,7 @@ EOF
 
 # 6. Nginx Configuration
 echo ">>> Creating Nginx server block..."
-SERVER_IP=\$(curl -s http://checkip.amazonaws.com)
+SERVER_IP="13.61.176.252"
 
 sudo tee /etc/nginx/sites-available/$PROJECT_NAME > /dev/null <<EOF
 server {
