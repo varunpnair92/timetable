@@ -2167,6 +2167,13 @@ def manage_batches(request):
                     sem.save()
                 except Semester.DoesNotExist:
                     pass
+        elif action == "delete_semester":
+            sem_id = request.POST.get('semester_id')
+            if sem_id:
+                try:
+                    Semester.objects.get(id=sem_id).delete()
+                except Semester.DoesNotExist:
+                    pass
         elif action == "delete_batch":
             batch_id = request.POST.get('batch_id')
             if batch_id:
