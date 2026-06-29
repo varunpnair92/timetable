@@ -89,7 +89,7 @@ DATABASES = {
         'NAME': 'pscdb',  # Your database name
         'USER': 'psc',  # Your database user
         'PASSWORD': 'psc',  # Your database password
-        'HOST': 'localhost',  # Set to empty string for localhost
+        'HOST': '13.61.176.252',  # Set to empty string for localhost
         'PORT': '',  # Set to empty string for default
     }
 }

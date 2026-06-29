@@ -246,10 +246,7 @@ def allocate_staff(request):
 
 def get_day_labels(day, layout_type):
     if layout_type == 'new':
-        if day == 'F':
-            return ["1", "2", "3", "4", "5", "LB", "6"]
-        else:
-            return ["1", "2", "3", "4", "5", "6"]
+        return ["1", "2", "3", "4", "5", "6"]
     else:
         return ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
 
@@ -792,8 +789,8 @@ def timetableexcel(request):
     day_map = {"M":"Mon","T":"Tue","W":"Wed","Th":"Thu","F":"Fri"}
 
     if layout_type == 'new':
-        hours = ["H1", "H2", "H3", "H4", "H5", "H6", "H6(f)"]
-        last_col = "H"
+        hours = ["H1", "H2", "H3", "H4", "H5", "H6"]
+        last_col = "G"
     else:
         hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
         last_col = "I"
@@ -981,7 +978,7 @@ def timetableexcel_combined(request):
     day_map = {"M":"Mon","T":"Tue","W":"Wed","Th":"Thu","F":"Fri"}
 
     if layout_type == 'new':
-        hours = ["H1", "H2", "H3", "H4", "H5", "H6", "H6(f)"]
+        hours = ["H1", "H2", "H3", "H4", "H5", "H6"]
     else:
         hours = ["H1", "H2", "H3", "H4", "LB", "H5", "H6", "H7"]
 

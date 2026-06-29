@@ -84,7 +84,6 @@
                             <th>H4</th>
                             <th>H5</th>
                             <th>H6</th>
-                            <th>H6(f)</th>
                             {% else %}
                             <th>H1</th>
                             <th>H2</th>
@@ -112,9 +111,6 @@
                                     <td></td>
                                 {% endif %}
                             {% endfor %}
-                            {% if layout_type == 'new' %}
-                            <td></td>
-                            {% endif %}
                         </tr>
 
                         <!-- TUESDAY -->
@@ -130,9 +126,6 @@
                                     <td></td>
                                 {% endif %}
                             {% endfor %}
-                            {% if layout_type == 'new' %}
-                            <td></td>
-                            {% endif %}
                         </tr>
 
                         <!-- WEDNESDAY -->
@@ -148,9 +141,6 @@
                                     <td></td>
                                 {% endif %}
                             {% endfor %}
-                            {% if layout_type == 'new' %}
-                            <td></td>
-                            {% endif %}
                         </tr>
 
                         <!-- THURSDAY -->
@@ -166,18 +156,13 @@
                                     <td></td>
                                 {% endif %}
                             {% endfor %}
-                            {% if layout_type == 'new' %}
-                            <td></td>
-                            {% endif %}
                         </tr>
 
                         <!-- FRIDAY -->
                         <tr>
                             <th>Fri</th>
                             {% for cell in data.timetable_slots.4 %}
-                                {% if layout_type == 'new' and cell.hour_label == 'LB' %}
-                                    <td style="background-color: black !important; color: white; text-align: center; font-weight: bold; vertical-align: middle;">LB</td>
-                                {% elif cell.subject %}
+                                {% if cell.subject %}
                                     <td colspan="{{ cell.colspan }}">
                                         <div class="subject">{{ cell.subject }}</div>
                                         <div class="class-name"><strong>{{ cell.lab }} - {{ cell.class_name }}</strong></div>
