@@ -10,7 +10,7 @@ class Semester(models.Model):
         max_length=20,
         choices=[
             ('classic', 'Classic (8 Hours)'),
-            ('new', 'New (6 Hours / Friday 7 Hours)')
+            ('new', 'New (6 Hours)')
         ],
         default='classic'
     )
