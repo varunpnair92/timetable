@@ -522,6 +522,55 @@
             line-height: 1.5;
         }
 
+        /* Editor Table Styling */
+        .editor-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            background: white;
+        }
+        .editor-table th, .editor-table td {
+            border: 1px solid var(--border-color);
+            padding: 6px 8px;
+            font-size: 0.9rem;
+        }
+        .editor-table th {
+            background-color: var(--bg-color);
+            font-weight: 600;
+        }
+        .editor-table-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 2px 0;
+            box-sizing: border-box;
+        }
+        .editor-table-input:focus {
+            background-color: var(--primary-light);
+        }
+        .table-btn-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .table-ctrl-action-btn {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .table-ctrl-action-btn:hover {
+            background: var(--border-color);
+        }
+
+
         .block-controls {
             display: flex;
             gap: 4px;
@@ -858,6 +907,28 @@
             font-weight: 600;
             color: var(--text-main);
         }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        .preview-table th, .preview-table td {
+            border: 1px solid #1e293b;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .preview-table th {
+            background-color: #f8fafc;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+        .preview-table td {
+            text-align: left;
+        }
+
 
         /* Print styles */
         @media print {
@@ -1158,6 +1229,7 @@
                                     <option value="h4">Heading 4</option>
                                     <option value="bullet">Bullet List</option>
                                     <option value="number">Numbered List</option>
+                                    <option value="table">Table</option>
                                 </select>
                             </div>
                         </div>
@@ -1493,107 +1565,212 @@
                 <option value="h4" ${block.type === 'h4' ? 'selected' : ''}>Heading 4</option>
                 <option value="bullet" ${block.type === 'bullet' ? 'selected' : ''}>Bullet List</option>
                 <option value="number" ${block.type === 'number' ? 'selected' : ''}>Numbered List</option>
+                <option value="table" ${block.type === 'table' ? 'selected' : ''}>Table</option>
             `;
             select.onchange = (e) => {
                 blocks[index].type = e.target.value;
                 row.className = `editor-block-row block-type-${e.target.value}`;
-                textarea.className = `block-textarea editor-${e.target.value}`;
-                updateHiddenContentJSON();
+                renderEditorBlocks();
             };
 
-            // Textarea wrapper
+            // Textarea wrapper or Table editor wrapper
             const wrapper = document.createElement('div');
             wrapper.className = 'block-textarea-wrapper';
             
-            const textarea = document.createElement('textarea');
-            textarea.className = `block-textarea editor-${block.type}`;
-            textarea.value = block.text;
-            textarea.placeholder = "Start typing content...";
-            textarea.rows = 1;
-            textarea.setAttribute('data-index', index);
-            
-            // Auto grow
-            textarea.oninput = (e) => {
-                blocks[index].text = e.target.value;
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-                updateHiddenContentJSON();
-            };
-
-            // Smart Keydown handler (Google Docs behavior)
-            textarea.onkeydown = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    
-                    const trimmedText = textarea.value.trim();
-                    if (!trimmedText && (block.type === 'bullet' || block.type === 'number')) {
-                        // Hitting Enter on an empty list item reverts it back to a normal Body paragraph
-                        blocks[index].type = 'body';
-                        focusIndex = index;
-                        renderEditorBlocks();
-                    } else {
-                        // Standard enter inserts a new block of the same type (or body if heading)
-                        let newType = 'body';
-                        if (block.type === 'bullet' || block.type === 'number') {
-                            newType = block.type;
-                        }
-                        blocks.splice(index + 1, 0, { type: newType, text: '' });
-                        focusIndex = index + 1;
-                        renderEditorBlocks();
-                    }
-                } else if (e.key === 'Backspace' && !textarea.value && blocks.length > 1) {
-                    e.preventDefault();
-                    blocks.splice(index, 1);
-                    focusIndex = Math.max(0, index - 1);
+            if (block.type === 'table') {
+                block.headers = block.headers || ['SL NO', 'NAME OF THE ITEMS', 'DETAILED CONFIGURATION'];
+                block.rows = block.rows || [['1', '', '']];
+                
+                const tableContainer = document.createElement('div');
+                tableContainer.style.width = '100%';
+                
+                // Add column/row controller buttons
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'table-btn-group';
+                
+                const addColBtn = document.createElement('button');
+                addColBtn.type = 'button';
+                addColBtn.className = 'table-ctrl-action-btn';
+                addColBtn.textContent = '+ Col';
+                addColBtn.onclick = () => {
+                    block.headers.push(`Header ${block.headers.length + 1}`);
+                    block.rows.forEach(r => r.push(''));
                     renderEditorBlocks();
-                }
-            };
-
-            // Smart Paste handler to parse multi-line text blocks automatically
-            textarea.onpaste = (e) => {
-                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                if (pastedText.includes('\n')) {
-                    e.preventDefault();
-                    
-                    const lines = pastedText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-                    if (lines.length === 0) return;
-                    
-                    // Helper to clean up bullet/number prefixes
-                    function cleanLineText(type, text) {
-                        let t = text.trim();
-                        if (type === 'bullet') {
-                            t = t.replace(/^[\-\*\u2022\u25CF\u25CB\u25AA]\s+/, '');
-                        } else if (type === 'number') {
-                            t = t.replace(/^\d+[\.\)]\s+/, '');
-                        }
-                        return t;
+                };
+                
+                const removeColBtn = document.createElement('button');
+                removeColBtn.type = 'button';
+                removeColBtn.className = 'table-ctrl-action-btn';
+                removeColBtn.textContent = '- Col';
+                removeColBtn.onclick = () => {
+                    if (block.headers.length > 1) {
+                        block.headers.pop();
+                        block.rows.forEach(r => r.pop());
+                        renderEditorBlocks();
                     }
-                    
-                    const firstType = detectBlockType(lines[0], index === 0);
-                    blocks[index].type = firstType;
-                    blocks[index].text = cleanLineText(firstType, lines[0]);
-                    
-                    // Add subsequent lines as individual blocks
-                    const newBlocks = lines.slice(1).map((line) => {
-                        const type = detectBlockType(line, false);
-                        return {
-                            type: type,
-                            text: cleanLineText(type, line)
+                };
+                
+                const addRowBtn = document.createElement('button');
+                addRowBtn.type = 'button';
+                addRowBtn.className = 'table-ctrl-action-btn';
+                addRowBtn.textContent = '+ Row';
+                addRowBtn.onclick = () => {
+                    block.rows.push(Array(block.headers.length).fill(''));
+                    renderEditorBlocks();
+                };
+                
+                const removeRowBtn = document.createElement('button');
+                removeRowBtn.type = 'button';
+                removeRowBtn.className = 'table-ctrl-action-btn';
+                removeRowBtn.textContent = '- Row';
+                removeRowBtn.onclick = () => {
+                    if (block.rows.length > 1) {
+                        block.rows.pop();
+                        renderEditorBlocks();
+                    }
+                };
+                
+                btnGroup.appendChild(addColBtn);
+                btnGroup.appendChild(removeColBtn);
+                btnGroup.appendChild(addRowBtn);
+                btnGroup.appendChild(removeRowBtn);
+                tableContainer.appendChild(btnGroup);
+                
+                // Construct Grid Table
+                const table = document.createElement('table');
+                table.className = 'editor-table';
+                
+                // Header inputs
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                block.headers.forEach((hdr, colIndex) => {
+                    const th = document.createElement('th');
+                    const input = document.createElement('input');
+                    input.className = 'editor-table-input';
+                    input.value = hdr;
+                    input.oninput = (e) => {
+                        block.headers[colIndex] = e.target.value;
+                        updateHiddenContentJSON();
+                    };
+                    th.appendChild(input);
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // Body cell inputs
+                const tbody = document.createElement('tbody');
+                block.rows.forEach((rowArr, rowIndex) => {
+                    const tr = document.createElement('tr');
+                    rowArr.forEach((cellVal, colIndex) => {
+                        const td = document.createElement('td');
+                        const input = document.createElement('input');
+                        input.className = 'editor-table-input';
+                        input.value = cellVal;
+                        input.oninput = (e) => {
+                            block.rows[rowIndex][colIndex] = e.target.value;
+                            updateHiddenContentJSON();
                         };
+                        td.appendChild(input);
+                        tr.appendChild(td);
                     });
-                    
-                    blocks.splice(index + 1, 0, ...newBlocks);
-                    renderEditorBlocks();
-                }
-            };
-            
-            // Initialize height
-            setTimeout(() => {
-                textarea.style.height = 'auto';
-                textarea.style.height = textarea.scrollHeight + 'px';
-            }, 0);
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                
+                tableContainer.appendChild(table);
+                wrapper.appendChild(tableContainer);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.className = `block-textarea editor-${block.type}`;
+                textarea.value = block.text;
+                textarea.placeholder = "Start typing content...";
+                textarea.rows = 1;
+                textarea.setAttribute('data-index', index);
+                
+                // Auto grow
+                textarea.oninput = (e) => {
+                    blocks[index].text = e.target.value;
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                    updateHiddenContentJSON();
+                };
 
-            wrapper.appendChild(textarea);
+                // Smart Keydown handler (Google Docs behavior)
+                textarea.onkeydown = (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        
+                        const trimmedText = textarea.value.trim();
+                        if (!trimmedText && (block.type === 'bullet' || block.type === 'number')) {
+                            // Hitting Enter on an empty list item reverts it back to a normal Body paragraph
+                            blocks[index].type = 'body';
+                            focusIndex = index;
+                            renderEditorBlocks();
+                        } else {
+                            // Standard enter inserts a new block of the same type (or body if heading)
+                            let newType = 'body';
+                            if (block.type === 'bullet' || block.type === 'number') {
+                                newType = block.type;
+                            }
+                            blocks.splice(index + 1, 0, { type: newType, text: '' });
+                            focusIndex = index + 1;
+                            renderEditorBlocks();
+                        }
+                    } else if (e.key === 'Backspace' && !textarea.value && blocks.length > 1) {
+                        e.preventDefault();
+                        blocks.splice(index, 1);
+                        focusIndex = Math.max(0, index - 1);
+                        renderEditorBlocks();
+                    }
+                };
+
+                // Smart Paste handler to parse multi-line text blocks automatically
+                textarea.onpaste = (e) => {
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    if (pastedText.includes('\n')) {
+                        e.preventDefault();
+                        
+                        const lines = pastedText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                        if (lines.length === 0) return;
+                        
+                        // Helper to clean up bullet/number prefixes
+                        function cleanLineText(type, text) {
+                            let t = text.trim();
+                            if (type === 'bullet') {
+                                t = t.replace(/^[\-\*\u2022\u25CF\u25CB\u25AA]\s+/, '');
+                            } else if (type === 'number') {
+                                t = t.replace(/^\d+[\.\)]\s+/, '');
+                            }
+                            return t;
+                        }
+                        
+                        const firstType = detectBlockType(lines[0], index === 0);
+                        blocks[index].type = firstType;
+                        blocks[index].text = cleanLineText(firstType, lines[0]);
+                        
+                        // Add subsequent lines as individual blocks
+                        const newBlocks = lines.slice(1).map((line) => {
+                            const type = detectBlockType(line, false);
+                            return {
+                                type: type,
+                                text: cleanLineText(type, line)
+                            };
+                        });
+                        
+                        blocks.splice(index + 1, 0, ...newBlocks);
+                        renderEditorBlocks();
+                    }
+                };
+                
+                // Initialize height
+                setTimeout(() => {
+                    textarea.style.height = 'auto';
+                    textarea.style.height = textarea.scrollHeight + 'px';
+                }, 0);
+
+                wrapper.appendChild(textarea);
+            }
 
             // Controls
             const controls = document.createElement('div');
@@ -1749,10 +1926,42 @@
         // Body content
         const bodyContent = document.createElement('div');
         docBlocks.forEach(block => {
-            const el = document.createElement(block.type === 'body' ? 'p' : block.type);
-            el.className = `preview-${block.type}`;
-            el.textContent = block.text;
-            bodyContent.appendChild(el);
+            if (block.type === 'table') {
+                const table = document.createElement('table');
+                table.className = 'preview-table';
+                
+                if (block.headers && block.headers.length) {
+                    const thead = document.createElement('thead');
+                    const tr = document.createElement('tr');
+                    block.headers.forEach(hdr => {
+                        const th = document.createElement('th');
+                        th.textContent = hdr;
+                        tr.appendChild(th);
+                    });
+                    thead.appendChild(tr);
+                    table.appendChild(thead);
+                }
+                
+                if (block.rows && block.rows.length) {
+                    const tbody = document.createElement('tbody');
+                    block.rows.forEach(rowArr => {
+                        const tr = document.createElement('tr');
+                        rowArr.forEach(cell => {
+                            const td = document.createElement('td');
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+                    table.appendChild(tbody);
+                }
+                bodyContent.appendChild(table);
+            } else {
+                const el = document.createElement(block.type === 'body' ? 'p' : (['h2','h3','h4','bullet','number'].includes(block.type) ? 'div' : block.type));
+                el.className = `preview-${block.type}`;
+                el.textContent = block.text;
+                bodyContent.appendChild(el);
+            }
         });
         paper.appendChild(bodyContent);
 
