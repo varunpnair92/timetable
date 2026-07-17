@@ -1094,6 +1094,31 @@
                 </p>
                 <form action="{% url 'create_document' %}" method="POST" id="createDocForm">
                     {% csrf_token %}
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="flex-grow: 1; margin-bottom: 0;">
+                            <label for="create_doc_category">Document Category</label>
+                            <select id="create_doc_category" name="category_id" class="form-input" style="width: 100%; height: 41px;">
+                                <option value="">-- No Category --</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" class="btn-action" onclick="toggleAddCategoryForm('create-cat-container')" style="height: 41px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: var(--radius-md); font-weight:600; white-space: nowrap;">
+                            ➕ Add Category
+                        </button>
+                    </div>
+
+                    <!-- Inline Category Creation Form -->
+                    <div id="create-cat-container" style="display: none; background: var(--bg-color); border: 1px solid var(--border-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; animation: fadeIn 0.3s ease;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight:700;">Add New Category</h4>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="new-cat-name-create" placeholder="Category Name (e.g. Lab Safety)" class="form-input" style="flex-grow: 1; height: 38px; padding: 6px 12px;">
+                            <button type="button" class="btn-action btn-action-preview" onclick="submitNewCategory('new-cat-name-create')" style="height: 38px; padding: 0 16px;">Save</button>
+                            <button type="button" class="btn-action" onclick="toggleAddCategoryForm('create-cat-container')" style="height: 38px; padding: 0 16px;">Cancel</button>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="create_doc_name">Document Name</label>
                         <input type="text" id="create_doc_name" name="name" required class="form-input" placeholder="e.g. CCF Lab 1 Details">
@@ -1150,6 +1175,31 @@
                 </p>
                 <form action="{% url 'upload_document' %}" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="flex-grow: 1; margin-bottom: 0;">
+                            <label for="upload_doc_category">Document Category</label>
+                            <select id="upload_doc_category" name="category_id" class="form-input" style="width: 100%; height: 41px;">
+                                <option value="">-- No Category --</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" class="btn-action" onclick="toggleAddCategoryForm('upload-cat-container')" style="height: 41px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: var(--radius-md); font-weight:600; white-space: nowrap;">
+                            ➕ Add Category
+                        </button>
+                    </div>
+
+                    <!-- Inline Category Creation Form -->
+                    <div id="upload-cat-container" style="display: none; background: var(--bg-color); border: 1px solid var(--border-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; animation: fadeIn 0.3s ease;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight:700;">Add New Category</h4>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="new-cat-name-upload" placeholder="Category Name (e.g. Lab Safety)" class="form-input" style="flex-grow: 1; height: 38px; padding: 6px 12px;">
+                            <button type="button" class="btn-action btn-action-preview" onclick="submitNewCategory('new-cat-name-upload')" style="height: 38px; padding: 0 16px;">Save</button>
+                            <button type="button" class="btn-action" onclick="toggleAddCategoryForm('upload-cat-container')" style="height: 38px; padding: 0 16px;">Cancel</button>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="upload_doc_name">Document Title / Name</label>
                         <input type="text" id="upload_doc_name" name="name" required class="form-input" placeholder="e.g. Lab 1 Layout Blueprint">
@@ -1174,10 +1224,22 @@
     <!-- TAB 3: Document Repository -->
     <div id="repository-pane" class="tab-pane">
         <div class="repo-controls">
-            <div class="search-input-wrapper">
+             <div class="search-input-wrapper">
                 <span class="search-icon">🔍</span>
                 <input type="text" id="repo-search" onkeyup="filterRepoTable()" placeholder="Search documents by name..." class="repo-search-input">
-            </div>
+             </div>
+             
+             <!-- Category Filter dropdown -->
+             <div style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 6px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+                 <label for="repo-category-filter" style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); white-space: nowrap;">Category Filter:</label>
+                 <select id="repo-category-filter" onchange="filterRepoTable()" class="repo-search-input" style="width: 180px; padding: 4px; height: 32px; border-radius: 4px; border: 1px solid var(--border-color); outline:none;">
+                     <option value="ALL">-- All Categories --</option>
+                     <option value="NONE">-- No Category --</option>
+                     {% for cat in categories %}
+                     <option value="{{ cat.name }}">{{ cat.name }}</option>
+                     {% endfor %}
+                 </select>
+             </div>
         </div>
 
         <div class="table-container">
@@ -1185,6 +1247,7 @@
                 <thead>
                     <tr>
                         <th>Document Name</th>
+                        <th>Category</th>
                         <th>Type</th>
                         <th>Date Added</th>
                         <th style="text-align: right;">Actions</th>
@@ -1192,8 +1255,15 @@
                 </thead>
                 <tbody>
                     {% for doc in documents %}
-                    <tr class="doc-row">
+                    <tr class="doc-row" data-category="{% if doc.category %}{{ doc.category.name }}{% else %}NONE{% endif %}">
                         <td class="doc-name-cell" style="font-weight: 600;">{{ doc.name }}</td>
+                        <td class="doc-category-cell" style="font-weight: 500; color: var(--text-main);">
+                            {% if doc.category %}
+                            {{ doc.category.name }}
+                            {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">None</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if doc.doc_type == 'uploaded' %}
                             <span class="doc-badge badge-upload">Uploaded File</span>
@@ -1223,7 +1293,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
                             No documents found. Create or upload a document to get started.
                         </td>
                     </tr>
@@ -1284,22 +1354,73 @@
         }
     }
 
-    // Datatable filtering
+    // Datatable filtering by search and category
     function filterRepoTable() {
         const query = document.getElementById('repo-search').value.toLowerCase();
+        const categoryFilter = document.getElementById('repo-category-filter').value;
         const rows = document.querySelectorAll('#documentTable tbody .doc-row');
         
         rows.forEach(row => {
             const nameCell = row.querySelector('.doc-name-cell');
+            const rowCat = row.getAttribute('data-category');
+            
+            let matchesSearch = false;
             if (nameCell) {
-                const nameText = nameCell.textContent.toLowerCase();
-                if (nameText.includes(query)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                matchesSearch = nameCell.textContent.toLowerCase().includes(query);
+            }
+            
+            let matchesCategory = false;
+            if (categoryFilter === 'ALL') {
+                matchesCategory = true;
+            } else if (categoryFilter === 'NONE') {
+                matchesCategory = (rowCat === 'NONE');
+            } else {
+                matchesCategory = (rowCat === categoryFilter);
+            }
+            
+            if (matchesSearch && matchesCategory) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
             }
         });
+    }
+
+    function toggleAddCategoryForm(containerId) {
+        const container = document.getElementById(containerId);
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function submitNewCategory(inputId) {
+        const catName = document.getElementById(inputId).value.trim();
+        if (!catName) {
+            alert("Category name cannot be empty.");
+            return;
+        }
+        
+        // Create form programmatically to POST the request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'create_category' %}";
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'hidden';
+        nameInput.name = 'category_name';
+        nameInput.value = catName;
+        form.appendChild(nameInput);
+        
+        document.body.appendChild(form);
+        form.submit();
     }
 
     // --- Block-based Editor Javascript ---

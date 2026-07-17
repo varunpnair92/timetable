@@ -1484,7 +1484,7 @@ def logout_view(request):
 
 @login_required
 def dashboard_view(request):
-    from .models import Document
+    from .models import Document, DocumentCategory
     semesters = Semester.objects.all().order_by('name')
     active_sem = semesters.filter(is_active=True).first()
     
@@ -1494,13 +1494,16 @@ def dashboard_view(request):
     current_view_sem = request.session.get('selected_period')
     
     documents = Document.objects.filter(user=request.user).order_by('-created_at')
+    categories = DocumentCategory.objects.all().order_by('name')
     
     return render(request, "dashboard.html", {
         "semesters": semesters,
         "active_sem": active_sem,
         "current_view_sem": current_view_sem,
-        "documents": documents
+        "documents": documents,
+        "categories": categories
     })
+
 
 
 
@@ -2928,15 +2931,25 @@ def api_clear_all_allotments(request):
 
 @login_required
 def upload_document_view(request):
-    from .models import Document
+    from .models import Document, DocumentCategory
     if request.method == "POST":
         name = request.POST.get("name")
         uploaded_file = request.FILES.get("uploaded_file")
+        category_id = request.POST.get("category_id")
+        
+        category = None
+        if category_id:
+            try:
+                category = DocumentCategory.objects.get(id=category_id)
+            except DocumentCategory.DoesNotExist:
+                pass
+                
         if name and uploaded_file:
             doc = Document(
                 name=name,
                 doc_type="uploaded",
                 uploaded_file=uploaded_file,
+                category=category,
                 user=request.user
             )
             doc.save()
@@ -2947,15 +2960,25 @@ def upload_document_view(request):
 
 @login_required
 def create_document_view(request):
-    from .models import Document
+    from .models import Document, DocumentCategory
     if request.method == "POST":
         name = request.POST.get("name")
         content_json = request.POST.get("content_json")
+        category_id = request.POST.get("category_id")
+        
+        category = None
+        if category_id:
+            try:
+                category = DocumentCategory.objects.get(id=category_id)
+            except DocumentCategory.DoesNotExist:
+                pass
+                
         if name and content_json:
             doc = Document(
                 name=name,
                 doc_type="created",
                 content_json=content_json,
+                category=category,
                 user=request.user
             )
             doc.save()
@@ -2974,5 +2997,21 @@ def delete_document_view(request, doc_id):
             os.remove(doc.uploaded_file.path)
     doc.delete()
     messages.success(request, f"Document '{name}' deleted successfully!")
+    return redirect("dashboard")
+
+@login_required
+def create_category_view(request):
+    from .models import DocumentCategory
+    if request.method == "POST":
+        name = request.POST.get("category_name")
+        if name:
+            name_clean = name.strip()
+            if name_clean:
+                DocumentCategory.objects.get_or_create(name=name_clean)
+                messages.success(request, f"Category '{name_clean}' created successfully!")
+            else:
+                messages.error(request, "Category name cannot be empty.")
+        else:
+            messages.error(request, "Failed to create category.")
     return redirect("dashboard")
 
