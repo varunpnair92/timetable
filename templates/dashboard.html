@@ -1119,10 +1119,23 @@
                             <!-- JS will load blocks here -->
                         </div>
 
-                        <!-- Add block button -->
-                        <button type="button" class="add-block-btn" onclick="addNewBlock()">
-                            <span>➕</span> Add New Line / Paragraph
-                        </button>
+                        <!-- Add block button with Style selector -->
+                        <div style="display: flex; gap: 12px; margin-top: 16px; align-items: center; flex-wrap: wrap;">
+                            <button type="button" class="add-block-btn" onclick="addNewBlock()" style="margin-top:0; flex-grow: 1;">
+                                <span>➕</span> Add New Line / Paragraph
+                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-color); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <label for="default-block-type" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">Next Line Style:</label>
+                                <select id="default-block-type" class="block-type-select" style="width: 120px; border-radius: 4px; padding: 4px;">
+                                    <option value="body">Body</option>
+                                    <option value="h2">Heading 2</option>
+                                    <option value="h3">Heading 3</option>
+                                    <option value="h4">Heading 4</option>
+                                    <option value="bullet">Bullet List</option>
+                                    <option value="number">Numbered List</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="submit-btn" style="margin-top: 10px;">Save and Create Document</button>
@@ -1339,6 +1352,8 @@
         document.getElementById('created-content-json').value = JSON.stringify(blocks);
     }
 
+    let focusIndex = null;
+
     function renderEditorBlocks() {
         const container = document.getElementById('editor-blocks-list');
         container.innerHTML = '';
@@ -1374,6 +1389,7 @@
             textarea.value = block.text;
             textarea.placeholder = "Start typing content...";
             textarea.rows = 1;
+            textarea.setAttribute('data-index', index);
             
             // Auto grow
             textarea.oninput = (e) => {
@@ -1381,6 +1397,35 @@
                 e.target.style.height = 'auto';
                 e.target.style.height = e.target.scrollHeight + 'px';
                 updateHiddenContentJSON();
+            };
+
+            // Smart Keydown handler (Google Docs behavior)
+            textarea.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    
+                    const trimmedText = textarea.value.trim();
+                    if (!trimmedText && (block.type === 'bullet' || block.type === 'number')) {
+                        // Hitting Enter on an empty list item reverts it back to a normal Body paragraph
+                        blocks[index].type = 'body';
+                        focusIndex = index;
+                        renderEditorBlocks();
+                    } else {
+                        // Standard enter inserts a new block of the same type (or body if heading)
+                        let newType = 'body';
+                        if (block.type === 'bullet' || block.type === 'number') {
+                            newType = block.type;
+                        }
+                        blocks.splice(index + 1, 0, { type: newType, text: '' });
+                        focusIndex = index + 1;
+                        renderEditorBlocks();
+                    }
+                } else if (e.key === 'Backspace' && !textarea.value && blocks.length > 1) {
+                    e.preventDefault();
+                    blocks.splice(index, 1);
+                    focusIndex = Math.max(0, index - 1);
+                    renderEditorBlocks();
+                }
             };
 
             // Smart Paste handler to parse multi-line text blocks automatically
@@ -1485,10 +1530,22 @@
         });
         
         updateHiddenContentJSON();
+
+        // Focus restoration
+        if (focusIndex !== null) {
+            const el = container.querySelector(`textarea[data-index="${focusIndex}"]`);
+            if (el) {
+                el.focus();
+                el.selectionStart = el.selectionEnd = el.value.length;
+            }
+            focusIndex = null;
+        }
     }
 
     function addNewBlock() {
-        blocks.push({ type: 'body', text: '' });
+        const nextType = document.getElementById('default-block-type').value || 'body';
+        blocks.push({ type: nextType, text: '' });
+        focusIndex = blocks.length - 1;
         renderEditorBlocks();
     }
 
