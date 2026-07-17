@@ -1369,9 +1369,15 @@
                         <td style="text-align: right;">
                             <div class="table-actions">
                                 {% if doc.doc_type == 'uploaded' %}
-                                <button type="button" class="btn-action btn-action-preview" onclick="previewUploadedFile('{{ doc.name }}', '{{ doc.uploaded_file.url }}')">
-                                    Preview
-                                </button>
+                                    {% if doc.uploaded_file %}
+                                    <button type="button" class="btn-action btn-action-preview" onclick="previewUploadedFile('{{ doc.name }}', '{{ doc.uploaded_file.url }}')">
+                                        Preview
+                                    </button>
+                                    {% else %}
+                                    <button type="button" class="btn-action" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                        No File
+                                    </button>
+                                    {% endif %}
                                 {% else %}
                                 <button type="button" class="btn-action btn-action-preview" onclick="previewCreatedDoc('{{ doc.name }}', '{{ doc.content_json|escapejs }}')">
                                     Preview
@@ -2000,7 +2006,14 @@
         modalBody.innerHTML = '';
         printBtn.style.display = 'none';
 
-        const ext = url.split('.').pop().toLowerCase();
+        if (!url) {
+            modalBody.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--danger); font-weight: 600;">No file associated with this document record.</div>`;
+            modal.style.display = 'flex';
+            return;
+        }
+
+        const cleanUrl = url.split('?')[0].split('#')[0];
+        const ext = cleanUrl.split('.').pop().toLowerCase();
         if (['png', 'jpg', 'jpeg'].includes(ext)) {
             // Render Image
             const img = document.createElement('img');
