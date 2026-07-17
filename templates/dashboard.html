@@ -1406,9 +1406,15 @@
         <div class="modal-body" id="modalBody">
             <!-- Content will be injected by JavaScript -->
         </div>
-        <div class="modal-footer">
-            <button type="button" class="modal-btn" onclick="closePreviewModal()">Close</button>
-            <button type="button" class="modal-btn modal-btn-primary" id="modalPrintBtn" onclick="printModalDoc()" style="display: none;">Print Document</button>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="repeat-header-print" checked style="cursor: pointer; width: 16px; height: 16px;">
+                <label for="repeat-header-print" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); cursor: pointer; user-select: none;">Repeat Letterhead Header on each page (Print)</label>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="modal-btn" onclick="closePreviewModal()">Close</button>
+                <button type="button" class="modal-btn modal-btn-primary" id="modalPrintBtn" onclick="printModalDoc()" style="display: none;">Print Document</button>
+            </div>
         </div>
     </div>
 </div>
@@ -2035,6 +2041,7 @@
 
         // Body content
         const bodyContent = document.createElement('div');
+        bodyContent.className = 'body-content-container';
         docBlocks.forEach(block => {
             if (block.type === 'table') {
                 const table = document.createElement('table');
@@ -2084,6 +2091,39 @@
     function printModalDoc() {
         const frame = document.getElementById('printFrame');
         const frameDoc = frame.contentWindow.document;
+
+        const repeatHeader = document.getElementById('repeat-header-print').checked;
+        const letterhead = document.querySelector('#modalBody .letterhead-container');
+        const bodyContent = document.querySelector('#modalBody .body-content-container');
+        
+        let printContentHTML = '';
+        if (repeatHeader && letterhead && bodyContent) {
+            printContentHTML = `
+                <table style="width: 100%; border-collapse: collapse; border: none;">
+                    <thead>
+                        <tr style="border: none;">
+                            <td style="border: none; padding: 0;">
+                                <div class="letterhead-container">
+                                    ${letterhead.innerHTML}
+                                </div>
+                            </td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border: none;">
+                            <td style="border: none; padding: 0;">
+                                <div class="body-content-container">
+                                    ${bodyContent.innerHTML}
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        } else {
+            const paper = document.querySelector('#modalBody .doc-paper');
+            printContentHTML = paper ? paper.innerHTML : '';
+        }
 
         // Write document to invisible iframe
         frameDoc.open();
@@ -2199,10 +2239,33 @@
                         left: 4px;
                         font-weight: 600;
                     }
+                    .preview-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 16px 0;
+                    }
+                    .preview-table th, .preview-table td {
+                        border: 1px solid #1e293b;
+                        padding: 8px 12px;
+                        font-size: 0.9rem;
+                        line-height: 1.4;
+                    }
+                    .preview-table th {
+                        background-color: #f8fafc;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        text-align: center;
+                    }
+                    .preview-table td {
+                        text-align: left;
+                    }
                 </style>
             </head>
             <body onload="window.print()">
-                ${currentPreviewContentHTML}
+                <div class="doc-paper">
+                    ${printContentHTML}
+                </div>
             </body>
             </html>
         `);
