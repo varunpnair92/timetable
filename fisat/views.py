@@ -1484,6 +1484,7 @@ def logout_view(request):
 
 @login_required
 def dashboard_view(request):
+    from .models import Document
     semesters = Semester.objects.all().order_by('name')
     active_sem = semesters.filter(is_active=True).first()
     
@@ -1492,11 +1493,15 @@ def dashboard_view(request):
         
     current_view_sem = request.session.get('selected_period')
     
+    documents = Document.objects.filter(user=request.user).order_by('-created_at')
+    
     return render(request, "dashboard.html", {
         "semesters": semesters,
         "active_sem": active_sem,
-        "current_view_sem": current_view_sem
+        "current_view_sem": current_view_sem,
+        "documents": documents
     })
+
 
 
 #staff count for hover
@@ -2920,3 +2925,54 @@ def api_clear_all_allotments(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
+
+@login_required
+def upload_document_view(request):
+    from .models import Document
+    if request.method == "POST":
+        name = request.POST.get("name")
+        uploaded_file = request.FILES.get("uploaded_file")
+        if name and uploaded_file:
+            doc = Document(
+                name=name,
+                doc_type="uploaded",
+                uploaded_file=uploaded_file,
+                user=request.user
+            )
+            doc.save()
+            messages.success(request, f"Document '{name}' uploaded successfully!")
+        else:
+            messages.error(request, "Failed to upload document. Please provide both name and file.")
+    return redirect("dashboard")
+
+@login_required
+def create_document_view(request):
+    from .models import Document
+    if request.method == "POST":
+        name = request.POST.get("name")
+        content_json = request.POST.get("content_json")
+        if name and content_json:
+            doc = Document(
+                name=name,
+                doc_type="created",
+                content_json=content_json,
+                user=request.user
+            )
+            doc.save()
+            messages.success(request, f"Document '{name}' created successfully!")
+        else:
+            messages.error(request, "Failed to create document. Please provide both name and content.")
+    return redirect("dashboard")
+
+@login_required
+def delete_document_view(request, doc_id):
+    from .models import Document
+    doc = get_object_or_404(Document, id=doc_id, user=request.user)
+    name = doc.name
+    if doc.doc_type == "uploaded" and doc.uploaded_file:
+        if os.path.exists(doc.uploaded_file.path):
+            os.remove(doc.uploaded_file.path)
+    doc.delete()
+    messages.success(request, f"Document '{name}' deleted successfully!")
+    return redirect("dashboard")
+

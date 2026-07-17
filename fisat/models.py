@@ -175,3 +175,21 @@ class ParallelSubjectGroup(models.Model):
 
     class Meta:
         db_table = 'parallelsubjectgroup'
+
+class Document(models.Model):
+    name = models.CharField(max_length=255)
+    doc_type = models.CharField(
+        max_length=20,
+        choices=[('uploaded', 'Uploaded File'), ('created', 'Created Document')]
+    )
+    uploaded_file = models.FileField(upload_to='documents/', null=True, blank=True)
+    content_json = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'document'
+

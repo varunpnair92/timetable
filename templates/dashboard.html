@@ -1,51 +1,863 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | FISAT Lab</title>
+    <!-- Outfit Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
         body {
-            font-family: Arial;
-            background-color: #f4f4f4;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Messages / Alerts */
+        .message-container {
+            margin-bottom: 24px;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            animation: slideIn 0.3s ease;
+        }
+        .alert-success {
+            background-color: var(--success-light);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .alert-error {
+            background-color: var(--danger-light);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .close-alert {
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: 700;
+            line-height: 1;
+            padding-left: 12px;
+        }
+
+        /* Top Header */
+        .header-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 32px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .header-title p {
+            margin: 4px 0 0 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Semester Form */
+        .sem-selector-form {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-color);
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        .sem-selector-form label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        .sem-selector-form select {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-family: inherit;
+            font-size: 0.9rem;
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .sem-selector-form select:focus {
+            border-color: var(--primary);
+        }
+
+        /* Tab Switcher */
+        .tab-bar {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 30px;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Tab Panes */
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Grid Layout for Tab 1 (Workspace Controls) */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .control-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .control-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .control-card h3 {
+            margin: 0 0 16px 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            background: var(--bg-color);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }
+        .link-item:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .link-item .icon {
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Document Hub (Tab 2) */
+        .hub-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .hub-sidebar {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
             padding: 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-        .container {
-            background: white;
+
+        .hub-option-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .hub-option-btn:hover {
+            background: var(--bg-color);
+        }
+
+        .hub-option-btn.active {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .hub-content-pane {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
             padding: 30px;
-            border-radius: 10px;
-            max-width: 500px;
-            margin: auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
+            display: none;
+            animation: fadeIn 0.3s ease;
         }
-        h2 {
+
+        .hub-content-pane.active {
+            display: block;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            border-color: var(--primary);
+        }
+
+        /* Drag & Drop File Zone */
+        .file-drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            background: var(--bg-color);
+        }
+        .file-drop-zone:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+        .file-drop-zone p {
+            margin: 8px 0 0 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .file-drop-zone input[type="file"] {
+            display: none;
+        }
+
+        .submit-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        .submit-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Document Paper Simulator */
+        .doc-paper {
+            background: white;
+            border: 1px solid #d3d3d3;
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            min-height: 500px;
+            padding: 40px;
+            margin-bottom: 20px;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        /* Visual Letterhead Header */
+        .letterhead-container {
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 16px;
+            margin-bottom: 30px;
+        }
+        .letterhead-logo {
+            width: 80px;
+            height: auto;
+            margin-right: 20px;
+        }
+        .letterhead-text {
+            flex-grow: 1;
             text-align: center;
         }
-        ul {
-            list-style: none;
-            padding: 0;
+        .letterhead-text h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.5px;
         }
-        ul li a {
-            display: block;
-            padding: 10px;
-            background: #007BFF;
-            color: white;
+        .letterhead-sub {
+            margin: 4px 0 0 0;
+            font-size: 0.85rem;
+            color: #475569;
+            font-weight: 500;
+        }
+        .letterhead-dept {
+            margin: 4px 0 0 0;
+            font-size: 0.9rem;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        /* Editor Block Styling */
+        .editor-blocks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .editor-block-row {
+            display: flex;
+            gap: 12px;
+            align-items: start;
+            padding: 8px;
+            border: 1px dashed transparent;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+        }
+        .editor-block-row:hover {
+            border-color: var(--border-color);
+            background: #fafafa;
+        }
+
+        .block-type-select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-family: inherit;
+            font-size: 0.85rem;
+            background: white;
+            outline: none;
+            width: 100px;
+        }
+
+        .block-textarea-wrapper {
+            flex-grow: 1;
+        }
+
+        .block-textarea {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid transparent;
+            font-family: inherit;
+            outline: none;
+            resize: none;
+            background: transparent;
+            padding: 4px 0;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .block-textarea:focus {
+            border-color: var(--primary);
+        }
+
+        /* Styled inputs according to H2, H3, H4, Body */
+        .block-textarea.editor-h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .block-textarea.editor-h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #334155;
+        }
+        .block-textarea.editor-h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #475569;
+        }
+        .block-textarea.editor-body {
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        .block-controls {
+            display: flex;
+            gap: 4px;
+        }
+        .block-ctrl-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .block-ctrl-btn:hover {
+            background: var(--border-color);
+            color: var(--text-main);
+        }
+        .block-ctrl-btn.btn-delete:hover {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+
+        .add-block-btn {
+            background: none;
+            border: 1px dashed var(--primary);
+            color: var(--primary);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .add-block-btn:hover {
+            background: var(--primary-light);
+        }
+
+        /* Document Repository (Tab 3) */
+        .repo-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            max-width: 360px;
+            width: 100%;
+        }
+
+        .repo-search-input {
+            width: 100%;
+            padding: 10px 14px 10px 38px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .repo-search-input:focus {
+            border-color: var(--primary);
+        }
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        /* Repository Table */
+        .table-container {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+        }
+
+        .repo-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .repo-table th {
+            background: var(--bg-color);
+            padding: 16px 20px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .repo-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .repo-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .repo-table tr:hover td {
+            background: #fafafa;
+        }
+
+        .doc-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge-upload {
+            background-color: var(--success-light);
+            color: var(--success);
+        }
+        .badge-created {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
             text-decoration: none;
-            margin-bottom: 10px;
-            border-radius: 5px;
+            display: inline-flex;
+            align-items: center;
         }
-        ul li a:hover {
-            background: #0056b3;
+
+        .btn-action-preview {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: transparent;
+        }
+        .btn-action-preview:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-action-delete {
+            background: var(--danger-light);
+            color: var(--danger);
+            border-color: transparent;
+        }
+        .btn-action-delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Modal styling */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-color);
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+        .modal-close-btn:hover {
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex-grow: 1;
+            background: #f1f5f9;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: var(--bg-color);
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: white;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: transparent;
+        }
+        .modal-btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Headings rendering in preview */
+        .preview-h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-family: 'Outfit', sans-serif;
+        }
+        .preview-h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            font-family: 'Outfit', sans-serif;
+        }
+        .preview-h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 12px;
+            margin-bottom: 4px;
+            font-family: 'Outfit', sans-serif;
+        }
+        .preview-body {
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: #334155;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        /* Print styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area-wrapper, #print-area-wrapper * {
+                visibility: visible;
+            }
+            #print-area-wrapper {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            .header-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .hub-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>Welcome, {{ user.username }} 👋</h2>
-    
-    <div style="margin-bottom: 20px; text-align: center; background: #e9ecef; padding: 10px; border-radius: 5px;">
-        <form action="{% url 'switch_semester' %}" method="POST" id="semesterForm">
+
+<div class="dashboard-container">
+    <!-- Django Success/Error Messages -->
+    {% if messages %}
+    <div class="message-container">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">
+            <span>{{ message }}</span>
+            <span class="close-alert" onclick="this.parentElement.remove()">&times;</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Top Header Panel -->
+    <div class="header-panel">
+        <div class="header-title">
+            <h1>Welcome, {{ user.username }} 👋</h1>
+            <p>Department of Computer Science & Engineering | FISAT</p>
+        </div>
+
+        <form action="{% url 'switch_semester' %}" method="POST" id="semesterForm" class="sem-selector-form">
             {% csrf_token %}
-            <label for="semester_select" style="font-weight: bold; margin-right: 10px;">Viewing Semester:</label>
-            <select name="semester_name" id="semester_select" onchange="document.getElementById('semesterForm').submit();" style="padding: 5px; border-radius: 4px;">
+            <label for="semester_select">Viewing Semester:</label>
+            <select name="semester_name" id="semester_select" onchange="document.getElementById('semesterForm').submit();">
                 {% for sem in semesters %}
                 <option value="{{ sem.name }}" {% if sem.name == current_view_sem %}selected{% endif %}>
                     {{ sem.name }} {% if sem.is_active %}(Active){% endif %}
@@ -57,28 +869,671 @@
         </form>
     </div>
 
-    <ul>
-        <li><a href="{% url 'timetable' %}">View Timetable</a></li>
-         <li><a href="{% url 'timetable_auto' %}">View Timetable</a></li>
-        <li><a href="{% url 'allocate' %}">Allocate Staff</a></li>
-        <li><a href="{% url 'subject_faculty_mapping' %}">Allotted Faculty</a></li>
-        <li><a href="{% url 'alloctted_staff' %}">Allotted Staff</a></li>
-        <li><a href="{% url 'manage_batches' %}">Add Branch and Subject</a></li>
-        <li><a href="{% url 'subject_entry' %}">Subject Entry (Allotment)</a></li>
-        <li><a href="{% url 'auto_lab_allotment' %}">Auto Lab Allotment</a></li>
-        <li><a href="{% url 'allot_subject_entry' %}">Allot Subject</a></li>
-        <li><a href="{% url 'subject_wise_allocation' %}">Subject Wise Allocation Details</a></li>
-        <li><a href="{% url 'Lab Download' %}">Download Timetable Excel</a></li>
-        <li><a href="{% url 'Lab Download Combined' %}">Download Timetable Excel Full</a></li>
-        <li><a href="{% url 'Lab Download 2' %}">Download Lab Allotments CSV</a></li>
-        <li><a href="{% url 'download_staff_allotment' %}">Download Staff Allotments CSV</a></li>
-        <li><a href="{% url 'download_timetable' %}">Download Staff Allotments Database CSV</a></li>
-        <li><a href="{% url 'workload_excel' %}">Download Workload Excel</a></li>
-        <li><a href="{% url 'delete_subject' %}">Delete Subject Entry</a></li>
-        <li><a href="{% url 'staff_config' %}">Edit Preferences</a></li>
-        <li><a href="{% url 'password_change' %}">Change Password</a></li>
-        <li><a href="{% url 'logout' %}">Logout</a></li>
-    </ul>
+    <!-- Navigation Tabs -->
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchMainTab('workspace-pane', this)">
+            Workspace Tools
+        </button>
+        <button class="tab-btn" onclick="switchMainTab('document-hub-pane', this)">
+            Document Builder
+        </button>
+        <button class="tab-btn" onclick="switchMainTab('repository-pane', this)">
+            Document Repository
+        </button>
+    </div>
+
+    <!-- TAB 1: Workspace Controls -->
+    <div id="workspace-pane" class="tab-pane active">
+        <div class="controls-grid">
+            <!-- Schedules card -->
+            <div class="control-card">
+                <h3>Schedules & Timetables</h3>
+                <div class="links-list">
+                    <a href="{% url 'timetable' %}" class="link-item">
+                        <span class="icon">📅</span>
+                        Classic Timetable View
+                    </a>
+                    <a href="{% url 'timetable_auto' %}" class="link-item">
+                        <span class="icon">🤖</span>
+                        AI Timetable View
+                    </a>
+                    <a href="{% url 'auto_lab_allotment' %}" class="link-item">
+                        <span class="icon">🔬</span>
+                        Auto Lab Allotment Control
+                    </a>
+                </div>
+            </div>
+
+            <!-- Faculty / Staff allotments card -->
+            <div class="control-card">
+                <h3>Allotments & Faculty</h3>
+                <div class="links-list">
+                    <a href="{% url 'allocate' %}" class="link-item">
+                        <span class="icon">👤</span>
+                        Allocate Staff members
+                    </a>
+                    <a href="{% url 'subject_faculty_mapping' %}" class="link-item">
+                        <span class="icon">🗺️</span>
+                        Faculty Course Mapping
+                    </a>
+                    <a href="{% url 'alloctted_staff' %}" class="link-item">
+                        <span class="icon">📋</span>
+                        Allotted Staff List
+                    </a>
+                    <a href="{% url 'subject_wise_allocation' %}" class="link-item">
+                        <span class="icon">📊</span>
+                        Subject Wise Allocation Details
+                    </a>
+                </div>
+            </div>
+
+            <!-- Setup & Config card -->
+            <div class="control-card">
+                <h3>Configurations & Preferences</h3>
+                <div class="links-list">
+                    <a href="{% url 'manage_batches' %}" class="link-item">
+                        <span class="icon">📚</span>
+                        Manage Batches & Subjects
+                    </a>
+                    <a href="{% url 'subject_entry' %}" class="link-item">
+                        <span class="icon">✍️</span>
+                        Subject Entry List
+                    </a>
+                    <a href="{% url 'allot_subject_entry' %}" class="link-item">
+                        <span class="icon">🔑</span>
+                        Allot New Subject
+                    </a>
+                    <a href="{% url 'delete_subject' %}" class="link-item">
+                        <span class="icon">❌</span>
+                        Delete Subject Entry
+                    </a>
+                    <a href="{% url 'staff_config' %}" class="link-item">
+                        <span class="icon">⚙️</span>
+                        Edit Preferences & Rules
+                    </a>
+                </div>
+            </div>
+
+            <!-- Data Downloads card -->
+            <div class="control-card">
+                <h3>Data Exports & Downloads</h3>
+                <div class="links-list">
+                    <a href="{% url 'Lab Download' %}" class="link-item">
+                        <span class="icon">📥</span>
+                        Download Timetable Excel
+                    </a>
+                    <a href="{% url 'Lab Download Combined' %}" class="link-item">
+                        <span class="icon">📥</span>
+                        Download Combined Full Excel
+                    </a>
+                    <a href="{% url 'Lab Download 2' %}" class="link-item">
+                        <span class="icon">📥</span>
+                        Download Lab Allotments (CSV)
+                    </a>
+                    <a href="{% url 'download_staff_allotment' %}" class="link-item">
+                        <span class="icon">📥</span>
+                        Download Staff Allotments (CSV)
+                    </a>
+                    <a href="{% url 'download_timetable' %}" class="link-item">
+                        <span class="icon">📥</span>
+                        Download Allotment DB (CSV)
+                    </a>
+                    <a href="{% url 'workload_excel' %}" class="link-item">
+                        <span class="icon">📥</span>
+                        Download Workload Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Security & Session card -->
+            <div class="control-card">
+                <h3>Account Settings</h3>
+                <div class="links-list">
+                    <a href="{% url 'password_change' %}" class="link-item">
+                        <span class="icon">🔒</span>
+                        Change Account Password
+                    </a>
+                    <a href="{% url 'logout' %}" class="link-item" style="color: var(--danger);">
+                        <span class="icon">🚪</span>
+                        Log Out Session
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Document Hub -->
+    <div id="document-hub-pane" class="tab-pane">
+        <div class="hub-container">
+            <div class="hub-sidebar">
+                <button class="hub-option-btn active" id="hub-opt-create" onclick="switchHubMode('create')">
+                    <span>📝 Create Document</span>
+                    <span>→</span>
+                </button>
+                <button class="hub-option-btn" id="hub-opt-upload" onclick="switchHubMode('upload')">
+                    <span>📤 Upload Document</span>
+                    <span>→</span>
+                </button>
+            </div>
+
+            <!-- CREATE DOCUMENT PANEL -->
+            <div id="hub-pane-create" class="hub-content-pane active">
+                <h2 style="margin-top:0; font-size: 1.4rem;">Create Document Creator</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                    Write and style text lines. Toggle styles (Normal, Heading 2, Heading 3, Heading 4) for any line.
+                </p>
+                <form action="{% url 'create_document' %}" method="POST" id="createDocForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="create_doc_name">Document Name</label>
+                        <input type="text" id="create_doc_name" name="name" required class="form-input" placeholder="e.g. CCF Lab 1 Details">
+                    </div>
+
+                    <!-- Hidden JSON field -->
+                    <input type="hidden" name="content_json" id="created-content-json">
+
+                    <!-- Document Paper Mockup -->
+                    <div class="doc-paper">
+                        <!-- Default Header -->
+                        <div class="letterhead-container">
+                            <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
+                            <div class="letterhead-text">
+                                <h2>FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)®</h2>
+                                <div class="letterhead-sub">Hormis Nagar, Angamaly, Kerala, India - 683577</div>
+                                <div class="letterhead-dept">Department of Computer Science and Engineering</div>
+                            </div>
+                        </div>
+
+                        <!-- Editor Rows Container -->
+                        <div id="editor-blocks-list" class="editor-blocks-container">
+                            <!-- JS will load blocks here -->
+                        </div>
+
+                        <!-- Add block button -->
+                        <button type="button" class="add-block-btn" onclick="addNewBlock()">
+                            <span>➕</span> Add New Line / Paragraph
+                        </button>
+                    </div>
+
+                    <button type="submit" class="submit-btn" style="margin-top: 10px;">Save and Create Document</button>
+                </form>
+            </div>
+
+            <!-- UPLOAD DOCUMENT PANEL -->
+            <div id="hub-pane-upload" class="hub-content-pane">
+                <h2 style="margin-top:0; font-size: 1.4rem;">Upload Document File</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+                    Upload existing PDF files or image documents.
+                </p>
+                <form action="{% url 'upload_document' %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="upload_doc_name">Document Title / Name</label>
+                        <input type="text" id="upload_doc_name" name="name" required class="form-input" placeholder="e.g. Lab 1 Layout Blueprint">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Document File (PDF or Image)</label>
+                        <div class="file-drop-zone" onclick="document.getElementById('upload_file_input').click()">
+                            <span style="font-size: 2rem;">📂</span>
+                            <p id="file-zone-label">Click to select PDF or image file (or drag & drop here)</p>
+                            <p style="font-size: 0.8rem; font-weight: normal; margin-top:4px;">Supports .pdf, .png, .jpg, .jpeg</p>
+                            <input type="file" id="upload_file_input" name="uploaded_file" required accept=".pdf, .png, .jpg, .jpeg" onchange="handleFileSelected(this)">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" style="margin-top: 10px;">Upload Document</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Document Repository -->
+    <div id="repository-pane" class="tab-pane">
+        <div class="repo-controls">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="repo-search" onkeyup="filterRepoTable()" placeholder="Search documents by name..." class="repo-search-input">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="repo-table" id="documentTable">
+                <thead>
+                    <tr>
+                        <th>Document Name</th>
+                        <th>Type</th>
+                        <th>Date Added</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr class="doc-row">
+                        <td class="doc-name-cell" style="font-weight: 600;">{{ doc.name }}</td>
+                        <td>
+                            {% if doc.doc_type == 'uploaded' %}
+                            <span class="doc-badge badge-upload">Uploaded File</span>
+                            {% else %}
+                            <span class="doc-badge badge-created">Created Document</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.9rem;">
+                            {{ doc.created_at|date:"d M Y, H:i" }}
+                        </td>
+                        <td style="text-align: right;">
+                            <div class="table-actions">
+                                {% if doc.doc_type == 'uploaded' %}
+                                <button type="button" class="btn-action btn-action-preview" onclick="previewUploadedFile('{{ doc.name }}', '{{ doc.uploaded_file.url }}')">
+                                    Preview
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn-action btn-action-preview" onclick="previewCreatedDoc('{{ doc.name }}', '{{ doc.content_json|escapejs }}')">
+                                    Preview
+                                </button>
+                                {% endif %}
+                                <a href="{% url 'delete_document' doc.id %}" onclick="return confirm('Are you sure you want to delete this document?')" class="btn-action btn-action-delete">
+                                    Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                            No documents found. Create or upload a document to get started.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
+<!-- Preview Modal -->
+<div class="modal-backdrop" id="previewModal">
+    <div class="modal-content-card">
+        <div class="modal-header">
+            <h3 id="modalTitle">Document Preview</h3>
+            <button class="modal-close-btn" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Content will be injected by JavaScript -->
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn" onclick="closePreviewModal()">Close</button>
+            <button type="button" class="modal-btn modal-btn-primary" id="modalPrintBtn" onclick="printModalDoc()" style="display: none;">Print Document</button>
+        </div>
+    </div>
+</div>
+
+<!-- Invisible Print Iframe -->
+<iframe id="printFrame" style="display: none;"></iframe>
+
+<script>
+    // Tab switching logic
+    function switchMainTab(paneId, btn) {
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(paneId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function switchHubMode(mode) {
+        document.querySelectorAll('.hub-content-pane').forEach(pane => pane.classList.remove('active'));
+        document.querySelectorAll('.hub-option-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById('hub-pane-' + mode).classList.add('active');
+        document.getElementById('hub-opt-' + mode).classList.add('active');
+    }
+
+    // File selected display
+    function handleFileSelected(input) {
+        const label = document.getElementById('file-zone-label');
+        if (input.files && input.files.length > 0) {
+            label.textContent = `Selected File: ${input.files[0].name}`;
+            label.style.color = 'var(--primary)';
+        } else {
+            label.textContent = "Click to select PDF or image file (or drag & drop here)";
+            label.style.color = 'var(--text-muted)';
+        }
+    }
+
+    // Datatable filtering
+    function filterRepoTable() {
+        const query = document.getElementById('repo-search').value.toLowerCase();
+        const rows = document.querySelectorAll('#documentTable tbody .doc-row');
+        
+        rows.forEach(row => {
+            const nameCell = row.querySelector('.doc-name-cell');
+            if (nameCell) {
+                const nameText = nameCell.textContent.toLowerCase();
+                if (nameText.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // --- Block-based Editor Javascript ---
+    let blocks = [
+        { type: 'body', text: 'CCF Lab 1' },
+        { type: 'body', text: 'Lab in charge : Ambily Sekar C' }
+    ];
+
+    // Auto update hidden field
+    function updateHiddenContentJSON() {
+        document.getElementById('created-content-json').value = JSON.stringify(blocks);
+    }
+
+    function renderEditorBlocks() {
+        const container = document.getElementById('editor-blocks-list');
+        container.innerHTML = '';
+        
+        blocks.forEach((block, index) => {
+            const row = document.createElement('div');
+            row.className = 'editor-block-row';
+            
+            // Dropdown selection
+            const select = document.createElement('select');
+            select.className = 'block-type-select';
+            select.innerHTML = `
+                <option value="body" ${block.type === 'body' ? 'selected' : ''}>Body</option>
+                <option value="h2" ${block.type === 'h2' ? 'selected' : ''}>Heading 2</option>
+                <option value="h3" ${block.type === 'h3' ? 'selected' : ''}>Heading 3</option>
+                <option value="h4" ${block.type === 'h4' ? 'selected' : ''}>Heading 4</option>
+            `;
+            select.onchange = (e) => {
+                blocks[index].type = e.target.value;
+                textarea.className = `block-textarea editor-${e.target.value}`;
+                updateHiddenContentJSON();
+            };
+
+            // Textarea wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = 'block-textarea-wrapper';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = `block-textarea editor-${block.type}`;
+            textarea.value = block.text;
+            textarea.placeholder = "Start typing content...";
+            textarea.rows = 1;
+            
+            // Auto grow
+            textarea.oninput = (e) => {
+                blocks[index].text = e.target.value;
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+                updateHiddenContentJSON();
+            };
+            
+            // Initialize height
+            setTimeout(() => {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            }, 0);
+
+            wrapper.appendChild(textarea);
+
+            // Controls
+            const controls = document.createElement('div');
+            controls.className = 'block-controls';
+            
+            // Move Up button
+            const upBtn = document.createElement('button');
+            upBtn.type = 'button';
+            upBtn.className = 'block-ctrl-btn';
+            upBtn.innerHTML = '▲';
+            upBtn.disabled = index === 0;
+            upBtn.onclick = () => {
+                if (index > 0) {
+                    const temp = blocks[index];
+                    blocks[index] = blocks[index - 1];
+                    blocks[index - 1] = temp;
+                    renderEditorBlocks();
+                }
+            };
+
+            // Move Down button
+            const downBtn = document.createElement('button');
+            downBtn.type = 'button';
+            downBtn.className = 'block-ctrl-btn';
+            downBtn.innerHTML = '▼';
+            downBtn.disabled = index === blocks.length - 1;
+            downBtn.onclick = () => {
+                if (index < blocks.length - 1) {
+                    const temp = blocks[index];
+                    blocks[index] = blocks[index + 1];
+                    blocks[index + 1] = temp;
+                    renderEditorBlocks();
+                }
+            };
+
+            // Delete button
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'block-ctrl-btn btn-delete';
+            delBtn.innerHTML = '🗑️';
+            delBtn.onclick = () => {
+                blocks.splice(index, 1);
+                renderEditorBlocks();
+            };
+
+            controls.appendChild(upBtn);
+            controls.appendChild(downBtn);
+            controls.appendChild(delBtn);
+
+            row.appendChild(select);
+            row.appendChild(wrapper);
+            row.appendChild(controls);
+            
+            container.appendChild(row);
+        });
+        
+        updateHiddenContentJSON();
+    }
+
+    function addNewBlock() {
+        blocks.push({ type: 'body', text: '' });
+        renderEditorBlocks();
+    }
+
+    // --- Preview Modal JavaScript ---
+    const modal = document.getElementById('previewModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const printBtn = document.getElementById('modalPrintBtn');
+    
+    let currentPreviewContentHTML = ''; // Stores content for print execution
+
+    function closePreviewModal() {
+        modal.style.display = 'none';
+        modalBody.innerHTML = '';
+        printBtn.style.display = 'none';
+    }
+
+    function previewUploadedFile(name, url) {
+        modalTitle.textContent = `Preview File: ${name}`;
+        modalBody.innerHTML = '';
+        printBtn.style.display = 'none';
+
+        const ext = url.split('.').pop().toLowerCase();
+        if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            // Render Image
+            const img = document.createElement('img');
+            img.src = url;
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            img.style.margin = '0 auto';
+            img.style.borderRadius = 'var(--radius-md)';
+            modalBody.appendChild(img);
+        } else if (ext === 'pdf') {
+            // Render PDF
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.style.width = '100%';
+            iframe.style.height = '70vh';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = 'var(--radius-md)';
+            modalBody.appendChild(iframe);
+        } else {
+            modalBody.innerHTML = `<div style="text-align:center; padding: 20px;">Unsupported preview extension: .${ext}. <a href="${url}" target="_blank" style="color:var(--primary); font-weight:600;">Download File instead</a></div>`;
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function previewCreatedDoc(name, contentJsonStr) {
+        modalTitle.textContent = `Preview Document: ${name}`;
+        modalBody.innerHTML = '';
+        printBtn.style.display = 'inline-block';
+
+        let docBlocks = [];
+        try {
+            docBlocks = JSON.parse(contentJsonStr);
+        } catch (e) {
+            console.error("Failed to parse document content JSON", e);
+        }
+
+        // Generate printable container
+        const paper = document.createElement('div');
+        paper.className = 'doc-paper';
+        paper.id = 'print-area-wrapper';
+
+        // Letterhead
+        const header = document.createElement('div');
+        header.className = 'letterhead-container';
+        header.innerHTML = `
+            <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
+            <div class="letterhead-text">
+                <h2>FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)®</h2>
+                <div class="letterhead-sub">Hormis Nagar, Angamaly, Kerala, India - 683577</div>
+                <div class="letterhead-dept">Department of Computer Science and Engineering</div>
+            </div>
+        `;
+        paper.appendChild(header);
+
+        // Body content
+        const bodyContent = document.createElement('div');
+        docBlocks.forEach(block => {
+            const el = document.createElement(block.type === 'body' ? 'p' : block.type);
+            el.className = `preview-${block.type}`;
+            el.textContent = block.text;
+            bodyContent.appendChild(el);
+        });
+        paper.appendChild(bodyContent);
+
+        modalBody.appendChild(paper);
+        currentPreviewContentHTML = paper.outerHTML; // Keep for print function
+
+        modal.style.display = 'flex';
+    }
+
+    function printModalDoc() {
+        const frame = document.getElementById('printFrame');
+        const frameDoc = frame.contentWindow.document;
+
+        // Write document to invisible iframe
+        frameDoc.open();
+        frameDoc.write(`
+            <html>
+            <head>
+                <title>Print Document</title>
+                <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+                <style>
+                    body {
+                        font-family: 'Outfit', sans-serif;
+                        padding: 20px;
+                        background: white;
+                    }
+                    .doc-paper {
+                        padding: 0px;
+                        margin: 0px;
+                    }
+                    .letterhead-container {
+                        display: flex;
+                        align-items: center;
+                        border-bottom: 2px solid #1e293b;
+                        padding-bottom: 16px;
+                        margin-bottom: 30px;
+                    }
+                    .letterhead-logo {
+                        width: 75px;
+                        height: auto;
+                        margin-right: 20px;
+                    }
+                    .letterhead-text {
+                        flex-grow: 1;
+                        text-align: center;
+                    }
+                    .letterhead-text h2 {
+                        margin: 0;
+                        font-size: 1.1rem;
+                        font-weight: 800;
+                        color: #0f172a;
+                        letter-spacing: 0.5px;
+                    }
+                    .letterhead-sub {
+                        margin: 4px 0 0 0;
+                        font-size: 0.8rem;
+                        color: #475569;
+                        font-weight: 500;
+                    }
+                    .letterhead-dept {
+                        margin: 4px 0 0 0;
+                        font-size: 0.85rem;
+                        color: #1e293b;
+                        font-weight: 600;
+                    }
+                    .preview-h2 {
+                        font-size: 1.35rem;
+                        font-weight: 700;
+                        color: #0f172a;
+                        margin-top: 18px;
+                        margin-bottom: 8px;
+                    }
+                    .preview-h3 {
+                        font-size: 1.15rem;
+                        font-weight: 600;
+                        color: #1e293b;
+                        margin-top: 14px;
+                        margin-bottom: 6px;
+                    }
+                    .preview-h4 {
+                        font-size: 1.05rem;
+                        font-weight: 600;
+                        color: #334155;
+                        margin-top: 12px;
+                        margin-bottom: 4px;
+                    }
+                    .preview-body {
+                        font-size: 0.95rem;
+                        font-weight: 400;
+                        color: #1e293b;
+                        margin-bottom: 8px;
+                        line-height: 1.5;
+                        white-space: pre-wrap;
+                    }
+                </style>
+            </head>
+            <body onload="window.print()">
+                ${currentPreviewContentHTML}
+            </body>
+            </html>
+        `);
+        frameDoc.close();
+    }
+
+    // Initialize editor on load
+    window.onload = function() {
+        renderEditorBlocks();
+    };
+</script>
+
 </body>
 </html>
