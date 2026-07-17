@@ -1220,7 +1220,7 @@
                                 <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('italic')" style="background: #10b981; color: white; border: none; font-style: italic; padding: 4px 10px; margin:0;">I</button>
                                 <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('type', 'bullet')" style="font-size: 0.75rem; margin:0;">• Bullet List</button>
                                 <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('type', 'number')" style="font-size: 0.75rem; margin:0;">1. Numbered List</button>
-                                <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('type', 'body')" style="font-size: 0.75rem; margin:0;">¶ Body Text</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('type', 'body')" style="font-size: 0.75rem; margin:0;">¶ Paragraph</button>
                                 <button type="button" class="table-ctrl-action-btn" onclick="clearBlockSelection()" style="font-size: 0.75rem; background: #e2e8f0; border-color: #cbd5e1; color: var(--text-main); margin:0;">Clear</button>
                             </div>
                         </div>
@@ -1238,7 +1238,7 @@
                             <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-color); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                                 <label for="default-block-type" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">Next Line Style:</label>
                                 <select id="default-block-type" class="block-type-select" style="width: 120px; border-radius: 4px; padding: 4px;">
-                                    <option value="body">Body</option>
+                                    <option value="body">Paragraph</option>
                                     <option value="h2">Heading 2</option>
                                     <option value="h3">Heading 3</option>
                                     <option value="h4">Heading 4</option>
@@ -1646,7 +1646,7 @@
             const select = document.createElement('select');
             select.className = 'block-type-select';
             select.innerHTML = `
-                <option value="body" ${block.type === 'body' ? 'selected' : ''}>Body</option>
+                <option value="body" ${block.type === 'body' ? 'selected' : ''}>Paragraph</option>
                 <option value="h2" ${block.type === 'h2' ? 'selected' : ''}>Heading 2</option>
                 <option value="h3" ${block.type === 'h3' ? 'selected' : ''}>Heading 3</option>
                 <option value="h4" ${block.type === 'h4' ? 'selected' : ''}>Heading 4</option>
