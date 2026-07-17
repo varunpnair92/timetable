@@ -1655,8 +1655,16 @@
                 <option value="table" ${block.type === 'table' ? 'selected' : ''}>Table</option>
             `;
             select.onchange = (e) => {
-                blocks[index].type = e.target.value;
-                row.className = `editor-block-row block-type-${e.target.value}`;
+                const targetValue = e.target.value;
+                if (selectedBlockIndices.has(index)) {
+                    selectedBlockIndices.forEach(selIdx => {
+                        if (selIdx < blocks.length) {
+                            blocks[selIdx].type = targetValue;
+                        }
+                    });
+                } else {
+                    blocks[index].type = targetValue;
+                }
                 renderEditorBlocks();
             };
 
@@ -1923,9 +1931,19 @@
             delBtn.className = 'block-ctrl-btn btn-delete';
             delBtn.innerHTML = '🗑️';
             delBtn.onclick = () => {
-                blocks.splice(index, 1);
-                selectedBlockIndices.clear();
-                updateBulkToolbarVisibility();
+                if (selectedBlockIndices.has(index)) {
+                    // Sort indices in descending order to slice safely from end to beginning
+                    const sortedIndices = Array.from(selectedBlockIndices).sort((a, b) => b - a);
+                    sortedIndices.forEach(selIdx => {
+                        if (selIdx < blocks.length) {
+                            blocks.splice(selIdx, 1);
+                        }
+                    });
+                    selectedBlockIndices.clear();
+                    updateBulkToolbarVisibility();
+                } else {
+                    blocks[index].splice ? blocks.splice(index, 1) : blocks.splice(index, 1);
+                }
                 renderEditorBlocks();
             };
 
