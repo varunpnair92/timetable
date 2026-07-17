@@ -1210,6 +1210,21 @@
                             </div>
                         </div>
 
+                        <!-- Bulk Actions Toolbar -->
+                        <div id="bulk-styling-toolbar" style="display: none; background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px; border-radius: var(--radius-md); margin-top: 16px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                            <div style="font-weight: 600; font-size: 0.85rem; color: #0369a1; display: flex; align-items: center; gap: 6px;">
+                                <span>⚡</span> <span id="selected-count">0</span> lines selected:
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('bold')" style="background: #3b82f6; color: white; border: none; font-weight: 700; padding: 4px 10px; margin:0;">B</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('italic')" style="background: #10b981; color: white; border: none; font-style: italic; padding: 4px 10px; margin:0;">I</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('type', 'bullet')" style="font-size: 0.75rem; margin:0;">• Bullet List</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('type', 'number')" style="font-size: 0.75rem; margin:0;">1. Numbered List</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyBulkStyle('type', 'body')" style="font-size: 0.75rem; margin:0;">¶ Body Text</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="clearBlockSelection()" style="font-size: 0.75rem; background: #e2e8f0; border-color: #cbd5e1; color: var(--text-main); margin:0;">Clear</button>
+                            </div>
+                        </div>
+
                         <!-- Editor Rows Container -->
                         <div id="editor-blocks-list" class="editor-blocks-container">
                             <!-- JS will load blocks here -->
@@ -1235,7 +1250,12 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="submit-btn" style="margin-top: 10px;">Save and Create Document</button>
+                    <div style="display: flex; gap: 12px; margin-top: 16px;">
+                        <button type="submit" class="submit-btn" style="margin-top: 0; flex-grow: 1;">Save and Create Document</button>
+                        <button type="button" class="btn-action" onclick="previewCurrentEditorDoc()" style="height: 42px; padding: 0 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-md);">
+                            👁️ Preview Document
+                        </button>
+                    </div>
                 </form>
             </div>
 
@@ -1546,6 +1566,51 @@
     }
 
     let focusIndex = null;
+    let selectedBlockIndices = new Set();
+
+    function updateBulkToolbarVisibility() {
+        const toolbar = document.getElementById('bulk-styling-toolbar');
+        const countSpan = document.getElementById('selected-count');
+        if (toolbar && countSpan) {
+            const count = selectedBlockIndices.size;
+            if (count > 0) {
+                toolbar.style.display = 'flex';
+                countSpan.textContent = count;
+            } else {
+                toolbar.style.display = 'none';
+            }
+        }
+    }
+
+    function clearBlockSelection() {
+        selectedBlockIndices.clear();
+        document.querySelectorAll('.block-select-checkbox').forEach(cb => cb.checked = false);
+        updateBulkToolbarVisibility();
+    }
+
+    function applyBulkStyle(style, value) {
+        if (selectedBlockIndices.size === 0) return;
+        
+        selectedBlockIndices.forEach(index => {
+            if (index < blocks.length) {
+                if (style === 'bold') {
+                    blocks[index].bold = !blocks[index].bold;
+                } else if (style === 'italic') {
+                    blocks[index].italic = !blocks[index].italic;
+                } else if (style === 'type') {
+                    blocks[index].type = value;
+                }
+            }
+        });
+        
+        renderEditorBlocks();
+        updateBulkToolbarVisibility();
+    }
+
+    function previewCurrentEditorDoc() {
+        const docName = document.getElementById('create_doc_name').value || 'Untitled Preview';
+        previewCreatedDoc(docName, JSON.stringify(blocks));
+    }
 
     function renderEditorBlocks() {
         const container = document.getElementById('editor-blocks-list');
@@ -1555,6 +1620,22 @@
             const row = document.createElement('div');
             row.className = 'editor-block-row block-type-' + block.type;
             
+            // Checkbox on the left for multi-select styling
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'block-select-checkbox';
+            checkbox.style.marginRight = '8px';
+            checkbox.style.cursor = 'pointer';
+            checkbox.checked = selectedBlockIndices.has(index);
+            checkbox.onchange = (e) => {
+                if (e.target.checked) {
+                    selectedBlockIndices.add(index);
+                } else {
+                    selectedBlockIndices.delete(index);
+                }
+                updateBulkToolbarVisibility();
+            };
+
             // Dropdown selection
             const select = document.createElement('select');
             select.className = 'block-type-select';
@@ -1595,6 +1676,8 @@
                 addColBtn.onclick = () => {
                     block.headers.push(`Header ${block.headers.length + 1}`);
                     block.rows.forEach(r => r.push(''));
+                    selectedBlockIndices.clear();
+                    updateBulkToolbarVisibility();
                     renderEditorBlocks();
                 };
                 
@@ -1606,6 +1689,8 @@
                     if (block.headers.length > 1) {
                         block.headers.pop();
                         block.rows.forEach(r => r.pop());
+                        selectedBlockIndices.clear();
+                        updateBulkToolbarVisibility();
                         renderEditorBlocks();
                     }
                 };
@@ -1616,6 +1701,8 @@
                 addRowBtn.textContent = '+ Row';
                 addRowBtn.onclick = () => {
                     block.rows.push(Array(block.headers.length).fill(''));
+                    selectedBlockIndices.clear();
+                    updateBulkToolbarVisibility();
                     renderEditorBlocks();
                 };
                 
@@ -1626,6 +1713,8 @@
                 removeRowBtn.onclick = () => {
                     if (block.rows.length > 1) {
                         block.rows.pop();
+                        selectedBlockIndices.clear();
+                        updateBulkToolbarVisibility();
                         renderEditorBlocks();
                     }
                 };
@@ -1688,6 +1777,10 @@
                 textarea.rows = 1;
                 textarea.setAttribute('data-index', index);
                 
+                // Live styling preview in editor row textarea
+                if (block.bold) textarea.style.fontWeight = 'bold';
+                if (block.italic) textarea.style.fontStyle = 'italic';
+                
                 // Auto grow
                 textarea.oninput = (e) => {
                     blocks[index].text = e.target.value;
@@ -1706,6 +1799,8 @@
                             // Hitting Enter on an empty list item reverts it back to a normal Body paragraph
                             blocks[index].type = 'body';
                             focusIndex = index;
+                            selectedBlockIndices.clear();
+                            updateBulkToolbarVisibility();
                             renderEditorBlocks();
                         } else {
                             // Standard enter inserts a new block of the same type (or body if heading)
@@ -1715,12 +1810,16 @@
                             }
                             blocks.splice(index + 1, 0, { type: newType, text: '' });
                             focusIndex = index + 1;
+                            selectedBlockIndices.clear();
+                            updateBulkToolbarVisibility();
                             renderEditorBlocks();
                         }
                     } else if (e.key === 'Backspace' && !textarea.value && blocks.length > 1) {
                         e.preventDefault();
                         blocks.splice(index, 1);
                         focusIndex = Math.max(0, index - 1);
+                        selectedBlockIndices.clear();
+                        updateBulkToolbarVisibility();
                         renderEditorBlocks();
                     }
                 };
@@ -1759,6 +1858,8 @@
                         });
                         
                         blocks.splice(index + 1, 0, ...newBlocks);
+                        selectedBlockIndices.clear();
+                        updateBulkToolbarVisibility();
                         renderEditorBlocks();
                     }
                 };
@@ -1787,6 +1888,8 @@
                     const temp = blocks[index];
                     blocks[index] = blocks[index - 1];
                     blocks[index - 1] = temp;
+                    selectedBlockIndices.clear();
+                    updateBulkToolbarVisibility();
                     renderEditorBlocks();
                 }
             };
@@ -1802,6 +1905,8 @@
                     const temp = blocks[index];
                     blocks[index] = blocks[index + 1];
                     blocks[index + 1] = temp;
+                    selectedBlockIndices.clear();
+                    updateBulkToolbarVisibility();
                     renderEditorBlocks();
                 }
             };
@@ -1813,6 +1918,8 @@
             delBtn.innerHTML = '🗑️';
             delBtn.onclick = () => {
                 blocks.splice(index, 1);
+                selectedBlockIndices.clear();
+                updateBulkToolbarVisibility();
                 renderEditorBlocks();
             };
 
@@ -1820,6 +1927,7 @@
             controls.appendChild(downBtn);
             controls.appendChild(delBtn);
 
+            row.appendChild(checkbox);
             row.appendChild(select);
             row.appendChild(wrapper);
             row.appendChild(controls);
@@ -1843,6 +1951,8 @@
     function addNewBlock() {
         const nextType = document.getElementById('default-block-type').value || 'body';
         blocks.push({ type: nextType, text: '' });
+        selectedBlockIndices.clear();
+        updateBulkToolbarVisibility();
         focusIndex = blocks.length - 1;
         renderEditorBlocks();
     }
