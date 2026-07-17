@@ -2140,25 +2140,30 @@
         
         let printContentHTML = '';
         if (repeatHeader && letterhead && bodyContent) {
+            let rowsHTML = '';
+            const childElements = bodyContent.children;
+            for (let i = 0; i < childElements.length; i++) {
+                rowsHTML += `
+                    <tr class="print-tr">
+                        <td class="print-td">
+                            ${childElements[i].outerHTML}
+                        </td>
+                    </tr>
+                `;
+            }
             printContentHTML = `
-                <table style="width: 100%; border-collapse: collapse; border: none;">
-                    <thead>
-                        <tr style="border: none;">
-                            <td style="border: none; padding: 0;">
-                                <div class="letterhead-container">
+                <table class="print-structural-table">
+                    <thead class="print-thead">
+                        <tr class="print-tr">
+                            <td class="print-td">
+                                <div class="letterhead-container" style="margin-bottom: 20px;">
                                     ${letterhead.innerHTML}
                                 </div>
                             </td>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr style="border: none;">
-                            <td style="border: none; padding: 0;">
-                                <div class="body-content-container">
-                                    ${bodyContent.innerHTML}
-                                </div>
-                            </td>
-                        </tr>
+                    <tbody class="print-tbody">
+                        ${rowsHTML}
                     </tbody>
                 </table>
             `;
@@ -2301,6 +2306,26 @@
                     }
                     .preview-table td {
                         text-align: left;
+                    }
+                    /* Structural printing table rules */
+                    .print-structural-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        border: none;
+                    }
+                    .print-thead {
+                        display: table-header-group !important;
+                    }
+                    .print-tbody {
+                        display: table-row-group !important;
+                    }
+                    .print-tr {
+                        page-break-inside: avoid !important;
+                        border: none !important;
+                    }
+                    .print-td {
+                        border: none !important;
+                        padding: 0 !important;
                     }
                 </style>
             </head>
