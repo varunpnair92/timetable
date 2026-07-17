@@ -480,10 +480,45 @@
             font-weight: 600;
             color: #475569;
         }
-        .block-textarea.editor-body {
+        .block-textarea.editor-body,
+        .block-textarea.editor-bullet,
+        .block-textarea.editor-number {
             font-size: 0.95rem;
             font-weight: 400;
             color: #334155;
+            line-height: 1.5;
+        }
+
+        .editor-blocks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            counter-reset: editor-list-counter;
+        }
+
+        .block-textarea-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .editor-block-row.block-type-bullet .block-textarea-wrapper::before {
+            content: "•";
+            font-size: 1.2rem;
+            margin-right: 8px;
+            color: var(--text-muted);
+            align-self: flex-start;
+            line-height: 1.2;
+        }
+
+        .editor-block-row.block-type-number .block-textarea-wrapper::before {
+            counter-increment: editor-list-counter;
+            content: counter(editor-list-counter) ".";
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-right: 8px;
+            color: var(--text-main);
+            align-self: flex-start;
             line-height: 1.5;
         }
 
@@ -756,6 +791,9 @@
         }
 
         /* Headings rendering in preview */
+        #print-area-wrapper, .doc-paper {
+            counter-reset: preview-list-counter;
+        }
         .preview-h2 {
             font-size: 1.4rem;
             font-weight: 700;
@@ -787,6 +825,38 @@
             margin-bottom: 8px;
             line-height: 1.5;
             white-space: pre-wrap;
+        }
+        .preview-bullet {
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: #334155;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            padding-left: 20px;
+            position: relative;
+        }
+        .preview-bullet::before {
+            content: "•";
+            position: absolute;
+            left: 6px;
+            color: var(--text-muted);
+        }
+        .preview-number {
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: #334155;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            padding-left: 20px;
+            position: relative;
+        }
+        .preview-number::before {
+            counter-increment: preview-list-counter;
+            content: counter(preview-list-counter) ".";
+            position: absolute;
+            left: 4px;
+            font-weight: 600;
+            color: var(--text-main);
         }
 
         /* Print styles */
@@ -1275,7 +1345,7 @@
         
         blocks.forEach((block, index) => {
             const row = document.createElement('div');
-            row.className = 'editor-block-row';
+            row.className = 'editor-block-row block-type-' + block.type;
             
             // Dropdown selection
             const select = document.createElement('select');
@@ -1285,9 +1355,12 @@
                 <option value="h2" ${block.type === 'h2' ? 'selected' : ''}>Heading 2</option>
                 <option value="h3" ${block.type === 'h3' ? 'selected' : ''}>Heading 3</option>
                 <option value="h4" ${block.type === 'h4' ? 'selected' : ''}>Heading 4</option>
+                <option value="bullet" ${block.type === 'bullet' ? 'selected' : ''}>Bullet List</option>
+                <option value="number" ${block.type === 'number' ? 'selected' : ''}>Numbered List</option>
             `;
             select.onchange = (e) => {
                 blocks[index].type = e.target.value;
+                row.className = `editor-block-row block-type-${e.target.value}`;
                 textarea.className = `block-textarea editor-${e.target.value}`;
                 updateHiddenContentJSON();
             };
@@ -1319,15 +1392,27 @@
                     const lines = pastedText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
                     if (lines.length === 0) return;
                     
-                    // Replace current block text with first line
-                    blocks[index].text = lines[0];
-                    blocks[index].type = detectBlockType(lines[0], index === 0);
+                    // Helper to clean up bullet/number prefixes
+                    function cleanLineText(type, text) {
+                        let t = text.trim();
+                        if (type === 'bullet') {
+                            t = t.replace(/^[\-\*\u2022\u25CF\u25CB\u25AA]\s+/, '');
+                        } else if (type === 'number') {
+                            t = t.replace(/^\d+[\.\)]\s+/, '');
+                        }
+                        return t;
+                    }
+                    
+                    const firstType = detectBlockType(lines[0], index === 0);
+                    blocks[index].type = firstType;
+                    blocks[index].text = cleanLineText(firstType, lines[0]);
                     
                     // Add subsequent lines as individual blocks
                     const newBlocks = lines.slice(1).map((line) => {
+                        const type = detectBlockType(line, false);
                         return {
-                            type: detectBlockType(line, false),
-                            text: line
+                            type: type,
+                            text: cleanLineText(type, line)
                         };
                     });
                     
@@ -1555,6 +1640,9 @@
                         color: #1e293b;
                         font-weight: 600;
                     }
+                    .doc-paper {
+                        counter-reset: print-list-counter;
+                    }
                     .preview-h2 {
                         font-size: 1.35rem;
                         font-weight: 700;
@@ -1583,6 +1671,36 @@
                         margin-bottom: 8px;
                         line-height: 1.5;
                         white-space: pre-wrap;
+                    }
+                    .preview-bullet {
+                        font-size: 0.95rem;
+                        font-weight: 400;
+                        color: #1e293b;
+                        margin-bottom: 8px;
+                        line-height: 1.5;
+                        padding-left: 20px;
+                        position: relative;
+                    }
+                    .preview-bullet::before {
+                        content: "•";
+                        position: absolute;
+                        left: 6px;
+                    }
+                    .preview-number {
+                        font-size: 0.95rem;
+                        font-weight: 400;
+                        color: #1e293b;
+                        margin-bottom: 8px;
+                        line-height: 1.5;
+                        padding-left: 20px;
+                        position: relative;
+                    }
+                    .preview-number::before {
+                        counter-increment: print-list-counter;
+                        content: counter(print-list-counter) ".";
+                        position: absolute;
+                        left: 4px;
+                        font-weight: 600;
                     }
                 </style>
             </head>
