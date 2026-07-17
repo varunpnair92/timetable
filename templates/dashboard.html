@@ -1225,6 +1225,45 @@
         { type: 'body', text: 'Lab in charge : Ambily Sekar C' }
     ];
 
+    // Smart block type detector based on text style and length
+    function detectBlockType(line, isTitle) {
+        const trimmed = line.trim();
+        if (!trimmed) return 'body';
+        
+        // Bullet points / list marks indicate body paragraphs
+        if (/^[\-\*\u2022\u25CF\u25CB\u25AA]\s+/.test(trimmed)) {
+            return 'body';
+        }
+        
+        // If it starts with list numbers but is long, it's body text
+        if (/^\d+[\.\)]\s+/.test(trimmed) && (trimmed.length > 80 || /[\.\!]$/.test(trimmed))) {
+            return 'body';
+        }
+        
+        // Check length and trailing punctuation
+        if (trimmed.length > 80) return 'body';
+        if (/[\.\?\!]$/.test(trimmed) && trimmed.length > 40) return 'body';
+        
+        if (isTitle) {
+            return 'h2'; // Main title
+        }
+        
+        // Major section numbering (like "1. CCF Lab Safety Practices")
+        if (/^\d+[\.\)]\s+/.test(trimmed)) {
+            return 'h3';
+        }
+        
+        // Short lines are likely headings
+        if (trimmed.length < 50) {
+            if (trimmed === trimmed.toUpperCase() && trimmed.length > 3) {
+                return 'h2';
+            }
+            return 'h3';
+        }
+        
+        return 'body';
+    }
+
     // Auto update hidden field
     function updateHiddenContentJSON() {
         document.getElementById('created-content-json').value = JSON.stringify(blocks);
@@ -1269,6 +1308,32 @@
                 e.target.style.height = 'auto';
                 e.target.style.height = e.target.scrollHeight + 'px';
                 updateHiddenContentJSON();
+            };
+
+            // Smart Paste handler to parse multi-line text blocks automatically
+            textarea.onpaste = (e) => {
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                if (pastedText.includes('\n')) {
+                    e.preventDefault();
+                    
+                    const lines = pastedText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length === 0) return;
+                    
+                    // Replace current block text with first line
+                    blocks[index].text = lines[0];
+                    blocks[index].type = detectBlockType(lines[0], index === 0);
+                    
+                    // Add subsequent lines as individual blocks
+                    const newBlocks = lines.slice(1).map((line) => {
+                        return {
+                            type: detectBlockType(line, false),
+                            text: line
+                        };
+                    });
+                    
+                    blocks.splice(index + 1, 0, ...newBlocks);
+                    renderEditorBlocks();
+                }
             };
             
             // Initialize height
