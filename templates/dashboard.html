@@ -2012,6 +2012,17 @@
             return;
         }
 
+        // Direct open fallback link
+        const headerBtnGroup = document.createElement('div');
+        headerBtnGroup.style.textAlign = 'center';
+        headerBtnGroup.style.marginBottom = '16px';
+        headerBtnGroup.innerHTML = `
+            <a href="${url}" target="_blank" class="btn-action btn-action-preview" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 16px; font-weight: 600; border-radius: 6px;">
+                <span>↗️</span> Open File in New Tab (Full Screen)
+            </a>
+        `;
+        modalBody.appendChild(headerBtnGroup);
+
         const cleanUrl = url.split('?')[0].split('#')[0];
         const ext = cleanUrl.split('.').pop().toLowerCase();
         if (['png', 'jpg', 'jpeg'].includes(ext)) {
@@ -2029,7 +2040,7 @@
             const iframe = document.createElement('iframe');
             iframe.src = url;
             iframe.style.width = '100%';
-            iframe.style.height = '70vh';
+            iframe.style.height = '65vh';
             iframe.style.border = 'none';
             iframe.style.borderRadius = 'var(--radius-md)';
             modalBody.appendChild(iframe);
