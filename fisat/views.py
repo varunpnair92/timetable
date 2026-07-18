@@ -3038,10 +3038,12 @@ def generate_lab_report_view(request):
         # Build table html
         table_html = "<table class=\"doc-table\" style=\"width: 100%; border-collapse: collapse;\" border=\"1\"><tbody>"
         table_html += "<tr>"
-        for th in ["Sl No", "Event Name", "Date", "Total Hours"]:
+        headers = ["Sl No", "Event Name", "Date", "Total Hours"]
+        for th in headers:
             table_html += f"<th style=\"border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc;\">{th}</th>"
         table_html += "</tr>"
         
+        rows = []
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
             event_name = f"{allotment.subject_name} - {allotment.class_name}"
@@ -3049,6 +3051,8 @@ def generate_lab_report_view(request):
             hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
             hours_count = len(hours_list)
             total_cumulative_hours += hours_count
+            
+            rows.append([str(idx), event_name, allotment.start_date, str(hours_count)])
             
             table_html += "<tr>"
             table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{idx}</td>"
@@ -3058,6 +3062,8 @@ def generate_lab_report_view(request):
             table_html += "</tr>"
             
         # Add cumulative total row
+        rows.append(["", "", "Cumulative Total", str(total_cumulative_hours)])
+        
         table_html += "<tr>"
         table_html += f"<td colspan=\"3\" style=\"border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;\">Cumulative Total</td>"
         table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;\">{total_cumulative_hours}</td>"
@@ -3067,7 +3073,7 @@ def generate_lab_report_view(request):
         # Build document JSON
         blocks = [
             {"type": "h2", "text": f"Lab Wise Allotment Report - {lab_name or 'All Labs'}", "tableHtml": None, "style": {"bold": True, "italic": False}},
-            {"type": "table", "text": "", "tableHtml": table_html, "style": {"bold": False, "italic": False}}
+            {"type": "table", "text": "", "tableHtml": table_html, "headers": headers, "rows": rows, "style": {"bold": False, "italic": False}}
         ]
         
         content_json = json.dumps(blocks)
