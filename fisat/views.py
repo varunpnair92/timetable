@@ -2985,6 +2985,10 @@ def create_document_view(request):
             messages.success(request, f"Document '{name}' created successfully!")
         else:
             messages.error(request, "Failed to create document. Please provide both name and content.")
+            
+    next_url = request.POST.get("next")
+    if next_url:
+        return redirect(next_url)
     return redirect("dashboard")
 
 @login_required

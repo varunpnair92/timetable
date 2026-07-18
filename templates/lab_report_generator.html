@@ -1048,6 +1048,9 @@
 
             <!-- Hidden JSON field for Document Creator -->
             <input type="hidden" name="content_json" value="{{ content_json|escape }}">
+            
+            <!-- Redirect back to the generator page instead of dashboard -->
+            <input type="hidden" name="next" value="{% url 'generate_lab_report' %}">
 
             <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
                 <button type="submit" class="btn-action" style="font-size: 1rem; padding: 12px 24px;">💾 Save Document</button>
