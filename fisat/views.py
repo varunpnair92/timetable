@@ -3083,9 +3083,11 @@ def generate_lab_report_view(request):
         content_json = json.dumps(blocks)
         
         categories = DocumentCategory.objects.all().order_by("name")
+        labs = LabAllotment.objects.values_list('lab_name', flat=True).distinct()
         return render(request, "lab_report_generator.html", {
             "content_json": content_json,
             "categories": categories,
+            "labs": labs,
             "generated": True,
             "lab_name": lab_name,
             "start_date": start_date,
