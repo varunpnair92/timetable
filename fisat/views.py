@@ -3028,6 +3028,10 @@ def generate_lab_report_view(request):
         lab_name = request.POST.get("lab_name")
         start_date = request.POST.get("start_date", "")
         end_date = request.POST.get("end_date", "")
+        report_heading = request.POST.get("report_heading", "").strip()
+        
+        default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
+        final_heading = report_heading if report_heading else default_heading
         
         allotments_qs = LabAllotment.objects.all()
         if lab_name:
@@ -3076,7 +3080,7 @@ def generate_lab_report_view(request):
         
         # Build document JSON
         blocks = [
-            {"type": "h2", "text": f"Lab Wise Allotment Report - {lab_name or 'All Labs'}", "tableHtml": None, "style": {"bold": True, "italic": False}},
+            {"type": "h2", "text": final_heading, "tableHtml": None, "style": {"bold": True, "italic": False}},
             {"type": "table", "text": "", "tableHtml": table_html, "headers": headers, "rows": rows, "style": {"bold": False, "italic": False}}
         ]
         
@@ -3091,7 +3095,9 @@ def generate_lab_report_view(request):
             "generated": True,
             "lab_name": lab_name,
             "start_date": start_date,
-            "end_date": end_date
+            "end_date": end_date,
+            "report_heading": report_heading,
+            "final_heading": final_heading
         })
 
     # GET request

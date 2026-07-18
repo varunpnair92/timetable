@@ -1013,6 +1013,10 @@
                     <label for="end_date">End Date (DD-MM-YYYY)</label>
                     <input type="text" id="end_date" name="end_date" class="form-input" value="{{ end_date|default:'' }}" placeholder="e.g. 31-12-2025">
                 </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="report_heading">Custom Heading (Optional)</label>
+                    <input type="text" id="report_heading" name="report_heading" class="form-input" value="{{ report_heading|default:'' }}" placeholder="e.g. Lab Allotment 2026">
+                </div>
                 <button type="submit" class="btn-action" style="height: 41px; padding: 0 24px;">Generate</button>
             </div>
         </form>
@@ -1043,7 +1047,7 @@
 
             <div class="form-group">
                 <label for="create_doc_name">Document Name</label>
-                <input type="text" id="create_doc_name" name="name" required class="form-input" placeholder="e.g. Lab Wise Allotment - {{ lab_name|default:'All' }}" value="Lab Wise Allotment - {{ lab_name|default:'All Labs' }}">
+                <input type="text" id="create_doc_name" name="name" required class="form-input" placeholder="e.g. {{ final_heading }}" value="{{ final_heading }}">
             </div>
 
             <!-- Hidden JSON field for Document Creator -->
@@ -1062,7 +1066,7 @@
     <div class="card">
         <h3 style="margin-top:0; font-size: 1.2rem;">Report Preview</h3>
         <div style="background: white; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <h2 style="font-weight: bold; margin-bottom: 16px;">Lab Wise Allotment Report - {{ lab_name|default:'All Labs' }}</h2>
+            <h2 style="font-weight: bold; margin-bottom: 16px;">{{ final_heading }}</h2>
             <div id="table-preview-container">
                 <!-- We render the tableHtml dynamically here for preview -->
             </div>
