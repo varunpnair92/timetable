@@ -2,7 +2,7 @@ from django.urls import path,include
 from .views import allocate_staff, timetable,allotted,delete_allotment,allot_subject_entry,timetableexcel,export_lab_allotments_csv,delete_subject_entry_view,show_google_login_page,google_auth_callback,quick_allocate,quick_delete_staff,get_free_staff,drag_action,transfer_to_staff,undo_last_action, manage_batches, subject_entry_view, get_batch_subjects, get_batch_allotments, palette_allocate, switch_semester, delete_subject_entry_ajax, auto_lab_allotment_view, api_run_auto_lab_allotment, api_clear_all_allotments
 from django.contrib.auth import views as auth_views
 from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,download_subject_entries_csv,timetable2, download_timetable_csv,edit_staff_config,apply_ai_allocation,subject_faculty_mapping,staff_subject_count,get_subject_load,get_staff_day_load,download_staff_allotment_csv,subject_wise_allocation,export_final_workload
-from .views import upload_document_view, create_document_view, delete_document_view, create_category_view
+from .views import upload_document_view, create_document_view, delete_document_view, create_category_view, generate_lab_report_view
 
 
 urlpatterns = [
@@ -76,4 +76,5 @@ path('apply_ai_allocation/', apply_ai_allocation, name='apply_ai_allocation'),
     path('document/create/', create_document_view, name='create_document'),
     path('document/delete/<int:doc_id>/', delete_document_view, name='delete_document'),
     path('category/create/', create_category_view, name='create_category'),
+    path('lab-report/generate/', generate_lab_report_view, name='generate_lab_report'),
 ]

@@ -3015,3 +3015,80 @@ def create_category_view(request):
             messages.error(request, "Failed to create category.")
     return redirect("dashboard")
 
+@login_required
+def generate_lab_report_view(request):
+    from .models import DocumentCategory, LabAllotment
+    
+    if request.method == "POST":
+        # Form submission to generate report
+        lab_name = request.POST.get("lab_name")
+        start_date = request.POST.get("start_date", "")
+        end_date = request.POST.get("end_date", "")
+        
+        allotments_qs = LabAllotment.objects.all()
+        if lab_name:
+            allotments_qs = allotments_qs.filter(lab_name=lab_name)
+        if start_date:
+            allotments_qs = allotments_qs.filter(start_date__gte=start_date)
+        if end_date:
+            allotments_qs = allotments_qs.filter(end_date__lte=end_date)
+            
+        allotments = allotments_qs.order_by("start_date")
+        
+        # Build table html
+        table_html = "<table class=\"doc-table\" style=\"width: 100%; border-collapse: collapse;\" border=\"1\"><tbody>"
+        table_html += "<tr>"
+        for th in ["Sl No", "Event Name", "Date", "Total Hours"]:
+            table_html += f"<th style=\"border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc;\">{th}</th>"
+        table_html += "</tr>"
+        
+        total_cumulative_hours = 0
+        for idx, allotment in enumerate(allotments, start=1):
+            event_name = f"{allotment.subject_name} - {allotment.class_name}"
+            # hours_allotted is comma separated, e.g. "1, 2, 3"
+            hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
+            hours_count = len(hours_list)
+            total_cumulative_hours += hours_count
+            
+            table_html += "<tr>"
+            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{idx}</td>"
+            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{event_name}</td>"
+            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{allotment.start_date}</td>"
+            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{hours_count}</td>"
+            table_html += "</tr>"
+            
+        # Add cumulative total row
+        table_html += "<tr>"
+        table_html += f"<td colspan=\"3\" style=\"border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;\">Cumulative Total</td>"
+        table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;\">{total_cumulative_hours}</td>"
+        table_html += "</tr>"
+        table_html += "</tbody></table>"
+        
+        # Build document JSON
+        blocks = [
+            {"type": "h2", "text": f"Lab Wise Allotment Report - {lab_name or 'All Labs'}", "tableHtml": None, "style": {"bold": True, "italic": False}},
+            {"type": "table", "text": "", "tableHtml": table_html, "style": {"bold": False, "italic": False}}
+        ]
+        
+        content_json = json.dumps(blocks)
+        
+        categories = DocumentCategory.objects.all().order_by("name")
+        return render(request, "lab_report_generator.html", {
+            "content_json": content_json,
+            "categories": categories,
+            "generated": True,
+            "lab_name": lab_name,
+            "start_date": start_date,
+            "end_date": end_date
+        })
+
+    # GET request
+    categories = DocumentCategory.objects.all().order_by("name")
+    labs = LabAllotment.objects.values_list('lab_name', flat=True).distinct()
+    
+    return render(request, "lab_report_generator.html", {
+        "categories": categories,
+        "labs": labs,
+        "generated": False
+    })
+

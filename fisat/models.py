@@ -204,3 +204,23 @@ class Document(models.Model):
     class Meta:
         db_table = 'document'
 
+
+class LabAllotment(models.Model):
+    id = models.AutoField(primary_key=True, db_column="id") 
+    lab_name = models.CharField(max_length=50)
+    day_allotted = models.CharField(max_length=10, blank=True)
+    hours_allotted = models.CharField(max_length=50)
+    subject_name = models.CharField(max_length=100)
+    class_name = models.CharField(max_length=100)
+    start_date = models.CharField(max_length=100)
+    end_date = models.CharField(max_length=100)
+    external =  models.CharField(max_length=10, default="external")
+    skip_telegram = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.lab_name} - {self.subject_name} - {self.day_allotted}"
+
+    class Meta:
+        managed = False
+        db_table = '"timetable"."lab_allotment"'
+

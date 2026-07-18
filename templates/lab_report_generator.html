@@ -1,0 +1,106 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="dashboard-header" style="margin-bottom: 20px;">
+        <h1 style="font-size: 1.8rem; color: var(--primary);">Lab Allotment Report Generator</h1>
+        <p style="color: var(--text-muted); font-size: 1rem;">Generate and save lab allotment reports as custom documents.</p>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card" style="margin-bottom: 24px;">
+        <h3 style="margin-top:0; font-size: 1.2rem;">Generate Report</h3>
+        <form method="POST" action="{% url 'generate_lab_report' %}">
+            {% csrf_token %}
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="lab_name">Select Lab</label>
+                    <select id="lab_name" name="lab_name" class="form-input" style="min-width: 200px;">
+                        <option value="">-- All Labs --</option>
+                        {% for lab in labs %}
+                            <option value="{{ lab }}" {% if lab_name == lab %}selected{% endif %}>{{ lab }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="start_date">Start Date (DD-MM-YYYY)</label>
+                    <input type="text" id="start_date" name="start_date" class="form-input" value="{{ start_date|default:'' }}" placeholder="e.g. 01-12-2025">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="end_date">End Date (DD-MM-YYYY)</label>
+                    <input type="text" id="end_date" name="end_date" class="form-input" value="{{ end_date|default:'' }}" placeholder="e.g. 31-12-2025">
+                </div>
+                <button type="submit" class="btn-action" style="height: 41px; padding: 0 24px;">Generate</button>
+            </div>
+        </form>
+    </div>
+
+    {% if generated %}
+    <!-- Document Save Form -->
+    <div class="card" style="margin-bottom: 24px; border: 1px solid var(--primary); background: #f0f9ff;">
+        <h3 style="margin-top:0; font-size: 1.2rem; color: var(--primary);">Save as Custom Document</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+            The report has been generated. You can now set the category and name to save it as a Custom Document. It will appear in your Dashboard where you can preview and download it.
+        </p>
+
+        <form action="{% url 'create_document' %}" method="POST" id="saveDocForm">
+            {% csrf_token %}
+            
+            <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="flex-grow: 1; margin-bottom: 0;">
+                    <label for="create_doc_category">Document Category</label>
+                    <select id="create_doc_category" name="category_id" class="form-input" style="width: 100%; height: 41px;">
+                        <option value="">-- No Category --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="create_doc_name">Document Name</label>
+                <input type="text" id="create_doc_name" name="name" required class="form-input" placeholder="e.g. Lab Wise Allotment - {{ lab_name|default:'All' }}" value="Lab Wise Allotment - {{ lab_name|default:'All Labs' }}">
+            </div>
+
+            <!-- Hidden JSON field for Document Creator -->
+            <input type="hidden" name="content_json" value="{{ content_json|escape }}">
+
+            <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="submit" class="btn-action" style="font-size: 1rem; padding: 12px 24px;">💾 Save Document</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Preview -->
+    <div class="card">
+        <h3 style="margin-top:0; font-size: 1.2rem;">Report Preview</h3>
+        <div style="background: white; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="font-weight: bold; margin-bottom: 16px;">Lab Wise Allotment Report - {{ lab_name|default:'All Labs' }}</h2>
+            <div id="table-preview-container">
+                <!-- We render the tableHtml dynamically here for preview -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const contentJson = `{{ content_json|escapejs }}`;
+                const blocks = JSON.parse(contentJson);
+                
+                // Find the table block and render it in preview
+                const tableBlock = blocks.find(b => b.type === 'table');
+                if (tableBlock && tableBlock.tableHtml) {
+                    document.getElementById('table-preview-container').innerHTML = tableBlock.tableHtml;
+                }
+            } catch (e) {
+                console.error("Failed to parse document blocks", e);
+            }
+        });
+    </script>
+    {% endif %}
+
+</div>
+{% endblock %}
