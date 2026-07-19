@@ -1199,8 +1199,9 @@
                         <input type="text" id="create_doc_name" name="name" required class="form-input" placeholder="e.g. CCF Lab 1 Details">
                     </div>
 
-                    <!-- Hidden JSON field -->
+                    <!-- Hidden fields -->
                     <input type="hidden" name="content_json" id="created-content-json">
+                    <input type="hidden" name="doc_id" id="edit_doc_id" value="">
 
                     <!-- Document Paper Mockup -->
                     <div class="doc-paper">
@@ -1337,11 +1338,23 @@
                  </select>
              </div>
         </div>
+        
+        <form id="bulkDeleteForm" method="POST" action="{% url 'bulk_delete_documents' %}">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="repository-pane">
+            <div style="margin-bottom: 12px; display: flex; justify-content: flex-start;">
+                <button type="button" class="btn-action btn-action-delete" onclick="submitBulkDelete()" style="padding: 6px 12px; font-size: 0.9rem;">
+                    🗑️ Delete Selected
+                </button>
+            </div>
 
         <div class="table-container">
             <table class="repo-table" id="documentTable">
                 <thead>
                     <tr>
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="selectAllDocs" onclick="toggleAllDocs(this)">
+                        </th>
                         <th>Document Name</th>
                         <th>Category</th>
                         <th>Type</th>
@@ -1352,6 +1365,9 @@
                 <tbody>
                     {% for doc in documents %}
                     <tr class="doc-row" data-category="{% if doc.category %}{{ doc.category.name }}{% else %}NONE{% endif %}">
+                        <td style="text-align: center;">
+                            <input type="checkbox" name="doc_ids" value="{{ doc.id }}" class="doc-checkbox">
+                        </td>
                         <td class="doc-name-cell" style="font-weight: 600;">{{ doc.name }}</td>
                         <td class="doc-category-cell" style="font-weight: 500; color: var(--text-main);">
                             {% if doc.category %}
@@ -1386,6 +1402,9 @@
                                 <button type="button" class="btn-action btn-action-preview" onclick="previewCreatedDoc('{{ doc.name }}', '{{ doc.content_json|escapejs }}')">
                                     Preview
                                 </button>
+                                <button type="button" class="btn-action" style="background-color: var(--primary); color: white;" onclick="editDocument('{{ doc.id }}', '{{ doc.name|escapejs }}', '{{ doc.category.id|default:'' }}', '{{ doc.content_json|escapejs }}')">
+                                    Edit
+                                </button>
                                 {% endif %}
                                 <a href="{% url 'delete_document' doc.id %}" onclick="return confirm('Are you sure you want to delete this document?')" class="btn-action btn-action-delete">
                                     Delete
@@ -1395,7 +1414,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
                             No documents found. Create or upload a document to get started.
                         </td>
                     </tr>
@@ -1403,6 +1422,7 @@
                 </tbody>
             </table>
         </div>
+        </form>
     </div>
 </div>
 
@@ -1621,6 +1641,27 @@
         
         renderEditorBlocks();
         updateBulkToolbarVisibility();
+    }
+
+    function editDocument(id, name, categoryId, contentJsonStr) {
+        document.getElementById('edit_doc_id').value = id;
+        document.getElementById('create_doc_name').value = name;
+        document.getElementById('create_doc_category').value = categoryId;
+        
+        try {
+            blocks = JSON.parse(contentJsonStr);
+        } catch (e) {
+            console.error("Failed to parse document content JSON", e);
+            blocks = [];
+        }
+        
+        // Switch to Document Hub > Create Document panel
+        switchMainTab('document-hub-pane', document.querySelector('button[onclick*="document-hub-pane"]'));
+        switchHubMode('create');
+        
+        // Render the blocks in the editor
+        renderEditorBlocks();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function previewCurrentEditorDoc() {
@@ -2345,7 +2386,31 @@
     // Initialize editor on load
     window.onload = function() {
         renderEditorBlocks();
+        
+        // Tab restoration logic
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        if (tab === 'repository-pane') {
+            switchMainTab('repository-pane', document.querySelector('button[onclick*="repository-pane"]'));
+        }
     };
+    
+    // Bulk Delete logic
+    function toggleAllDocs(source) {
+        const checkboxes = document.querySelectorAll('.doc-checkbox');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+    }
+    
+    function submitBulkDelete() {
+        const checkboxes = document.querySelectorAll('.doc-checkbox:checked');
+        if (checkboxes.length === 0) {
+            alert('Please select at least one document to delete.');
+            return;
+        }
+        if (confirm('Are you sure you want to delete the selected ' + checkboxes.length + ' documents?')) {
+            document.getElementById('bulkDeleteForm').submit();
+        }
+    }
 </script>
 
 </body>

@@ -2966,6 +2966,8 @@ def create_document_view(request):
         content_json = request.POST.get("content_json")
         category_id = request.POST.get("category_id")
         
+        doc_id = request.POST.get("doc_id")
+        
         category = None
         if category_id:
             try:
@@ -2974,15 +2976,23 @@ def create_document_view(request):
                 pass
                 
         if name and content_json:
-            doc = Document(
-                name=name,
-                doc_type="created",
-                content_json=content_json,
-                category=category,
-                user=request.user
-            )
-            doc.save()
-            messages.success(request, f"Document '{name}' created successfully!")
+            if doc_id:
+                doc = get_object_or_404(Document, id=doc_id, user=request.user)
+                doc.name = name
+                doc.content_json = content_json
+                doc.category = category
+                doc.save()
+                messages.success(request, f"Document '{name}' updated successfully!")
+            else:
+                doc = Document(
+                    name=name,
+                    doc_type="created",
+                    content_json=content_json,
+                    category=category,
+                    user=request.user
+                )
+                doc.save()
+                messages.success(request, f"Document '{name}' created successfully!")
         else:
             messages.error(request, "Failed to create document. Please provide both name and content.")
             
@@ -3001,7 +3011,28 @@ def delete_document_view(request, doc_id):
             os.remove(doc.uploaded_file.path)
     doc.delete()
     messages.success(request, f"Document '{name}' deleted successfully!")
-    return redirect("dashboard")
+    # Keep the user on the repository tab
+    return redirect("/dashboard/?tab=repository-pane")
+
+@login_required
+def bulk_delete_documents_view(request):
+    from .models import Document
+    if request.method == "POST":
+        doc_ids = request.POST.getlist('doc_ids')
+        if doc_ids:
+            docs = Document.objects.filter(id__in=doc_ids, user=request.user)
+            count = docs.count()
+            for doc in docs:
+                if doc.doc_type == "uploaded" and doc.uploaded_file:
+                    if os.path.exists(doc.uploaded_file.path):
+                        os.remove(doc.uploaded_file.path)
+            docs.delete()
+            messages.success(request, f"{count} documents deleted successfully!")
+        else:
+            messages.error(request, "No documents were selected for deletion.")
+            
+    # Redirect back to the Custom Documents tab
+    return redirect("/dashboard/?tab=repository-pane")
 
 @login_required
 def create_category_view(request):

@@ -1074,16 +1074,103 @@
     </div>
     
     <script>
+        let reportBlocks = [];
+
+        function renderInteractivePreview() {
+            const tableBlock = reportBlocks.find(b => b.type === 'table');
+            if (!tableBlock) return;
+            
+            let html = '<div style="margin-bottom: 12px;"><button type="button" class="btn-action btn-action-delete" onclick="deleteSelectedRows()" style="padding: 6px 12px; font-size: 0.9rem;">🗑️ Delete Selected Allotments</button></div>';
+            
+            html += '<table class="doc-table" style="width: 100%; border-collapse: collapse;" border="1"><tbody><tr>';
+            html += '<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc; width: 40px; text-align: center;"><input type="checkbox" onclick="toggleAllRows(this)"></th>';
+            
+            tableBlock.headers.forEach(th => {
+                html += `<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc;">${th}</th>`;
+            });
+            html += '</tr>';
+            
+            // Render data rows (skip last row which is Cumulative Total)
+            const dataRows = tableBlock.rows.slice(0, -1);
+            const totalRow = tableBlock.rows[tableBlock.rows.length - 1];
+            
+            dataRows.forEach((row, idx) => {
+                html += '<tr>';
+                html += `<td style="text-align: center; border: 1px solid var(--border-color);"><input type="checkbox" class="row-checkbox" value="${idx}"></td>`;
+                row.forEach(cell => {
+                    html += `<td style="border: 1px solid var(--border-color); padding: 6px 10px;">${cell}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            // Total row
+            html += '<tr>';
+            html += '<td style="border: 1px solid var(--border-color);"></td>'; // empty for checkbox col
+            html += `<td colspan="3" style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;">${totalRow[2]}</td>`;
+            html += `<td style="border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;">${totalRow[3]}</td>`;
+            html += '</tr></tbody></table>';
+            
+            document.getElementById('table-preview-container').innerHTML = html;
+        }
+
+        function toggleAllRows(source) {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
+        }
+
+        function deleteSelectedRows() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkboxes.length === 0) return;
+            
+            const indicesToRemove = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const tableBlock = reportBlocks.find(b => b.type === 'table');
+            
+            let dataRows = tableBlock.rows.slice(0, -1);
+            dataRows = dataRows.filter((_, idx) => !indicesToRemove.includes(idx));
+            
+            // Recalculate
+            let newTotal = 0;
+            dataRows.forEach((row, idx) => {
+                row[0] = (idx + 1).toString(); // update Sl No
+                newTotal += parseInt(row[3]); // sum Total Hours
+            });
+            
+            const totalRow = ["", "", "Cumulative Total", newTotal.toString()];
+            tableBlock.rows = [...dataRows, totalRow];
+            
+            // Regenerate tableHtml for saving (WITHOUT checkboxes)
+            let rawHtml = '<table class="doc-table" style="width: 100%; border-collapse: collapse;" border="1"><tbody><tr>';
+            tableBlock.headers.forEach(th => {
+                rawHtml += `<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc;">${th}</th>`;
+            });
+            rawHtml += '</tr>';
+            
+            dataRows.forEach(row => {
+                rawHtml += '<tr>';
+                row.forEach(cell => {
+                    rawHtml += `<td style="border: 1px solid var(--border-color); padding: 6px 10px;">${cell}</td>`;
+                });
+                rawHtml += '</tr>';
+            });
+            
+            rawHtml += '<tr>';
+            rawHtml += `<td colspan="3" style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;">Cumulative Total</td>`;
+            rawHtml += `<td style="border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;">${newTotal}</td>`;
+            rawHtml += '</tr></tbody></table>';
+            
+            tableBlock.tableHtml = rawHtml;
+            
+            // Update hidden input
+            document.querySelector('input[name="content_json"]').value = JSON.stringify(reportBlocks);
+            
+            // Re-render UI
+            renderInteractivePreview();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 const contentJson = `{{ content_json|escapejs }}`;
-                const blocks = JSON.parse(contentJson);
-                
-                // Find the table block and render it in preview
-                const tableBlock = blocks.find(b => b.type === 'table');
-                if (tableBlock && tableBlock.tableHtml) {
-                    document.getElementById('table-preview-container').innerHTML = tableBlock.tableHtml;
-                }
+                reportBlocks = JSON.parse(contentJson);
+                renderInteractivePreview();
             } catch (e) {
                 console.error("Failed to parse document blocks", e);
             }
