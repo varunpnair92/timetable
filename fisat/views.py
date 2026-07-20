@@ -3053,7 +3053,19 @@ def create_category_view(request):
 @login_required
 def generate_lab_report_view(request):
     from .models import DocumentCategory, LabAllotment
+    from datetime import datetime
     
+    def parse_date(date_str):
+        if not date_str:
+            return datetime.min
+        try:
+            return datetime.strptime(date_str.strip(), "%d-%m-%Y")
+        except ValueError:
+            try:
+                return datetime.strptime(date_str.strip(), "%Y-%m-%d")
+            except ValueError:
+                return datetime.min
+
     if request.method == "POST":
         # Form submission to generate report
         lab_name = request.POST.get("lab_name")
@@ -3067,12 +3079,17 @@ def generate_lab_report_view(request):
         allotments_qs = LabAllotment.objects.all()
         if lab_name:
             allotments_qs = allotments_qs.filter(lab_name=lab_name)
-        if start_date:
-            allotments_qs = allotments_qs.filter(start_date__gte=start_date)
-        if end_date:
-            allotments_qs = allotments_qs.filter(end_date__lte=end_date)
             
-        allotments = allotments_qs.order_by("start_date")
+        allotments = list(allotments_qs)
+        
+        if start_date:
+            sd = parse_date(start_date)
+            allotments = [a for a in allotments if parse_date(a.start_date) >= sd]
+        if end_date:
+            ed = parse_date(end_date)
+            allotments = [a for a in allotments if parse_date(a.start_date) <= ed]
+            
+        allotments.sort(key=lambda a: parse_date(a.start_date))
         
         # Build table html
         table_html = "<table class=\"doc-table\" style=\"width: 100%; border-collapse: collapse;\" border=\"1\"><tbody>"
