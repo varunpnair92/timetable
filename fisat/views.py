@@ -3158,3 +3158,95 @@ def generate_lab_report_view(request):
         "generated": False
     })
 
+
+@login_required
+def download_lab_report_excel(request):
+    from .models import LabAllotment
+    from datetime import datetime
+    import xlsxwriter
+    import io
+    
+    def parse_date(date_str):
+        if not date_str:
+            return datetime.min
+        try:
+            return datetime.strptime(date_str.strip(), "%d-%m-%Y")
+        except ValueError:
+            try:
+                return datetime.strptime(date_str.strip(), "%Y-%m-%d")
+            except ValueError:
+                return datetime.min
+
+    if request.method == "POST":
+        lab_name = request.POST.get("lab_name")
+        start_date = request.POST.get("start_date", "")
+        end_date = request.POST.get("end_date", "")
+        report_heading = request.POST.get("report_heading", "").strip()
+        
+        default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
+        final_heading = report_heading if report_heading else default_heading
+        
+        allotments_qs = LabAllotment.objects.all()
+        if lab_name:
+            allotments_qs = allotments_qs.filter(lab_name=lab_name)
+            
+        allotments = list(allotments_qs)
+        
+        if start_date:
+            sd = parse_date(start_date)
+            allotments = [a for a in allotments if parse_date(a.start_date) >= sd]
+        if end_date:
+            ed = parse_date(end_date)
+            allotments = [a for a in allotments if parse_date(a.start_date) <= ed]
+            
+        allotments.sort(key=lambda a: parse_date(a.start_date))
+        
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output)
+        worksheet = workbook.add_worksheet("Lab Report")
+        
+        title_fmt = workbook.add_format({"bold": True, "font_size": 14, "align": "center"})
+        header_fmt = workbook.add_format({"bold": True, "border": 1, "bg_color": "#f8fafc"})
+        cell_fmt = workbook.add_format({"border": 1})
+        bold_cell_fmt = workbook.add_format({"border": 1, "bold": True})
+        
+        worksheet.merge_range("A1:D1", final_heading, title_fmt)
+        
+        headers = ["Sl No", "Event Name", "Date", "Total Hours"]
+        for col_num, header in enumerate(headers):
+            worksheet.write(2, col_num, header, header_fmt)
+            
+        worksheet.set_column(0, 0, 8)
+        worksheet.set_column(1, 1, 40)
+        worksheet.set_column(2, 2, 15)
+        worksheet.set_column(3, 3, 12)
+        
+        row_num = 3
+        total_cumulative_hours = 0
+        for idx, allotment in enumerate(allotments, start=1):
+            event_name = f"{allotment.subject_name} - {allotment.class_name}"
+            hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
+            hours_count = len(hours_list)
+            total_cumulative_hours += hours_count
+            
+            worksheet.write(row_num, 0, idx, cell_fmt)
+            worksheet.write(row_num, 1, event_name, cell_fmt)
+            worksheet.write(row_num, 2, allotment.start_date, cell_fmt)
+            worksheet.write(row_num, 3, hours_count, cell_fmt)
+            row_num += 1
+            
+        worksheet.merge_range(f"A{row_num+1}:C{row_num+1}", "Cumulative Total", bold_cell_fmt)
+        worksheet.write(row_num, 3, total_cumulative_hours, bold_cell_fmt)
+        
+        workbook.close()
+        output.seek(0)
+        
+        response = HttpResponse(
+            output,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        safe_filename = final_heading.replace(" ", "_").replace("/", "_")
+        response["Content-Disposition"] = f'attachment; filename="{safe_filename}.xlsx"'
+        return response
+    
+    return redirect("generate_lab_report")

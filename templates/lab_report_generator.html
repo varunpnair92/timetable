@@ -1018,6 +1018,7 @@
                     <input type="text" id="report_heading" name="report_heading" class="form-input" value="{{ report_heading|default:'' }}" placeholder="e.g. Lab Allotment 2026">
                 </div>
                 <button type="submit" class="btn-action" style="height: 41px; padding: 0 24px;">Generate</button>
+                <button type="submit" formaction="{% url 'download_lab_report_excel' %}" class="btn-action" style="height: 41px; padding: 0 24px; background-color: var(--success); color: white; border-color: transparent;">Download Excel</button>
             </div>
         </form>
     </div>
