@@ -436,6 +436,43 @@
             letter-spacing: 1px;
         }
 
+        /* Document Styling (Lab System Config) */
+        .doc-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: "Times New Roman", Times, serif;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .doc-in-charge {
+            font-size: 1.3rem;
+            font-family: "Times New Roman", Times, serif;
+            margin-bottom: 20px;
+        }
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: "Times New Roman", Times, serif;
+            color: #000;
+        }
+        .config-table th, .config-table td {
+            border: 1px solid #000;
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .config-table th {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.15rem;
+        }
+        .config-table .col-sl { width: 5%; text-align: center; font-weight: bold; font-size: 1.15rem;}
+        .config-table .col-name { width: 35%; font-size: 1.15rem; font-weight: 600;}
+        .config-table .col-details { width: 60%; }
+        .detail-line { margin-bottom: 2px; font-size: 0.95rem; font-weight: bold; }
+        .detail-label { font-weight: bold; text-transform: uppercase; }
+
         /* Editor Block Styling */
         .editor-blocks-container {
             display: flex;
@@ -2351,6 +2388,18 @@
                         font-size: 0.95rem;
                         letter-spacing: 1px;
                     }
+                    /* Document Styling (Lab System Config) */
+                    .doc-title { text-align: center; font-size: 1.5rem; font-weight: 700; font-family: "Times New Roman", Times, serif; margin-top: 30px; margin-bottom: 30px; }
+                    .doc-in-charge { font-size: 1.3rem; font-family: "Times New Roman", Times, serif; margin-bottom: 20px; }
+                    .config-table { width: 100%; border-collapse: collapse; font-family: "Times New Roman", Times, serif; color: #000; }
+                    .config-table th, .config-table td { border: 1px solid #000; padding: 8px 12px; text-align: left; vertical-align: top; }
+                    .config-table th { text-align: center; font-weight: bold; font-size: 1.15rem; }
+                    .config-table .col-sl { width: 5%; text-align: center; font-weight: bold; font-size: 1.15rem; }
+                    .config-table .col-name { width: 35%; font-size: 1.15rem; font-weight: 600; }
+                    .config-table .col-details { width: 60%; }
+                    .detail-line { margin-bottom: 2px; font-size: 0.95rem; font-weight: bold; }
+                    .detail-label { font-weight: bold; text-transform: uppercase; }
+                    
                     .doc-paper {
                         counter-reset: print-list-counter;
                     }
