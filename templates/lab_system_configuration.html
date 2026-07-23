@@ -280,9 +280,18 @@
             </div>
             <div>
                 <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">← Back to Dashboard</a>
+                <button onclick="saveDocument()" class="btn-secondary" style="margin-left: 10px;">💾 Save to Repository</button>
                 <button onclick="printDocument()" class="btn-primary" style="width: auto; margin: 0 0 0 10px;">🖨️ Print Document</button>
             </div>
         </div>
+
+        <!-- Hidden form for saving to repository -->
+        <form action="{% url 'create_document' %}" method="POST" id="saveDocForm" style="display: none;">
+            {% csrf_token %}
+            <input type="hidden" name="category_id" value="{{ category.id }}">
+            <input type="hidden" name="name" id="save_doc_name">
+            <input type="hidden" name="content_json" id="save_doc_content">
+        </form>
 
         <div class="hub-container">
             <!-- Controls Sidebar -->
@@ -328,9 +337,12 @@
                     <div class="form-group"><label>Monitor</label><input type="text" id="comp_monitor" class="form-input"></div>
                     <div class="form-group"><label>Keyboard</label><input type="text" id="comp_kb" class="form-input"></div>
                     <div class="form-group"><label>Mouse</label><input type="text" id="comp_mouse" class="form-input"></div>
-                    <div class="form-group"><label>Graphics Card (Optional)</label><input type="text" id="comp_gpu" class="form-input"></div>
-                    <div class="form-group"><label>OS</label><input type="text" id="comp_os" class="form-input"></div>
-                    <div class="form-group"><label>Softwares</label><input type="text" id="comp_sw" class="form-input"></div>
+                    <div class="form-group"><label>Graphics Card (Optional)</label><input type="text" id="comp_gpu" class="form-input comp-spec-input" data-label="GRAPHICS CARD"></div>
+                    <div class="form-group"><label>OS</label><input type="text" id="comp_os" class="form-input comp-spec-input" data-label="OS"></div>
+                    <div class="form-group"><label>Softwares</label><input type="text" id="comp_sw" class="form-input comp-spec-input" data-label="SOFTWARES"></div>
+                    
+                    <div id="custom_fields_container"></div>
+                    <button type="button" class="btn-secondary" style="font-size: 0.85rem; padding: 4px 8px;" onclick="addCustomField()">+ Add Custom Spec Field (e.g. POWER SUPPLY)</button>
                 </div>
 
                 <!-- Other Fields -->
@@ -396,6 +408,22 @@
             }
         }
 
+        let customFieldCount = 0;
+
+        function addCustomField() {
+            const labelName = prompt("Enter the name of the new specification (e.g., PROCESSOR, POWER SUPPLY):");
+            if (!labelName) return;
+            
+            customFieldCount++;
+            const fieldId = 'custom_comp_field_' + customFieldCount;
+            
+            const container = document.getElementById('custom_fields_container');
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `<label>${labelName.toUpperCase()}</label><input type="text" id="${fieldId}" class="form-input comp-spec-input" data-label="${labelName.toUpperCase()}">`;
+            container.appendChild(div);
+        }
+
         function addItem() {
             const type = document.getElementById('item_type').value;
             const quantity = document.getElementById('item_quantity').value || type;
@@ -414,6 +442,11 @@
                     { label: 'MOUSE', val: getVal('comp_mouse') },
                     { label: 'GRAPHICS CARD', val: getVal('comp_gpu') },
                 ];
+                
+                // Add dynamically created custom fields
+                document.querySelectorAll('#custom_fields_container .comp-spec-input').forEach(input => {
+                    fields.push({ label: input.getAttribute('data-label'), val: input.value });
+                });
                 
                 fields.forEach(f => {
                     if (f.val) {
@@ -471,6 +504,24 @@
             style.innerHTML = `@media print { .no-print { display: none !important; } }`;
             document.head.appendChild(style);
             window.print();
+        }
+
+        function saveDocument() {
+            const docName = prompt("Enter a name to save this document:", document.getElementById('lab_name_input').value || "Lab Configuration");
+            if (!docName) return;
+
+            // Remove the 'Remove' buttons temporarily so they don't get saved into the HTML
+            const removeBtns = document.querySelectorAll('.no-print');
+            removeBtns.forEach(btn => btn.style.display = 'none');
+            
+            const htmlContent = document.getElementById('doc-preview-area').innerHTML;
+            
+            // Restore buttons
+            removeBtns.forEach(btn => btn.style.display = 'inline-block');
+
+            document.getElementById('save_doc_name').value = docName;
+            document.getElementById('save_doc_content').value = htmlContent;
+            document.getElementById('saveDocForm').submit();
         }
         
         // Initial call

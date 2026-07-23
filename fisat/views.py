@@ -3256,4 +3256,6 @@ def lab_system_configuration_view(request):
     """
     Renders the Lab System Configuration generator interface.
     """
-    return render(request, 'lab_system_configuration.html')
+    from .models import DocumentCategory
+    category, created = DocumentCategory.objects.get_or_create(name="Lab System Configuration")
+    return render(request, 'lab_system_configuration.html', {'category': category})
