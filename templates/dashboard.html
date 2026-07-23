@@ -379,37 +379,57 @@
         .letterhead-container {
             display: flex;
             align-items: center;
-            border-bottom: 2px solid #1e293b;
+            justify-content: space-between;
+            border-bottom: 2px solid #302683;
             padding-bottom: 16px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+        }
+        .letterhead-left {
+            display: flex;
+            align-items: center;
         }
         .letterhead-logo {
             width: 80px;
             height: auto;
-            margin-right: 20px;
+            margin-right: 15px;
         }
         .letterhead-text {
-            flex-grow: 1;
-            text-align: center;
+            text-align: left;
+            line-height: 1.15;
         }
-        .letterhead-text h2 {
+        .letterhead-text h1 {
             margin: 0;
-            font-size: 1.15rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            color: #0f172a;
-            letter-spacing: 0.5px;
+            color: #2e3192;
+            letter-spacing: 1px;
+            font-family: Arial, sans-serif;
+        }
+        .letterhead-text .sup-reg {
+            font-size: 1rem;
+            vertical-align: super;
         }
         .letterhead-sub {
             margin: 4px 0 0 0;
-            font-size: 0.85rem;
-            color: #475569;
-            font-weight: 500;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #2e3192;
+            font-family: Arial, sans-serif;
         }
         .letterhead-dept {
             margin: 4px 0 0 0;
-            font-size: 0.9rem;
-            color: #1e293b;
+            font-size: 0.85rem;
             font-weight: 600;
+            color: #333;
+            font-family: Arial, sans-serif;
+        }
+        .letterhead-dept span {
+            color: #f26522;
+            font-weight: 700;
+        }
+        .letterhead-right {
+            display: flex;
+            gap: 2px;
         }
 
         /* Editor Block Styling */
@@ -466,9 +486,13 @@
 
         /* Styled inputs according to H2, H3, H4, Body */
         .block-textarea.editor-h2 {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            color: #1e293b;
+            color: white;
+            background-color: #302683;
+            padding: 8px;
+            text-align: center;
+            text-transform: uppercase;
         }
         .block-textarea.editor-h3 {
             font-size: 1.2rem;
@@ -844,9 +868,13 @@
             counter-reset: preview-list-counter;
         }
         .preview-h2 {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            color: #1e293b;
+            color: white;
+            background-color: #302683;
+            padding: 8px;
+            text-align: center;
+            text-transform: uppercase;
             margin-top: 16px;
             margin-bottom: 8px;
             font-family: 'Outfit', sans-serif;
@@ -1207,11 +1235,18 @@
                     <div class="doc-paper">
                         <!-- Default Header -->
                         <div class="letterhead-container">
-                            <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
-                            <div class="letterhead-text">
-                                <h2>FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)®</h2>
-                                <div class="letterhead-sub">Hormis Nagar, Angamaly, Kerala, India - 683577</div>
-                                <div class="letterhead-dept">Department of Computer Science and Engineering</div>
+                            <div class="letterhead-left">
+                                <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
+                                <div class="letterhead-text">
+                                    <h1>FISAT<span class="sup-reg">®</span></h1>
+                                    <div class="letterhead-sub">FEDERAL INSTITUTE OF<br>SCIENCE AND TECHNOLOGY</div>
+                                    <div class="letterhead-dept">Focus on Excellence <span>AUTONOMOUS</span></div>
+                                </div>
+                            </div>
+                            <div class="letterhead-right">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="#fbb03b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="#fbb03b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="#fbb03b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                             </div>
                         </div>
 
@@ -2117,11 +2152,18 @@
         const header = document.createElement('div');
         header.className = 'letterhead-container';
         header.innerHTML = `
-            <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
-            <div class="letterhead-text">
-                <h2>FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)®</h2>
-                <div class="letterhead-sub">Hormis Nagar, Angamaly, Kerala, India - 683577</div>
-                <div class="letterhead-dept">Department of Computer Science and Engineering</div>
+            <div class="letterhead-left">
+                <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
+                <div class="letterhead-text">
+                    <h1>FISAT<span class="sup-reg">®</span></h1>
+                    <div class="letterhead-sub">FEDERAL INSTITUTE OF<br>SCIENCE AND TECHNOLOGY</div>
+                    <div class="letterhead-dept">Focus on Excellence <span>AUTONOMOUS</span></div>
+                </div>
+            </div>
+            <div class="letterhead-right">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="#fbb03b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="#fbb03b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="#fbb03b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </div>
         `;
         paper.appendChild(header);
@@ -2230,32 +2272,38 @@
                         padding: 20px;
                         background: white;
                     }
-                    .doc-paper {
-                        padding: 0px;
-                        margin: 0px;
-                    }
                     .letterhead-container {
                         display: flex;
                         align-items: center;
-                        border-bottom: 2px solid #1e293b;
+                        justify-content: space-between;
+                        border-bottom: 2px solid #302683;
                         padding-bottom: 16px;
-                        margin-bottom: 30px;
+                        margin-bottom: 20px;
+                    }
+                    .letterhead-left {
+                        display: flex;
+                        align-items: center;
                     }
                     .letterhead-logo {
                         width: 75px;
                         height: auto;
-                        margin-right: 20px;
+                        margin-right: 15px;
                     }
                     .letterhead-text {
-                        flex-grow: 1;
-                        text-align: center;
+                        text-align: left;
+                        line-height: 1.15;
                     }
-                    .letterhead-text h2 {
+                    .letterhead-text h1 {
                         margin: 0;
-                        font-size: 1.1rem;
+                        font-size: 2.2rem;
                         font-weight: 800;
-                        color: #0f172a;
-                        letter-spacing: 0.5px;
+                        color: #2e3192;
+                        letter-spacing: 1px;
+                        font-family: Arial, sans-serif;
+                    }
+                    .letterhead-text .sup-reg {
+                        font-size: 1rem;
+                        vertical-align: super;
                     }
                     .letterhead-sub {
                         margin: 4px 0 0 0;
