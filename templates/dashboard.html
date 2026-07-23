@@ -2141,11 +2141,28 @@
         modalBody.innerHTML = '';
         printBtn.style.display = 'inline-block';
 
+        let isRawHtml = false;
         let docBlocks = [];
         try {
-            docBlocks = JSON.parse(contentJsonStr);
+            if (contentJsonStr.trim().startsWith('[')) {
+                docBlocks = JSON.parse(contentJsonStr);
+            } else {
+                isRawHtml = true;
+            }
         } catch (e) {
-            console.error("Failed to parse document content JSON", e);
+            console.warn("Failed to parse document content JSON, assuming raw HTML", e);
+            isRawHtml = true;
+        }
+
+        if (isRawHtml) {
+            const paper = document.createElement('div');
+            paper.className = 'doc-paper';
+            paper.id = 'print-area-wrapper';
+            paper.innerHTML = contentJsonStr;
+            modalBody.appendChild(paper);
+            currentPreviewContentHTML = paper.outerHTML;
+            modal.style.display = 'flex';
+            return;
         }
 
         // Generate printable container
