@@ -3,6 +3,7 @@ from .views import allocate_staff, timetable,allotted,delete_allotment,allot_sub
 from django.contrib.auth import views as auth_views
 from .views import logout_view,dashboard_view,get_allotments_by_staff,timetableexcel_combined,download_subject_entries_csv,timetable2, download_timetable_csv,edit_staff_config,apply_ai_allocation,subject_faculty_mapping,staff_subject_count,get_subject_load,get_staff_day_load,download_staff_allotment_csv,subject_wise_allocation,export_final_workload
 from .views import upload_document_view, create_document_view, delete_document_view, create_category_view, generate_lab_report_view, bulk_delete_documents_view, download_lab_report_excel
+from .views import lab_system_configuration_view
 
 
 urlpatterns = [
@@ -79,4 +80,5 @@ path('apply_ai_allocation/', apply_ai_allocation, name='apply_ai_allocation'),
     path('category/create/', create_category_view, name='create_category'),
     path('lab-report/generate/', generate_lab_report_view, name='generate_lab_report'),
     path('lab-report/download-excel/', download_lab_report_excel, name='download_lab_report_excel'),
+    path('lab-system-configuration/', lab_system_configuration_view, name='lab_system_configuration'),
 ]

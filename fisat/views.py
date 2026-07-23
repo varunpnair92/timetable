@@ -3250,3 +3250,10 @@ def download_lab_report_excel(request):
         return response
     
     return redirect("generate_lab_report")
+
+@login_required
+def lab_system_configuration_view(request):
+    """
+    Renders the Lab System Configuration generator interface.
+    """
+    return render(request, 'lab_system_configuration.html')

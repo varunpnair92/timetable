@@ -1,0 +1,480 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab System Configuration | FISAT Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 32px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }
+        .header-title p { margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Main Grid Layout */
+        .hub-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .controls-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .doc-preview-panel {
+            background: #ffffff;
+            border-radius: 0;
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            box-shadow: var(--shadow-md);
+            min-height: 800px;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            font-family: inherit;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            background-color: var(--bg-color);
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-secondary:hover { background: var(--bg-color); }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .dynamic-fields {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        /* Letterhead CSS EXACTLY matching */
+        .letterhead-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #302683;
+            padding-bottom: 12px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .letterhead-left {
+            display: flex;
+            align-items: center;
+        }
+        .letterhead-logo {
+            width: 115px;
+            height: auto;
+            margin-right: 20px;
+        }
+        .letterhead-text {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0;
+        }
+        .letterhead-text h1 {
+            margin: 0;
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: #2e3192;
+            letter-spacing: 1px;
+            font-family: "Times New Roman", Times, serif;
+            line-height: 0.85;
+        }
+        .letterhead-text .sup-reg {
+            font-size: 1rem;
+            vertical-align: super;
+        }
+        .letterhead-sub {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #2e3192;
+            font-family: "Times New Roman", Times, serif;
+            line-height: 1;
+        }
+        .letterhead-dept {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1;
+        }
+        .auto-text {
+            font-family: Arial, sans-serif;
+            color: #f26522;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+        }
+
+        /* Document Styling */
+        .doc-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: "Times New Roman", Times, serif;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .doc-in-charge {
+            font-size: 1.3rem;
+            font-family: "Times New Roman", Times, serif;
+            margin-bottom: 20px;
+        }
+
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: "Times New Roman", Times, serif;
+        }
+        .config-table th, .config-table td {
+            border: 1px solid #000;
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .config-table th {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.15rem;
+        }
+        .config-table .col-sl { width: 5%; text-align: center; font-weight: bold; font-size: 1.15rem;}
+        .config-table .col-name { width: 35%; font-size: 1.15rem; font-weight: 600;}
+        .config-table .col-details { width: 60%; }
+
+        .detail-line {
+            margin-bottom: 2px;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+        .detail-label {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Print Specifics */
+        @media print {
+            body * { visibility: hidden; }
+            .doc-preview-panel, .doc-preview-panel * { visibility: visible; }
+            .doc-preview-panel {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header-panel">
+            <div class="header-title">
+                <h1>Lab System Configuration Generator</h1>
+                <p>Create and format detailed configuration lists for lab setups.</p>
+            </div>
+            <div>
+                <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">← Back to Dashboard</a>
+                <button onclick="printDocument()" class="btn-primary" style="width: auto; margin: 0 0 0 10px;">🖨️ Print Document</button>
+            </div>
+        </div>
+
+        <div class="hub-container">
+            <!-- Controls Sidebar -->
+            <div class="controls-panel">
+                <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Document Details</h3>
+                
+                <div class="form-group">
+                    <label>Lab Name (Title)</label>
+                    <input type="text" id="lab_name_input" class="form-input" placeholder="e.g. CCF Lab 1" oninput="updatePreview()">
+                </div>
+                
+                <div class="form-group">
+                    <label>Lab in Charge</label>
+                    <input type="text" id="lab_in_charge_input" class="form-input" placeholder="e.g. Ambily Sekar C" oninput="updatePreview()">
+                </div>
+
+                <h3 style="margin-top: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Add Item</h3>
+                
+                <div class="form-group">
+                    <label>Item Type</label>
+                    <select id="item_type" class="form-input" onchange="toggleFields()">
+                        <option value="Computer">Computer</option>
+                        <option value="Printer">Printer</option>
+                        <option value="Projector">Projector</option>
+                        <option value="Smart TV">Smart TV</option>
+                        <option value="WiFi Device">WiFi Device</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Quantity / Name string</label>
+                    <input type="text" id="item_quantity" class="form-input" placeholder="e.g. COMPUTERS(36 NOS)">
+                </div>
+
+                <!-- Computer Fields -->
+                <div id="computer_fields" class="dynamic-fields">
+                    <div class="form-group"><label>Model</label><input type="text" id="comp_model" class="form-input"></div>
+                    <div class="form-group"><label>Processor</label><input type="text" id="comp_proc" class="form-input"></div>
+                    <div class="form-group"><label>Motherboard</label><input type="text" id="comp_mobo" class="form-input"></div>
+                    <div class="form-group"><label>RAM</label><input type="text" id="comp_ram" class="form-input"></div>
+                    <div class="form-group"><label>Harddisk / SSD</label><input type="text" id="comp_hdd" class="form-input"></div>
+                    <div class="form-group"><label>Monitor</label><input type="text" id="comp_monitor" class="form-input"></div>
+                    <div class="form-group"><label>Keyboard</label><input type="text" id="comp_kb" class="form-input"></div>
+                    <div class="form-group"><label>Mouse</label><input type="text" id="comp_mouse" class="form-input"></div>
+                    <div class="form-group"><label>Graphics Card (Optional)</label><input type="text" id="comp_gpu" class="form-input"></div>
+                    <div class="form-group"><label>OS</label><input type="text" id="comp_os" class="form-input"></div>
+                    <div class="form-group"><label>Softwares</label><input type="text" id="comp_sw" class="form-input"></div>
+                </div>
+
+                <!-- Other Fields -->
+                <div id="other_fields" class="dynamic-fields" style="display: none;">
+                    <div class="form-group"><label>Detailed Configuration (Multi-line)</label>
+                        <textarea id="other_details" class="form-input" rows="6" placeholder="Enter configuration line by line"></textarea>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-primary" onclick="addItem()">+ Add Item to Table</button>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="doc-preview-panel" id="doc-preview-area">
+                <div class="letterhead-container">
+                    <div class="letterhead-left">
+                        <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
+                        <div class="letterhead-text">
+                            <h1>FISAT<span class="sup-reg">®</span></h1>
+                            <div class="letterhead-sub">FEDERAL INSTITUTE OF<br>SCIENCE AND TECHNOLOGY</div>
+                            <div class="letterhead-dept">
+                                <span class="auto-text">AUTONOMOUS</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="doc-title" id="preview_title">LAB NAME</div>
+                <div class="doc-in-charge">Lab in charge : <span id="preview_in_charge"></span></div>
+
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th class="col-sl">SL<br>NO</th>
+                            <th class="col-name">NAME OF THE ITEMS</th>
+                            <th class="col-details">DETAILED CONFIGURATION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="config_table_body">
+                        <!-- Items populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let items = [];
+
+        function updatePreview() {
+            document.getElementById('preview_title').innerText = document.getElementById('lab_name_input').value || "LAB NAME";
+            document.getElementById('preview_in_charge').innerText = document.getElementById('lab_in_charge_input').value || "";
+        }
+
+        function toggleFields() {
+            const type = document.getElementById('item_type').value;
+            if (type === 'Computer') {
+                document.getElementById('computer_fields').style.display = 'block';
+                document.getElementById('other_fields').style.display = 'none';
+            } else {
+                document.getElementById('computer_fields').style.display = 'none';
+                document.getElementById('other_fields').style.display = 'block';
+            }
+        }
+
+        function addItem() {
+            const type = document.getElementById('item_type').value;
+            const quantity = document.getElementById('item_quantity').value || type;
+            let detailsHtml = '';
+
+            if (type === 'Computer') {
+                const getVal = (id) => document.getElementById(id).value;
+                const fields = [
+                    { label: 'MODEL', val: getVal('comp_model') },
+                    { label: 'PROCESSOR', val: getVal('comp_proc') },
+                    { label: 'MOTHERBOARD', val: getVal('comp_mobo') },
+                    { label: 'RAM', val: getVal('comp_ram') },
+                    { label: 'HARDISK', val: getVal('comp_hdd') },
+                    { label: 'MONITOR', val: getVal('comp_monitor') },
+                    { label: 'KEYBOARD', val: getVal('comp_kb') },
+                    { label: 'MOUSE', val: getVal('comp_mouse') },
+                    { label: 'GRAPHICS CARD', val: getVal('comp_gpu') },
+                ];
+                
+                fields.forEach(f => {
+                    if (f.val) {
+                        detailsHtml += `<div class="detail-line"><span class="detail-label">${f.label}</span> : ${f.val}</div>`;
+                    }
+                });
+
+                const os = getVal('comp_os');
+                const sw = getVal('comp_sw');
+                
+                if (os || sw) detailsHtml += `<div style="height: 12px;"></div>`;
+                if (os) detailsHtml += `<div class="detail-line"><span class="detail-label">OS</span> : ${os}</div>`;
+                if (sw) detailsHtml += `<div class="detail-line"><span class="detail-label">SOFTWARES</span>: ${sw}</div>`;
+            } else {
+                const rawDetails = document.getElementById('other_details').value;
+                detailsHtml = rawDetails.split('\\n').map(line => `<div class="detail-line">${line}</div>`).join('');
+            }
+
+            items.push({ name: quantity, detailsHtml: detailsHtml });
+            renderTable();
+            clearForm();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('config_table_body');
+            tbody.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="col-sl" style="text-align:center;">${index + 1}</td>
+                    <td class="col-name" style="text-transform: uppercase;">${item.name}</td>
+                    <td class="col-details">
+                        ${item.detailsHtml}
+                        <button class="btn-danger no-print" style="margin-top: 10px;" onclick="removeItem(${index})">Remove</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function removeItem(index) {
+            items.splice(index, 1);
+            renderTable();
+        }
+
+        function clearForm() {
+            document.getElementById('item_quantity').value = '';
+            document.querySelectorAll('.dynamic-fields input, .dynamic-fields textarea').forEach(el => el.value = '');
+        }
+
+        function printDocument() {
+            // Hide the 'Remove' buttons before printing
+            const style = document.createElement('style');
+            style.innerHTML = `@media print { .no-print { display: none !important; } }`;
+            document.head.appendChild(style);
+            window.print();
+        }
+        
+        // Initial call
+        updatePreview();
+    </script>
+</body>
+</html>
