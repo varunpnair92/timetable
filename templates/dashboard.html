@@ -375,18 +375,18 @@
             box-sizing: border-box;
         }
 
-        /* Visual Letterhead Header */
         .letterhead-container {
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-bottom: 2px solid #302683;
-            padding-bottom: 16px;
+            padding-bottom: 12px;
+            margin-top: 0;
             margin-bottom: 20px;
         }
         .letterhead-left {
             display: flex;
-            align-items: center;
+            align-items: stretch;
         }
         .letterhead-logo {
             width: 115px;
@@ -395,6 +395,10 @@
         }
         .letterhead-text {
             text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2px 0;
         }
         .letterhead-text h1 {
             margin: 0;
@@ -403,7 +407,7 @@
             color: #2e3192;
             letter-spacing: 1px;
             font-family: "Times New Roman", Times, serif;
-            line-height: 1;
+            line-height: 0.85;
         }
         .letterhead-text .sup-reg {
             font-size: 1.2rem;
@@ -415,16 +419,27 @@
             font-weight: 700;
             color: #2e3192;
             font-family: "Times New Roman", Times, serif;
-            line-height: 1.1;
+            line-height: 1;
         }
         .letterhead-dept {
             margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #f26522;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1;
+        }
+        .focus-text {
+            font-family: 'Brush Script MT', 'Segoe Script', cursive;
+            color: #2e3192;
+            font-size: 1.3rem;
+            font-weight: normal;
+        }
+        .auto-text {
             font-family: Arial, sans-serif;
+            color: #f26522;
+            font-weight: 700;
+            font-size: 1.1rem;
             letter-spacing: 1px;
-            line-height: 1.1;
         }
 
         /* Editor Block Styling */
@@ -1235,7 +1250,10 @@
                                 <div class="letterhead-text">
                                     <h1>FISAT<span class="sup-reg">®</span></h1>
                                     <div class="letterhead-sub">FEDERAL INSTITUTE OF<br>SCIENCE AND TECHNOLOGY</div>
-                                    <div class="letterhead-dept">AUTONOMOUS</div>
+                                    <div class="letterhead-dept">
+                                        <span class="focus-text">Focus on Excellence</span> 
+                                        <span class="auto-text">AUTONOMOUS</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2147,7 +2165,10 @@
                 <div class="letterhead-text">
                     <h1>FISAT<span class="sup-reg">®</span></h1>
                     <div class="letterhead-sub">FEDERAL INSTITUTE OF<br>SCIENCE AND TECHNOLOGY</div>
-                    <div class="letterhead-dept">AUTONOMOUS</div>
+                    <div class="letterhead-dept">
+                        <span class="focus-text">Focus on Excellence</span> 
+                        <span class="auto-text">AUTONOMOUS</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -2262,12 +2283,13 @@
                         align-items: center;
                         justify-content: space-between;
                         border-bottom: 2px solid #302683;
-                        padding-bottom: 16px;
+                        padding-bottom: 12px;
+                        margin-top: 0;
                         margin-bottom: 20px;
                     }
                     .letterhead-left {
                         display: flex;
-                        align-items: center;
+                        align-items: stretch;
                     }
                     .letterhead-logo {
                         width: 115px;
@@ -2276,6 +2298,10 @@
                     }
                     .letterhead-text {
                         text-align: left;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        padding: 2px 0;
                     }
                     .letterhead-text h1 {
                         margin: 0;
@@ -2284,7 +2310,7 @@
                         color: #2e3192;
                         letter-spacing: 1px;
                         font-family: "Times New Roman", Times, serif;
-                        line-height: 1;
+                        line-height: 0.85;
                     }
                     .letterhead-text .sup-reg {
                         font-size: 1.2rem;
@@ -2296,16 +2322,27 @@
                         font-weight: 700;
                         color: #2e3192;
                         font-family: "Times New Roman", Times, serif;
-                        line-height: 1.1;
+                        line-height: 1;
                     }
                     .letterhead-dept {
                         margin: 0;
-                        font-size: 1.05rem;
-                        font-weight: 700;
-                        color: #f26522;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        line-height: 1;
+                    }
+                    .focus-text {
+                        font-family: 'Brush Script MT', 'Segoe Script', cursive;
+                        color: #2e3192;
+                        font-size: 1.3rem;
+                        font-weight: normal;
+                    }
+                    .auto-text {
                         font-family: Arial, sans-serif;
+                        color: #f26522;
+                        font-weight: 700;
+                        font-size: 1.1rem;
                         letter-spacing: 1px;
-                        line-height: 1.1;
                     }
                     .doc-paper {
                         counter-reset: print-list-counter;
