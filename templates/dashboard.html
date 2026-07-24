@@ -1319,7 +1319,7 @@
                             </button>
                             <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-color); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                                 <label for="default-block-type" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">Next Line Style:</label>
-                                <select id="default-block-type" class="block-type-select" style="width: 120px; border-radius: 4px; padding: 4px;">
+                                <select id="default-block-type" class="block-type-select" style="width: 120px; border-radius: 4px; padding: 4px;" onchange="toggleTableSettings()">
                                     <option value="body">Paragraph</option>
                                     <option value="h2">Heading 2</option>
                                     <option value="h3">Heading 3</option>
@@ -1328,6 +1328,12 @@
                                     <option value="number">Numbered List</option>
                                     <option value="table">Table</option>
                                 </select>
+                                <div id="table-settings-inputs" style="display: none; align-items: center; gap: 8px;">
+                                    <input type="number" id="table-default-rows" value="3" min="1" style="width: 50px; border-radius: 4px; padding: 4px; border: 1px solid var(--border-color);">
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Rows</span>
+                                    <input type="number" id="table-default-cols" value="3" min="1" style="width: 50px; border-radius: 4px; padding: 4px; border: 1px solid var(--border-color);">
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Cols</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2100,9 +2106,50 @@
         }
     }
 
+    function toggleTableSettings() {
+        const type = document.getElementById('default-block-type').value;
+        const settings = document.getElementById('table-settings-inputs');
+        if (settings) {
+            settings.style.display = (type === 'table') ? 'flex' : 'none';
+        }
+    }
+
     function addNewBlock() {
         const nextType = document.getElementById('default-block-type').value || 'body';
-        blocks.push({ type: nextType, text: '' });
+        let newBlock = { type: nextType, text: '' };
+        
+        if (nextType === 'table') {
+            const rowsInput = document.getElementById('table-default-rows');
+            const colsInput = document.getElementById('table-default-cols');
+            const numRows = rowsInput ? Math.max(1, parseInt(rowsInput.value) || 3) : 3;
+            const numCols = colsInput ? Math.max(1, parseInt(colsInput.value) || 3) : 3;
+            
+            let headers = [];
+            for (let i = 0; i < numCols; i++) {
+                if (i === 0) headers.push('SL NO');
+                else if (i === 1) headers.push('NAME OF THE ITEMS');
+                else if (i === 2) headers.push('DETAILED CONFIGURATION');
+                else headers.push('Header ' + (i + 1));
+            }
+            
+            let rows = [];
+            for (let i = 0; i < numRows; i++) {
+                let row = [];
+                for (let j = 0; j < numCols; j++) {
+                    if (j === 0) {
+                        row.push((i + 1).toString());
+                    } else {
+                        row.push('');
+                    }
+                }
+                rows.push(row);
+            }
+            
+            newBlock.headers = headers;
+            newBlock.rows = rows;
+        }
+
+        blocks.push(newBlock);
         selectedBlockIndices.clear();
         updateBulkToolbarVisibility();
         focusIndex = blocks.length - 1;
