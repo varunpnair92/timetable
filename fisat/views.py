@@ -3365,3 +3365,152 @@ def lab_system_configuration_view(request):
     from .models import DocumentCategory
     category, created = DocumentCategory.objects.get_or_create(name="Lab System Configuration")
     return render(request, 'lab_system_configuration.html', {'category': category})
+
+
+@login_required
+def download_custom_document_excel(request, doc_id):
+    from .models import CustomDocument
+    import json
+    import xlsxwriter
+    import io
+    
+    doc = get_object_or_404(CustomDocument, pk=doc_id)
+    
+    heading_style = request.GET.get("heading", "pdf")
+    orientation = request.GET.get("orientation", "portrait")
+    
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet("Document")
+    
+    worksheet.set_paper(9)
+    if orientation == "portrait":
+        worksheet.set_portrait()
+    else:
+        worksheet.set_landscape()
+        
+    institute_fmt = workbook.add_format({
+        "text_wrap": True, "bold": True, "font_size": 16,
+        "align": "center", "valign": "vcenter"
+    })
+    address_fmt = workbook.add_format({
+        "bold": True, "font_size": 11, "align": "center"
+    })
+    fisat_fmt = workbook.add_format({
+        "bold": True, "font_size": 24, "font_name": "Times New Roman",
+        "font_color": "#2e3192", "align": "center", "valign": "vcenter"
+    })
+    sub_fmt = workbook.add_format({
+        "bold": True, "font_size": 12, "font_name": "Times New Roman",
+        "font_color": "#2e3192", "align": "center", "valign": "vcenter"
+    })
+    auto_fmt = workbook.add_format({
+        "bold": True, "font_size": 11, "font_name": "Arial",
+        "font_color": "#f26522", "align": "center", "valign": "vcenter"
+    })
+    title_fmt = workbook.add_format({"bold": True, "font_size": 14, "align": "center"})
+    
+    # Generic format for content
+    h2_fmt = workbook.add_format({"bold": True, "font_size": 14, "bg_color": "#302683", "font_color": "white", "align": "center"})
+    h3_fmt = workbook.add_format({"bold": True, "font_size": 12, "font_color": "#334155"})
+    h4_fmt = workbook.add_format({"bold": True, "font_size": 11, "font_color": "#475569"})
+    body_fmt = workbook.add_format({"font_size": 11, "font_color": "#334155", "text_wrap": True})
+    
+    table_header_fmt = workbook.add_format({"bold": True, "border": 1, "bg_color": "#f8fafc"})
+    table_cell_fmt = workbook.add_format({"border": 1})
+    
+    start_row = 0
+    max_col = 6
+    
+    # Draw Logo
+    import os
+    logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "fisat_logo.png")
+    try:
+        worksheet.insert_image("A1", logo_path, {"x_scale": 0.3, "y_scale": 0.3})
+    except:
+        pass
+
+    if heading_style == "pdf":
+        worksheet.merge_range(f"B1:G1", "FISAT®", fisat_fmt)
+        worksheet.merge_range(f"B2:G2", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY", sub_fmt)
+        worksheet.merge_range(f"B3:G3", "AUTONOMOUS", auto_fmt)
+        start_row = 4
+    elif heading_style == "old":
+        worksheet.merge_range(f"A1:G1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
+        worksheet.merge_range(f"B2:G2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
+        start_row = 3
+    else:
+        worksheet.merge_range(f"A1:G1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", institute_fmt)
+        worksheet.set_row(0, 45)
+        start_row = 2
+        
+    try:
+        blocks = json.loads(doc.content_json)
+    except:
+        blocks = []
+        
+    row_num = start_row
+    
+    worksheet.set_column(0, 6, 12)
+    
+    for block in blocks:
+        btype = block.get("type", "body")
+        text = block.get("text", "")
+        
+        if btype == "table":
+            headers = block.get("headers", [])
+            rows = block.get("rows", [])
+            
+            # Set col widths dynamically for table if it fits
+            for i, h in enumerate(headers):
+                if i < 7:
+                    # Give more width to 2nd col usually for "Event Name" or "Details"
+                    if i == 1:
+                        worksheet.set_column(i, i, 40)
+                    else:
+                        worksheet.set_column(i, i, max(12, len(str(h)) + 2))
+                        
+            for i, h in enumerate(headers):
+                if i <= 6:
+                    worksheet.write(row_num, i, h, table_header_fmt)
+            row_num += 1
+            
+            for r in rows:
+                for i, cell in enumerate(r):
+                    if i <= 6:
+                        worksheet.write(row_num, i, cell, table_cell_fmt)
+                row_num += 1
+            row_num += 1
+            
+        elif btype == "h2":
+            worksheet.merge_range(f"A{row_num+1}:G{row_num+1}", text, h2_fmt)
+            row_num += 2
+        elif btype == "h3":
+            worksheet.merge_range(f"A{row_num+1}:G{row_num+1}", text, h3_fmt)
+            row_num += 1
+        elif btype == "h4":
+            worksheet.merge_range(f"A{row_num+1}:G{row_num+1}", text, h4_fmt)
+            row_num += 1
+        else:
+            # Body, bullet, number
+            if btype == "bullet":
+                text = "• " + text
+            elif btype == "number":
+                # simplistic number fallback
+                text = "- " + text
+                
+            worksheet.merge_range(f"A{row_num+1}:G{row_num+1}", text, body_fmt)
+            row_num += 1
+
+    workbook.close()
+    output.seek(0)
+    
+    from django.http import HttpResponse
+    response = HttpResponse(
+        output,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    safe_filename = doc.name.replace(" ", "_").replace("/", "_")
+    response["Content-Disposition"] = f'attachment; filename="{safe_filename}.xlsx"'
+    return response
+

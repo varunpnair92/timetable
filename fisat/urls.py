@@ -81,4 +81,5 @@ path('apply_ai_allocation/', apply_ai_allocation, name='apply_ai_allocation'),
     path('lab-report/generate/', generate_lab_report_view, name='generate_lab_report'),
     path('lab-report/download-excel/', download_lab_report_excel, name='download_lab_report_excel'),
     path('lab-system-configuration/', lab_system_configuration_view, name='lab_system_configuration'),
+    path('download-custom-doc-excel/<int:doc_id>/', download_custom_document_excel, name='download_custom_document_excel'),
 ]

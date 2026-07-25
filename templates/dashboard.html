@@ -1488,6 +1488,9 @@
                                 <button type="button" class="btn-action" style="background-color: var(--primary); color: white;" onclick="editDocument('{{ doc.id }}', '{{ doc.name|escapejs }}', '{{ doc.category.id|default:'' }}', '{{ doc.content_json|escapejs }}')">
                                     Edit
                                 </button>
+                                <button type="button" class="btn-action" style="background-color: var(--success); color: white;" onclick="showDownloadModal('custom_doc', '{{ doc.id }}')">
+                                    📥 Excel
+                                </button>
                                 {% endif %}
                                 <a href="{% url 'delete_document' doc.id %}" onclick="return confirm('Are you sure you want to delete this document?')" class="btn-action btn-action-delete">
                                     Delete
@@ -1520,9 +1523,18 @@
             <!-- Content will be injected by JavaScript -->
         </div>
         <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="repeat-header-print" checked style="cursor: pointer; width: 16px; height: 16px;">
-                <label for="repeat-header-print" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); cursor: pointer; user-select: none;">Repeat Letterhead Header on each page (Print)</label>
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="repeat-header-print" checked style="cursor: pointer; width: 16px; height: 16px;">
+                    <label for="repeat-header-print" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); cursor: pointer; user-select: none;">Repeat Header (Print)</label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="preview-heading-style" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Heading Style:</label>
+                    <select id="preview-heading-style" onchange="updatePreviewHeading()" style="padding: 4px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                        <option value="pdf">PDF Style (Letterhead)</option>
+                        <option value="old">Old Heading (Simple text)</option>
+                    </select>
+                </div>
             </div>
             <div style="display: flex; gap: 8px;">
                 <button type="button" class="modal-btn" onclick="closePreviewModal()">Close</button>
@@ -2320,6 +2332,34 @@
         modal.style.display = 'flex';
     }
 
+    function updatePreviewHeading() {
+        const style = document.getElementById('preview-heading-style').value;
+        const header = document.querySelector('#modalBody .letterhead-container');
+        if (!header) return;
+        
+        if (style === 'pdf') {
+            header.innerHTML = `
+                <div class="letterhead-left">
+                    <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo">
+                    <div class="letterhead-text">
+                        <h1>FISAT<span class="sup-reg">®</span></h1>
+                        <div class="letterhead-sub">FEDERAL INSTITUTE OF<br>SCIENCE AND TECHNOLOGY</div>
+                        <div class="letterhead-dept">
+                            <span class="auto-text">AUTONOMOUS</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (style === 'old') {
+            header.innerHTML = `
+                <div style="text-align: center; width: 100%;">
+                    <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #000;">FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)</h2>
+                    <h4 style="margin: 5px 0 0 0; font-size: 14px; font-weight: normal; color: #000;">(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)</h4>
+                </div>
+            `;
+        }
+    }
+
     function printModalDoc() {
         const frame = document.getElementById('printFrame');
         const frameDoc = frame.contentWindow.document;
@@ -2632,16 +2672,34 @@
     </div>
 </div>
 <script>
-function showDownloadModal(type) {
+function showDownloadModal(type, docId = null) {
     document.getElementById('dl_type').value = type;
+    document.getElementById('dl_doc_id').value = docId || '';
+    
+    // Hide download type selector if it's a specific custom doc
+    if (type === 'custom_doc') {
+        document.getElementById('dl_type_container').style.display = 'none';
+    } else {
+        document.getElementById('dl_type_container').style.display = 'block';
+    }
+    
     document.getElementById('downloadModal').style.display = 'flex';
 }
 function triggerDownload() {
     var heading = document.getElementById('dl_heading').value;
     var orientation = document.getElementById('dl_orientation').value;
     var dlType = document.getElementById('dl_type').value;
+    var docId = document.getElementById('dl_doc_id').value;
     
-    var url = (dlType === 'combined') ? "{% url 'Lab Download Combined' %}" : "{% url 'Lab Download' %}";
+    var url = "";
+    if (dlType === 'custom_doc' && docId) {
+        url = "/download-custom-doc-excel/" + docId + "/";
+    } else if (dlType === 'combined') {
+        url = "{% url 'Lab Download Combined' %}";
+    } else {
+        url = "{% url 'Lab Download' %}";
+    }
+    
     window.location.href = url + "?heading=" + heading + "&orientation=" + orientation;
     document.getElementById('downloadModal').style.display = 'none';
 }
