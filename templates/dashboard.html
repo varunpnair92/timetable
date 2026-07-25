@@ -2563,53 +2563,6 @@
                     ${printContentHTML}
                 </div>
             
-<!-- Download Options Modal -->
-<div id="downloadModal" class="modal-backdrop" style="display:none;">
-    <div class="modal-content-card" style="max-width: 400px;">
-        <div class="modal-header">
-            <h3>Download Options</h3>
-            <button class="modal-close-btn" onclick="document.getElementById('downloadModal').style.display='none'">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div style="margin-bottom: 15px;">
-                <label style="font-weight:bold; display:block; margin-bottom:5px;">Heading Style:</label>
-                <select id="dl_heading" class="form-input" style="width:100%;">
-                    <option value="new">New Heading</option>
-                    <option value="old">Old Heading</option>
-                    <option value="pdf">PDF Style Heading (Letterhead)</option>
-                </select>
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="font-weight:bold; display:block; margin-bottom:5px;">Paper Orientation:</label>
-                <select id="dl_orientation" class="form-input" style="width:100%;">
-                    <option value="landscape">Landscape</option>
-                    <option value="portrait">Portrait</option>
-                </select>
-            </div>
-            <input type="hidden" id="dl_type" value="">
-        </div>
-        <div class="modal-footer">
-            <button class="modal-btn" onclick="document.getElementById('downloadModal').style.display='none'">Cancel</button>
-            <button class="modal-btn modal-btn-primary" onclick="triggerDownload()">Download</button>
-        </div>
-    </div>
-</div>
-<script>
-function showDownloadModal(type) {
-    document.getElementById('dl_type').value = type;
-    document.getElementById('downloadModal').style.display = 'flex';
-}
-function triggerDownload() {
-    var heading = document.getElementById('dl_heading').value;
-    var orientation = document.getElementById('dl_orientation').value;
-    var dlType = document.getElementById('dl_type').value;
-    
-    var url = (dlType === 'combined') ? "{% url 'Lab Download Combined' %}" : "{% url 'Lab Download' %}";
-    window.location.href = url + "?heading=" + heading + "&orientation=" + orientation;
-    document.getElementById('downloadModal').style.display = 'none';
-}
-</script>
-
 </body>
             </html>
         `);
