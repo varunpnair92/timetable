@@ -721,6 +721,8 @@ def allot_subject_entry(request):
 @login_required(login_url="/")
 def timetableexcel(request):
     dp = get_current_period(request)
+    heading_style = request.GET.get("heading", "new")
+    orientation = request.GET.get("orientation", "landscape")
     import xlsxwriter
     from .models import SubjectFacultyMap
 
@@ -743,6 +745,7 @@ def timetableexcel(request):
 
     # ======= FORMATS =======
     institute_fmt = workbook.add_format({
+        "text_wrap": True,
         "bold": True, "font_size": 20,
         "align": "center", "valign": "vcenter"
     })
@@ -798,7 +801,10 @@ def timetableexcel(request):
     for lab in labs:
         ws = workbook.add_worksheet(lab)
         ws.set_paper(9)                # A4
-        ws.set_landscape()             # Landscape orientation
+        if orientation == "portrait":
+            ws.set_portrait()
+        else:
+            ws.set_landscape()
         ws.center_horizontally()
         ws.center_vertically()
         ws.fit_to_pages(1, 1)          # Fit on one A4 sheet
@@ -811,10 +817,12 @@ def timetableexcel(request):
             pass
 
         # ========== INSTITUTE HEADER ==========
-        ws.merge_range(f"A1:{last_col}1",
-                       """FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)
-                        (Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)
-                        LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)""",institute_fmt)
+        if heading_style == "old":
+            ws.merge_range(f"A1:{last_col}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
+            ws.merge_range(f"B2:{last_col}2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
+            ws.merge_range(f"B3:{last_col}3", "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
+        else:
+            ws.merge_range(f"A1:{last_col}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\nLAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", institute_fmt)
 
         # ⭐⭐⭐ LAB NAME HEADER MERGED ABOVE HOURS ⭐⭐⭐
         ws.merge_range(f"A4:{last_col}4", f"CCF : {lab}", lab_header_fmt)
@@ -928,6 +936,8 @@ def timetableexcel(request):
 @login_required(login_url="/")
 def timetableexcel_combined(request):
     dp = get_current_period(request)
+    heading_style = request.GET.get("heading", "new")
+    orientation = request.GET.get("orientation", "landscape")
     import xlsxwriter
     from .models import SubjectFacultyMap
     from xlsxwriter.utility import xl_col_to_name
@@ -943,9 +953,19 @@ def timetableexcel_combined(request):
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     ws = workbook.add_worksheet("Combined Labs")
+    ws.set_paper(9)
+    if orientation == "portrait":
+        ws.set_portrait()
+    else:
+        ws.set_landscape()
+    ws.center_horizontally()
+    ws.center_vertically()
+    ws.fit_to_pages(1, 1)
+    ws.set_margins(left=0.3, right=0.3, top=0.5, bottom=0.5)
 
     # ===== FORMATS =====
-    institute_fmt = workbook.add_format({"bold": True, "font_size": 20,
+    institute_fmt = workbook.add_format({
+        "text_wrap": True,"bold": True, "font_size": 20,
                                          "align": "center", "valign": "vcenter"})
     address_fmt = workbook.add_format({"font_size": 14,
                                        "align": "center", "valign": "vcenter"})
@@ -1002,15 +1022,12 @@ def timetableexcel_combined(request):
         pass
 
     # ===== SINGLE ROW HEADER =====
-    ws.merge_range(f"A1:{last_col_letter}1",
-        "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)",
-        institute_fmt)
-    ws.merge_range(f"B2:{title_end_letter}2",
-        "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)",
-        address_fmt)
-    ws.merge_range(f"B3:{title_end_letter}3",
-        "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)",
-        title_fmt)
+    if heading_style == "old":
+        ws.merge_range(f"A1:{last_col_letter}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
+        ws.merge_range(f"B2:{title_end_letter}2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
+        ws.merge_range(f"B3:{title_end_letter}3", "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
+    else:
+        ws.merge_range(f"A1:{last_col_letter}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\nCOMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", institute_fmt)
 
     start_row = 4
 
