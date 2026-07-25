@@ -2664,6 +2664,7 @@
                 </select>
             </div>
             <input type="hidden" id="dl_type" value="">
+            <input type="hidden" id="dl_doc_id" value="">
         </div>
         <div class="modal-footer">
             <button class="modal-btn" onclick="document.getElementById('downloadModal').style.display='none'">Cancel</button>
@@ -2677,10 +2678,13 @@ function showDownloadModal(type, docId = null) {
     document.getElementById('dl_doc_id').value = docId || '';
     
     // Hide download type selector if it's a specific custom doc
-    if (type === 'custom_doc') {
-        document.getElementById('dl_type_container').style.display = 'none';
-    } else {
-        document.getElementById('dl_type_container').style.display = 'block';
+    var typeContainer = document.getElementById('dl_type_container');
+    if (typeContainer) {
+        if (type === 'custom_doc') {
+            typeContainer.style.display = 'none';
+        } else {
+            typeContainer.style.display = 'block';
+        }
     }
     
     document.getElementById('downloadModal').style.display = 'flex';
