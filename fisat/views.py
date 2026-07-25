@@ -3369,12 +3369,12 @@ def lab_system_configuration_view(request):
 
 @login_required
 def download_custom_document_excel(request, doc_id):
-    from .models import CustomDocument
+    from .models import Document
     import json
     import xlsxwriter
     import io
     
-    doc = get_object_or_404(CustomDocument, pk=doc_id)
+    doc = get_object_or_404(Document, pk=doc_id)
     
     heading_style = request.GET.get("heading", "pdf")
     orientation = request.GET.get("orientation", "portrait")
