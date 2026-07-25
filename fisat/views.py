@@ -3123,6 +3123,8 @@ def generate_lab_report_view(request):
         start_date = request.POST.get("start_date", "")
         end_date = request.POST.get("end_date", "")
         report_heading = request.POST.get("report_heading", "").strip()
+        heading_style = request.POST.get("heading_style", "new")
+        orientation = request.POST.get("orientation", "landscape")
         
         default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
         final_heading = report_heading if report_heading else default_heading
@@ -3196,7 +3198,9 @@ def generate_lab_report_view(request):
             "start_date": start_date,
             "end_date": end_date,
             "report_heading": report_heading,
-            "final_heading": final_heading
+            "final_heading": final_heading,
+            "heading_style": heading_style,
+            "orientation": orientation
         })
 
     # GET request
@@ -3233,6 +3237,8 @@ def download_lab_report_excel(request):
         start_date = request.POST.get("start_date", "")
         end_date = request.POST.get("end_date", "")
         report_heading = request.POST.get("report_heading", "").strip()
+        heading_style = request.POST.get("heading_style", "new")
+        orientation = request.POST.get("orientation", "landscape")
         
         default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
         final_heading = report_heading if report_heading else default_heading
@@ -3261,18 +3267,67 @@ def download_lab_report_excel(request):
         cell_fmt = workbook.add_format({"border": 1})
         bold_cell_fmt = workbook.add_format({"border": 1, "bold": True})
         
-        worksheet.merge_range("A1:D1", final_heading, title_fmt)
+        institute_fmt = workbook.add_format({
+            "text_wrap": True, "bold": True, "font_size": 16,
+            "align": "center", "valign": "vcenter"
+        })
+        address_fmt = workbook.add_format({
+            "bold": True, "font_size": 11, "align": "center"
+        })
+        fisat_fmt = workbook.add_format({
+            "bold": True, "font_size": 24, "font_name": "Times New Roman",
+            "font_color": "#2e3192", "align": "center", "valign": "vcenter"
+        })
+        sub_fmt = workbook.add_format({
+            "bold": True, "font_size": 12, "font_name": "Times New Roman",
+            "font_color": "#2e3192", "align": "center", "valign": "vcenter"
+        })
+        auto_fmt = workbook.add_format({
+            "bold": True, "font_size": 11, "font_name": "Arial",
+            "font_color": "#f26522", "align": "center", "valign": "vcenter"
+        })
         
+        worksheet.set_paper(9)
+        if orientation == "portrait":
+            worksheet.set_portrait()
+        else:
+            worksheet.set_landscape()
+            
+        # Draw Logo
+        import os
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "fisat_logo.png")
+        try:
+            worksheet.insert_image("A1", logo_path, {"x_scale": 0.3, "y_scale": 0.3})
+        except:
+            pass
+
+        start_row = 5
+        if heading_style == "pdf":
+            worksheet.merge_range("B1:D1", "FISAT®", fisat_fmt)
+            worksheet.merge_range("B2:D2", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY", sub_fmt)
+            worksheet.merge_range("B3:D3", "AUTONOMOUS", auto_fmt)
+            worksheet.merge_range("A4:D4", final_heading, title_fmt)
+            start_row = 5
+        elif heading_style == "old":
+            worksheet.merge_range("A1:D1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
+            worksheet.merge_range("B2:D2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
+            worksheet.merge_range("B3:D3", final_heading, title_fmt)
+            start_row = 4
+        else:
+            worksheet.merge_range("A1:D1", f"FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\n{final_heading}", institute_fmt)
+            worksheet.set_row(0, 60)
+            start_row = 2
+
         headers = ["Sl No", "Event Name", "Date", "Total Hours"]
         for col_num, header in enumerate(headers):
-            worksheet.write(2, col_num, header, header_fmt)
+            worksheet.write(start_row, col_num, header, header_fmt)
             
         worksheet.set_column(0, 0, 8)
         worksheet.set_column(1, 1, 40)
         worksheet.set_column(2, 2, 15)
         worksheet.set_column(3, 3, 12)
         
-        row_num = 3
+        row_num = start_row + 1
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
             event_name = f"{allotment.subject_name} - {allotment.class_name}"
