@@ -749,6 +749,20 @@ def timetableexcel(request):
         "bold": True, "font_size": 20,
         "align": "center", "valign": "vcenter"
     })
+    
+    # PDF Style Formats
+    fisat_fmt = workbook.add_format({
+        "bold": True, "font_size": 24, "font_name": "Times New Roman",
+        "font_color": "#2e3192", "align": "center", "valign": "vcenter"
+    })
+    sub_fmt = workbook.add_format({
+        "bold": True, "font_size": 12, "font_name": "Times New Roman",
+        "font_color": "#2e3192", "align": "center", "valign": "vcenter"
+    })
+    auto_fmt = workbook.add_format({
+        "bold": True, "font_size": 11, "font_name": "Arial",
+        "font_color": "#f26522", "align": "center", "valign": "vcenter"
+    })
     address_fmt = workbook.add_format({
         "font_size": 14, "align": "center", "valign": "vcenter"
     })
@@ -817,7 +831,14 @@ def timetableexcel(request):
             pass
 
         # ========== INSTITUTE HEADER ==========
-        if heading_style == "old":
+        if heading_style == "pdf":
+            ws.merge_range(f"B1:{last_col}1", "FISAT®", fisat_fmt)
+            ws.merge_range(f"B2:{last_col}2", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY", sub_fmt)
+            ws.merge_range(f"B3:{last_col}3", "AUTONOMOUS", auto_fmt)
+            ws.merge_range(f"A4:{last_col}4", "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
+            # The LAB NAME HEADER is rendered after this, but we need to push it down
+            # Actually, the lab header is merged at A4 normally. We need to shift it to A5 if heading_style is pdf.
+        elif heading_style == "old":
             ws.merge_range(f"A1:{last_col}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
             ws.merge_range(f"B2:{last_col}2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
             ws.merge_range(f"B3:{last_col}3", "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
@@ -825,14 +846,19 @@ def timetableexcel(request):
             ws.merge_range(f"A1:{last_col}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\nLAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", institute_fmt)
 
         # ⭐⭐⭐ LAB NAME HEADER MERGED ABOVE HOURS ⭐⭐⭐
-        ws.merge_range(f"A4:{last_col}4", f"CCF : {lab}", lab_header_fmt)
+        if heading_style == "pdf":
+            ws.merge_range(f"A5:{last_col}5", f"CCF : {lab}", lab_header_fmt)
+            table_row_start = 5
+        else:
+            ws.merge_range(f"A4:{last_col}4", f"CCF : {lab}", lab_header_fmt)
+            table_row_start = 4
 
         # ========== TABLE HEADER ==========
-        ws.write(4, 0, "Day", header_fmt)
+        ws.write(table_row_start, 0, "Day", header_fmt)
         for c, h in enumerate(hours):
-            ws.write(4, c + 1, h, header_fmt)
+            ws.write(table_row_start, c + 1, h, header_fmt)
 
-        row = 5
+        row = table_row_start + 1
         subjects = SubjectEntry.objects.filter(LAB=lab, period=dp).order_by("day")
 
         for day in days:
@@ -1022,14 +1048,22 @@ def timetableexcel_combined(request):
         pass
 
     # ===== SINGLE ROW HEADER =====
-    if heading_style == "old":
+    if heading_style == "pdf":
+        ws.merge_range(f"B1:{last_col_letter}1", "FISAT®", fisat_fmt)
+        ws.merge_range(f"B2:{title_end_letter}2", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY", sub_fmt)
+        ws.merge_range(f"B3:{title_end_letter}3", "AUTONOMOUS", auto_fmt)
+        ws.merge_range(f"A4:{title_end_letter}4", "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
+    elif heading_style == "old":
         ws.merge_range(f"A1:{last_col_letter}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
         ws.merge_range(f"B2:{title_end_letter}2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
         ws.merge_range(f"B3:{title_end_letter}3", "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
     else:
         ws.merge_range(f"A1:{last_col_letter}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\nCOMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", institute_fmt)
 
-    start_row = 4
+    if heading_style == "pdf":
+        start_row = 5
+    else:
+        start_row = 4
 
     for group in lab_groups:
         col_offset = 0
