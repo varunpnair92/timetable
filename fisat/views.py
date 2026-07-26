@@ -839,14 +839,15 @@ def timetableexcel(request):
             # The LAB NAME HEADER is rendered after this, but we need to push it down
             # Actually, the lab header is merged at A4 normally. We need to shift it to A5 if heading_style is pdf.
         elif heading_style == "old":
-            ws.merge_range(f"A1:{last_col}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
-            ws.merge_range(f"B2:{last_col}2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
-            ws.merge_range(f"B3:{last_col}3", "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
+            ws.merge_range(f"B1:{last_col}1", "Federal Institute of Science And Technology(FISAT)", institute_fmt)
+            ws.merge_range(f"B2:{last_col}2", "Hormis Nagar,Angamaly", address_fmt)
+            ws.merge_range(f"B3:{last_col}3", "Department Of Computer Science And Engineering", address_fmt)
+            ws.merge_range(f"A4:{last_col}4", "LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
         else:
             ws.merge_range(f"A1:{last_col}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\nLAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", institute_fmt)
 
         # ⭐⭐⭐ LAB NAME HEADER MERGED ABOVE HOURS ⭐⭐⭐
-        if heading_style == "pdf":
+        if heading_style in ["pdf", "old"]:
             ws.merge_range(f"A5:{last_col}5", f"CCF : {lab}", lab_header_fmt)
             table_row_start = 5
         else:
@@ -1054,13 +1055,14 @@ def timetableexcel_combined(request):
         ws.merge_range(f"B3:{title_end_letter}3", "AUTONOMOUS", auto_fmt)
         ws.merge_range(f"A4:{title_end_letter}4", "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
     elif heading_style == "old":
-        ws.merge_range(f"A1:{last_col_letter}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
-        ws.merge_range(f"B2:{title_end_letter}2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
-        ws.merge_range(f"B3:{title_end_letter}3", "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
+        ws.merge_range(f"B1:{last_col_letter}1", "Federal Institute of Science And Technology(FISAT)", institute_fmt)
+        ws.merge_range(f"B2:{title_end_letter}2", "Hormis Nagar,Angamaly", address_fmt)
+        ws.merge_range(f"B3:{title_end_letter}3", "Department Of Computer Science And Engineering", address_fmt)
+        ws.merge_range(f"A4:{title_end_letter}4", "COMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", title_fmt)
     else:
         ws.merge_range(f"A1:{last_col_letter}1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\nCOMBINED LAB TIMETABLE FOR B.TECH (DEC 2025 – MAY 2025)", institute_fmt)
 
-    if heading_style == "pdf":
+    if heading_style in ["pdf", "old"]:
         start_row = 5
     else:
         start_row = 4
@@ -3309,10 +3311,11 @@ def download_lab_report_excel(request):
             worksheet.merge_range("A4:D4", final_heading, title_fmt)
             start_row = 5
         elif heading_style == "old":
-            worksheet.merge_range("A1:D1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
-            worksheet.merge_range("B2:D2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
-            worksheet.merge_range("B3:D3", final_heading, title_fmt)
-            start_row = 4
+            worksheet.merge_range("B1:D1", "Federal Institute of Science And Technology(FISAT)", institute_fmt)
+            worksheet.merge_range("B2:D2", "Hormis Nagar,Angamaly", address_fmt)
+            worksheet.merge_range("B3:D3", "Department Of Computer Science And Engineering", address_fmt)
+            worksheet.merge_range("A4:D4", final_heading, title_fmt)
+            start_row = 5
         else:
             worksheet.merge_range("A1:D1", f"FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\n{final_heading}", institute_fmt)
             worksheet.set_row(0, 60)
@@ -3436,9 +3439,10 @@ def download_custom_document_excel(request, doc_id):
         worksheet.merge_range(f"B3:G3", "AUTONOMOUS", auto_fmt)
         start_row = 4
     elif heading_style == "old":
-        worksheet.merge_range(f"A1:G1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)", institute_fmt)
-        worksheet.merge_range(f"B2:G2", "(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", address_fmt)
-        start_row = 3
+        worksheet.merge_range(f"B1:G1", "Federal Institute of Science And Technology(FISAT)", institute_fmt)
+        worksheet.merge_range(f"B2:G2", "Hormis Nagar,Angamaly", address_fmt)
+        worksheet.merge_range(f"B3:G3", "Department Of Computer Science And Engineering", address_fmt)
+        start_row = 4
     else:
         worksheet.merge_range(f"A1:G1", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)", institute_fmt)
         worksheet.set_row(0, 45)
