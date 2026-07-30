@@ -1749,46 +1749,98 @@
         updateBulkToolbarVisibility();
     }
 
-    function applyBulkStyle(style, value) {
-        // First check if there is an active text selection within a block
+    let lastSavedRange = null;
+
+    document.addEventListener('selectionchange', () => {
         const selection = window.getSelection();
-        if (selection.rangeCount > 0 && !selection.isCollapsed) {
+        if (selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
             const container = range.commonAncestorContainer;
-            
-            // Check if selection is inside an editor block
-            const isInsideEditor = container.nodeType === 3 ? 
-                container.parentNode.closest('.block-textarea') : 
-                (container.closest && container.closest('.block-textarea'));
-                
-            if (isInsideEditor) {
-                if (style === 'bold') {
-                    document.execCommand('bold', false, null);
-                } else if (style === 'italic') {
-                    document.execCommand('italic', false, null);
-                } else if (style === 'underline') {
-                    document.execCommand('underline', false, null);
-                } else if (style === 'color') {
-                    document.execCommand('foreColor', false, value);
-                } else if (style === 'fontSize') {
-                    const span = document.createElement("span");
-                    span.style.fontSize = value;
-                    span.appendChild(range.extractContents());
-                    range.insertNode(span);
-                } else if (style === 'fontFamily') {
-                    document.execCommand('fontName', false, value);
-                } else if (style === 'align') {
-                    document.execCommand('justify' + value.charAt(0).toUpperCase() + value.slice(1), false, null);
+            if (container) {
+                const isInsideEditor = container.nodeType === 3 ? 
+                    (container.parentNode && container.parentNode.closest ? container.parentNode.closest('.block-textarea') : null) : 
+                    (container.closest ? container.closest('.block-textarea') : null);
+                    
+                if (isInsideEditor) {
+                    lastSavedRange = range.cloneRange();
                 }
+            }
+        }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+        // Clear saved range when clicking completely outside the editor rows and outside the toolbar
+        if (!e.target.closest('.block-textarea') && !e.target.closest('#bulk-styling-toolbar')) {
+            lastSavedRange = null;
+        }
+    });
+
+    function applyBulkStyle(style, value) {
+        let selection = window.getSelection();
+        let isInsideEditor = false;
+        
+        // Check current selection first
+        if (selection.rangeCount > 0) {
+            const container = selection.getRangeAt(0).commonAncestorContainer;
+            if (container) {
+                isInsideEditor = container.nodeType === 3 ? 
+                    (container.parentNode && container.parentNode.closest ? container.parentNode.closest('.block-textarea') : null) : 
+                    (container.closest ? container.closest('.block-textarea') : null);
+            }
+        }
+
+        // If focus was lost (e.g., clicked font size input) but we have a saved range, restore it!
+        if (!isInsideEditor && lastSavedRange) {
+            selection.removeAllRanges();
+            selection.addRange(lastSavedRange);
+            const container = lastSavedRange.commonAncestorContainer;
+            if (container) {
+                isInsideEditor = container.nodeType === 3 ? 
+                    (container.parentNode && container.parentNode.closest ? container.parentNode.closest('.block-textarea') : null) : 
+                    (container.closest ? container.closest('.block-textarea') : null);
+            }
+        }
+
+        if (isInsideEditor && selection.rangeCount > 0 && !selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const editorDiv = range.commonAncestorContainer.nodeType === 3 ? 
+                range.commonAncestorContainer.parentNode.closest('.block-textarea') : 
+                range.commonAncestorContainer.closest('.block-textarea');
+            
+            if (style === 'bold') {
+                document.execCommand('bold', false, null);
+            } else if (style === 'italic') {
+                document.execCommand('italic', false, null);
+            } else if (style === 'underline') {
+                document.execCommand('underline', false, null);
+            } else if (style === 'color') {
+                document.execCommand('foreColor', false, value);
+            } else if (style === 'fontSize') {
+                const span = document.createElement("span");
+                span.style.fontSize = value;
+                span.appendChild(range.extractContents());
+                range.insertNode(span);
                 
-                // Update the underlying block.text with the new HTML
-                const blockIndex = isInsideEditor.getAttribute('data-index');
+                // Reselect so consecutive formats work
+                selection.removeAllRanges();
+                const newRange = document.createRange();
+                newRange.selectNodeContents(span);
+                selection.addRange(newRange);
+                lastSavedRange = newRange.cloneRange();
+            } else if (style === 'fontFamily') {
+                document.execCommand('fontName', false, value);
+            } else if (style === 'align') {
+                document.execCommand('justify' + value.charAt(0).toUpperCase() + value.slice(1), false, null);
+            }
+            
+            if (editorDiv) {
+                const blockIndex = editorDiv.getAttribute('data-index');
                 if (blockIndex !== null) {
-                    blocks[blockIndex].text = isInsideEditor.innerHTML;
+                    blocks[blockIndex].text = editorDiv.innerHTML;
                     updateHiddenContentJSON();
                 }
-                return; // Applied to partial selection, skip bulk apply
             }
+            return; // Applied to partial selection, skip bulk apply
         }
 
         if (selectedBlockIndices.size === 0) return;
