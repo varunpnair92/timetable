@@ -1316,7 +1316,7 @@
                                     <option value="justify">Justify</option>
                                 </select>
 
-                                <input type="number" min="8" max="100" placeholder="Size" title="Font Size (e.g., 10, 12, 14, 16...)" onchange="applyBulkStyle('fontSize', this.value + 'px'); this.value='';" style="width: 50px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.75rem;">
+                                <input type="number" min="8" max="100" placeholder="Size" title="Font Size (e.g., 10, 12, 14, 16...)" onchange="applyBulkStyle('fontSize', this.value + 'px'); this.value='';" onkeydown="if(event.key === 'Enter') { event.preventDefault(); applyBulkStyle('fontSize', this.value + 'px'); this.value=''; }" style="width: 50px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.75rem;">
 
                                 <select onchange="applyBulkStyle('fontFamily', this.value); this.value='';" style="padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.75rem;">
                                     <option value="">Font</option>
