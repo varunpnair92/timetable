@@ -3513,20 +3513,20 @@ def download_custom_document_excel(request, doc_id):
                 "right": workbook.add_format({"border": 1, "align": "right", "valign": "vcenter"}),
             }
             
-            # Set col widths dynamically for table if it fits
-            for i, h in enumerate(headers):
-                if i < 7:
-                    if i == 1:
-                        worksheet.set_column(i, i, 40)
-                    else:
-                        worksheet.set_column(i, i, max(12, len(str(h)) + 2))
-                        
-            for i, h in enumerate(headers):
-                if i <= 6:
-                    c_align = col_alignments[i] if i < len(col_alignments) else "left"
-                    h_fmt = workbook.add_format({"bold": True, "border": 1, "bg_color": "#f8fafc", "align": c_align})
-                    worksheet.write(row_num, i, h, h_fmt)
-            row_num += 1
+            if headers:
+                for i, h in enumerate(headers):
+                    if i < 7:
+                        if i == 1:
+                            worksheet.set_column(i, i, 40)
+                        else:
+                            worksheet.set_column(i, i, max(12, len(str(h)) + 2))
+                            
+                for i, h in enumerate(headers):
+                    if i <= 6:
+                        c_align = col_alignments[i] if i < len(col_alignments) else "left"
+                        h_fmt = workbook.add_format({"bold": True, "border": 1, "bg_color": "#f8fafc", "align": c_align})
+                        worksheet.write(row_num, i, h, h_fmt)
+                row_num += 1
             
             start_table_row = row_num
             

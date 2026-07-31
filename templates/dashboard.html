@@ -3291,6 +3291,7 @@
         const includeHeading = document.getElementById('excel-include-heading-cb').checked;
         const headingText = document.getElementById('excel_heading_text').value.trim();
         const headingStyle = document.getElementById('excel_heading_style').value || 'h2';
+        const hasHeader = document.getElementById('excel-has-header-cb').checked;
         
         if (includeHeading && headingText) {
             blocksList.push({
@@ -3300,12 +3301,15 @@
             });
         }
         
-        let tableHtml = '<table class="doc-table" style="width: 100%; border-collapse: collapse;" border="1"><tbody><tr>';
-        excelHeaders.forEach((th, cIdx) => {
-            const align = excelColAlignments[cIdx] || 'left';
-            tableHtml += `<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc; text-align: ${align};">${th}</th>`;
-        });
-        tableHtml += '</tr>';
+        let tableHtml = '<table class="doc-table" style="width: 100%; border-collapse: collapse;" border="1"><tbody>';
+        if (hasHeader) {
+            tableHtml += '<tr>';
+            excelHeaders.forEach((th, cIdx) => {
+                const align = excelColAlignments[cIdx] || 'left';
+                tableHtml += `<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc; text-align: ${align};">${th}</th>`;
+            });
+            tableHtml += '</tr>';
+        }
         
         excelRows.forEach((row, rIdx) => {
             tableHtml += '<tr>';
@@ -3331,7 +3335,7 @@
             type: 'table',
             text: '',
             tableHtml: tableHtml,
-            headers: [...excelHeaders],
+            headers: hasHeader ? [...excelHeaders] : [],
             rows: excelRows.map(r => [...r]),
             merges: [...excelMerges],
             cellAlignments: { ...excelCellAlignments },
