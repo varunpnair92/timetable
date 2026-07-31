@@ -3059,6 +3059,7 @@
     let excelColAlignments = []; // Column default alignments
     let excelCellStyles = {}; // Map of "rIdx_cIdx" -> { bold, italic, underline, align, fontSize, color, fontFamily }
     let excelColStyles = []; // Column default style objects
+    let lastFocusedExcelCell = null;
 
     function getColumnLetter(colIndex) {
         let letter = '';
@@ -3097,7 +3098,11 @@
 
     function toggleExcelCellFormat(styleProp) {
         const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
+        const activeEl = document.activeElement;
+        const isCellInputActive = activeEl && activeEl.classList.contains('calc-cell-input') && lastFocusedExcelCell;
+
         if (checkboxes.length > 0) {
+            // Apply only to checked rows
             checkboxes.forEach(cb => {
                 const rIdx = parseInt(cb.value);
                 excelHeaders.forEach((_, cIdx) => {
@@ -3106,10 +3111,24 @@
                     excelCellStyles[`${rIdx}_${cIdx}`][styleProp] = !current[styleProp];
                 });
             });
+        } else if (isCellInputActive) {
+            // Apply only to active focused cell
+            const { r, c } = lastFocusedExcelCell;
+            const current = getCellComputedStyle(r, c);
+            if (!excelCellStyles[`${r}_${c}`]) excelCellStyles[`${r}_${c}`] = { ...current };
+            excelCellStyles[`${r}_${c}`][styleProp] = !current[styleProp];
         } else {
+            // Nothing selected -> Apply to ALL cells across the entire grid
             excelHeaders.forEach((_, cIdx) => {
                 if (!excelColStyles[cIdx]) excelColStyles[cIdx] = {};
                 excelColStyles[cIdx][styleProp] = !excelColStyles[cIdx][styleProp];
+            });
+            excelRows.forEach((_, rIdx) => {
+                excelHeaders.forEach((_, cIdx) => {
+                    const current = getCellComputedStyle(rIdx, cIdx);
+                    if (!excelCellStyles[`${rIdx}_${cIdx}`]) excelCellStyles[`${rIdx}_${cIdx}`] = { ...current };
+                    excelCellStyles[`${rIdx}_${cIdx}`][styleProp] = excelColStyles[cIdx][styleProp];
+                });
             });
         }
         renderCalcGridTable();
@@ -3118,7 +3137,11 @@
     function applyExcelCellFormat(styleProp, value) {
         if (!value) return;
         const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
+        const activeEl = document.activeElement;
+        const isCellInputActive = activeEl && activeEl.classList.contains('calc-cell-input') && lastFocusedExcelCell;
+
         if (checkboxes.length > 0) {
+            // Apply only to checked rows
             checkboxes.forEach(cb => {
                 const rIdx = parseInt(cb.value);
                 excelHeaders.forEach((_, cIdx) => {
@@ -3127,11 +3150,25 @@
                     if (styleProp === 'align') excelCellAlignments[`${rIdx}_${cIdx}`] = value;
                 });
             });
+        } else if (isCellInputActive) {
+            // Apply only to active focused cell
+            const { r, c } = lastFocusedExcelCell;
+            if (!excelCellStyles[`${r}_${c}`]) excelCellStyles[`${r}_${c}`] = {};
+            excelCellStyles[`${r}_${c}`][styleProp] = value;
+            if (styleProp === 'align') excelCellAlignments[`${r}_${c}`] = value;
         } else {
+            // Nothing selected -> Apply to ALL cells across the entire grid
             excelHeaders.forEach((_, cIdx) => {
                 if (!excelColStyles[cIdx]) excelColStyles[cIdx] = {};
                 excelColStyles[cIdx][styleProp] = value;
                 if (styleProp === 'align') excelColAlignments[cIdx] = value;
+            });
+            excelRows.forEach((_, rIdx) => {
+                excelHeaders.forEach((_, cIdx) => {
+                    if (!excelCellStyles[`${rIdx}_${cIdx}`]) excelCellStyles[`${rIdx}_${cIdx}`] = {};
+                    excelCellStyles[`${rIdx}_${cIdx}`][styleProp] = value;
+                    if (styleProp === 'align') excelCellAlignments[`${rIdx}_${cIdx}`] = value;
+                });
             });
         }
         renderCalcGridTable();
@@ -3224,6 +3261,7 @@
                 excelCellAlignments = {};
                 excelCellStyles = {};
                 excelColStyles = [];
+                lastFocusedExcelCell = null;
                 processExcelRawData();
                 renderCalcGridTable();
             } catch (err) {
@@ -3308,7 +3346,7 @@
                 }
                 
                 html += `<td${attrs} style="${cssStr}">
-                    <input type="text" class="calc-cell-input" style="${cssStr}" value="${escapeHtmlAttr(val)}" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
+                    <input type="text" class="calc-cell-input" style="${cssStr}" value="${escapeHtmlAttr(val)}" onfocus="lastFocusedExcelCell = { r: ${rIdx}, c: ${cIdx} }" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
                 </td>`;
             });
             html += '</tr>';
