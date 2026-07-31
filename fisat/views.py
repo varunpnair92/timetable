@@ -3147,10 +3147,15 @@ def generate_lab_report_view(request):
             
         allotments.sort(key=lambda a: parse_date(a.start_date))
         
+        show_class_col = (include_class_name == "on" or include_class_name == "true")
+        if show_class_col:
+            headers = ["Sl No", "Event Name", "Class Name", "Date", "Total Hours"]
+        else:
+            headers = ["Sl No", "Event Name", "Date", "Total Hours"]
+
         # Build table html
         table_html = "<table class=\"doc-table\" style=\"width: 100%; border-collapse: collapse;\" border=\"1\"><tbody>"
         table_html += "<tr>"
-        headers = ["Sl No", "Event Name", "Date", "Total Hours"]
         for th in headers:
             table_html += f"<th style=\"border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc;\">{th}</th>"
         table_html += "</tr>"
@@ -3158,29 +3163,31 @@ def generate_lab_report_view(request):
         rows = []
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
-            if include_class_name == "on" or include_class_name == "true":
-                event_name = f"{allotment.subject_name} - {allotment.class_name}" if allotment.class_name else allotment.subject_name
-            else:
-                event_name = allotment.subject_name
-            # hours_allotted is comma separated, e.g. "1, 2, 3"
             hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
             hours_count = len(hours_list)
             total_cumulative_hours += hours_count
             
-            rows.append([str(idx), event_name, allotment.start_date, str(hours_count)])
+            if show_class_col:
+                row_data = [str(idx), allotment.subject_name, allotment.class_name or "", allotment.start_date, str(hours_count)]
+            else:
+                row_data = [str(idx), allotment.subject_name, allotment.start_date, str(hours_count)]
+
+            rows.append(row_data)
             
             table_html += "<tr>"
-            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{idx}</td>"
-            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{event_name}</td>"
-            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{allotment.start_date}</td>"
-            table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{hours_count}</td>"
+            for cell in row_data:
+                table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px;\">{cell}</td>"
             table_html += "</tr>"
             
         # Add cumulative total row
-        rows.append(["", "", "Cumulative Total", str(total_cumulative_hours)])
+        colspan_val = len(headers) - 1
+        if show_class_col:
+            rows.append(["", "", "", "Cumulative Total", str(total_cumulative_hours)])
+        else:
+            rows.append(["", "", "Cumulative Total", str(total_cumulative_hours)])
         
         table_html += "<tr>"
-        table_html += f"<td colspan=\"3\" style=\"border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;\">Cumulative Total</td>"
+        table_html += f"<td colspan=\"{colspan_val}\" style=\"border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;\">Cumulative Total</td>"
         table_html += f"<td style=\"border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;\">{total_cumulative_hours}</td>"
         table_html += "</tr>"
         table_html += "</tbody></table>"
@@ -3266,6 +3273,12 @@ def download_lab_report_excel(request):
             allotments = [a for a in allotments if parse_date(a.start_date) <= ed]
             
         allotments.sort(key=lambda a: parse_date(a.start_date))
+
+        show_class_col = (include_class_name == "on" or include_class_name == "true")
+        if show_class_col:
+            headers = ["Sl No", "Event Name", "Class Name", "Date", "Total Hours"]
+        else:
+            headers = ["Sl No", "Event Name", "Date", "Total Hours"]
         
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output)
@@ -3310,49 +3323,65 @@ def download_lab_report_excel(request):
         except:
             pass
 
+        last_col_letter = chr(ord('A') + len(headers) - 1)
         start_row = 5
         if heading_style == "pdf":
-            worksheet.merge_range("B1:D1", "FISAT®", fisat_fmt)
-            worksheet.merge_range("B2:D2", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY", sub_fmt)
-            worksheet.merge_range("B3:D3", "AUTONOMOUS", auto_fmt)
-            worksheet.merge_range("A4:D4", final_heading, title_fmt)
+            worksheet.merge_range(f"B1:{last_col_letter}1", "FISAT®", fisat_fmt)
+            worksheet.merge_range(f"B2:{last_col_letter}2", "FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY", sub_fmt)
+            worksheet.merge_range(f"B3:{last_col_letter}3", "AUTONOMOUS", auto_fmt)
+            worksheet.merge_range(f"A4:{last_col_letter}4", final_heading, title_fmt)
             start_row = 5
         elif heading_style == "old":
-            worksheet.merge_range("B1:D1", "Federal Institute of Science And Technology(FISAT)", institute_fmt)
-            worksheet.merge_range("B2:D2", "Hormis Nagar,Angamaly", address_fmt)
-            worksheet.merge_range("B3:D3", "Department Of Computer Science And Engineering", address_fmt)
-            worksheet.merge_range("A4:D4", final_heading, title_fmt)
+            worksheet.merge_range(f"B1:{last_col_letter}1", "Federal Institute of Science And Technology(FISAT)", institute_fmt)
+            worksheet.merge_range(f"B2:{last_col_letter}2", "Hormis Nagar,Angamaly", address_fmt)
+            worksheet.merge_range(f"B3:{last_col_letter}3", "Department Of Computer Science And Engineering", address_fmt)
+            worksheet.merge_range(f"A4:{last_col_letter}4", final_heading, title_fmt)
             start_row = 5
         else:
-            worksheet.merge_range("A1:D1", f"FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\n{final_heading}", institute_fmt)
+            worksheet.merge_range(f"A1:{last_col_letter}1", f"FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)\n(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)\n{final_heading}", institute_fmt)
             worksheet.set_row(0, 60)
             start_row = 2
 
-        headers = ["Sl No", "Event Name", "Date", "Total Hours"]
         for col_num, header in enumerate(headers):
             worksheet.write(start_row, col_num, header, header_fmt)
             
-        worksheet.set_column(0, 0, 8)
-        worksheet.set_column(1, 1, 40)
-        worksheet.set_column(2, 2, 15)
-        worksheet.set_column(3, 3, 12)
+        if show_class_col:
+            worksheet.set_column(0, 0, 8)   # Sl No
+            worksheet.set_column(1, 1, 30)  # Event Name
+            worksheet.set_column(2, 2, 15)  # Class Name
+            worksheet.set_column(3, 3, 15)  # Date
+            worksheet.set_column(4, 4, 12)  # Total Hours
+        else:
+            worksheet.set_column(0, 0, 8)   # Sl No
+            worksheet.set_column(1, 1, 40)  # Event Name
+            worksheet.set_column(2, 2, 15)  # Date
+            worksheet.set_column(3, 3, 12)  # Total Hours
         
         row_num = start_row + 1
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
-            if include_class_name == "on" or include_class_name == "true":
-                event_name = f"{allotment.subject_name} - {allotment.class_name}" if allotment.class_name else allotment.subject_name
-            else:
-                event_name = allotment.subject_name
             hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
             hours_count = len(hours_list)
             total_cumulative_hours += hours_count
             
-            worksheet.write(row_num, 0, idx, cell_fmt)
-            worksheet.write(row_num, 1, event_name, cell_fmt)
-            worksheet.write(row_num, 2, allotment.start_date, cell_fmt)
-            worksheet.write(row_num, 3, hours_count, cell_fmt)
+            if show_class_col:
+                worksheet.write(row_num, 0, idx, cell_fmt)
+                worksheet.write(row_num, 1, allotment.subject_name, cell_fmt)
+                worksheet.write(row_num, 2, allotment.class_name or "", cell_fmt)
+                worksheet.write(row_num, 3, allotment.start_date, cell_fmt)
+                worksheet.write(row_num, 4, hours_count, cell_fmt)
+            else:
+                worksheet.write(row_num, 0, idx, cell_fmt)
+                worksheet.write(row_num, 1, allotment.subject_name, cell_fmt)
+                worksheet.write(row_num, 2, allotment.start_date, cell_fmt)
+                worksheet.write(row_num, 3, hours_count, cell_fmt)
+
             row_num += 1
+            
+        total_col_idx = len(headers) - 1
+        prev_col_letter = chr(ord('A') + total_col_idx - 1)
+        worksheet.merge_range(f"A{row_num+1}:{prev_col_letter}{row_num+1}", "Cumulative Total", bold_cell_fmt)
+        worksheet.write(row_num, total_col_idx, total_cumulative_hours, bold_cell_fmt)
             
         worksheet.merge_range(f"A{row_num+1}:C{row_num+1}", "Cumulative Total", bold_cell_fmt)
         worksheet.write(row_num, 3, total_cumulative_hours, bold_cell_fmt)

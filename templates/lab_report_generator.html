@@ -1158,10 +1158,12 @@
             });
             
             // Total row
+            const totalColspan = tableBlock.headers.length - 1;
+            const totalHoursVal = totalRow[totalRow.length - 1];
             html += '<tr>';
             html += '<td style="border: 1px solid var(--border-color);"></td>'; // empty for checkbox col
-            html += `<td colspan="3" style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;">${totalRow[2]}</td>`;
-            html += `<td style="border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;">${totalRow[3]}</td>`;
+            html += `<td colspan="${totalColspan}" style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;">Cumulative Total</td>`;
+            html += `<td style="border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;">${totalHoursVal}</td>`;
             html += '</tr></tbody></table>';
             
             document.getElementById('table-preview-container').innerHTML = html;
@@ -1185,10 +1187,11 @@
             let newTotal = 0;
             dataRows.forEach((row, idx) => {
                 row[0] = (idx + 1).toString(); // update Sl No
-                newTotal += parseInt(row[3]); // sum Total Hours
+                newTotal += parseInt(row[row.length - 1]); // sum Total Hours
             });
             
-            const totalRow = ["", "", "Cumulative Total", newTotal.toString()];
+            const emptyCols = Array(tableBlock.headers.length - 2).fill("");
+            const totalRow = [...emptyCols, "Cumulative Total", newTotal.toString()];
             tableBlock.rows = [...dataRows, totalRow];
             
             // Regenerate tableHtml for saving (WITHOUT checkboxes)
@@ -1206,8 +1209,9 @@
                 rawHtml += '</tr>';
             });
             
+            const totalColspan = tableBlock.headers.length - 1;
             rawHtml += '<tr>';
-            rawHtml += `<td colspan="3" style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;">Cumulative Total</td>`;
+            rawHtml += `<td colspan="${totalColspan}" style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: right; font-weight: bold;">Cumulative Total</td>`;
             rawHtml += `<td style="border: 1px solid var(--border-color); padding: 6px 10px; font-weight: bold;">${newTotal}</td>`;
             rawHtml += '</tr></tbody></table>';
             
