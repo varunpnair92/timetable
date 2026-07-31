@@ -1565,6 +1565,29 @@
                             </div>
                         </div>
 
+                        <!-- Cell Merge & Text Alignment Toolbar -->
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; background: #f8fafc; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #334155; display: flex; align-items: center; gap: 4px;">
+                                🎨 Text Align & Merges:
+                            </div>
+                            
+                            <!-- Alignment Buttons -->
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyExcelAlign('left')" title="Align text left" style="margin:0; padding: 4px 10px; background: white; color: #1e293b; border: 1px solid #cbd5e1;">⬅️ Left</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyExcelAlign('center')" title="Align text center" style="margin:0; padding: 4px 10px; background: white; color: #1e293b; border: 1px solid #cbd5e1;">↔️ Center</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="applyExcelAlign('right')" title="Align text right" style="margin:0; padding: 4px 10px; background: white; color: #1e293b; border: 1px solid #cbd5e1;">➡️ Right</button>
+                            </div>
+
+                            <div style="height: 20px; width: 1px; background: #cbd5e1; margin: 0 4px;"></div>
+
+                            <!-- Merge Buttons -->
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button type="button" class="table-ctrl-action-btn" onclick="mergeExcelSelectedCols()" title="Merge columns across selected rows" style="margin:0; background: #3b82f6; color: white; border: none;">🔲 Merge Selected Columns</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="mergeExcelSelectedRows()" title="Merge selected rows vertically" style="margin:0; background: #8b5cf6; color: white; border: none;">🔲 Merge Selected Rows</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="unmergeExcelCells()" title="Clear all cell merges" style="margin:0; background: #64748b; color: white; border: none;">🔓 Unmerge All</button>
+                            </div>
+                        </div>
+
                         <div class="calc-grid-wrapper" id="calc-grid-container">
                             <!-- JS will render the LibreOffice Calc style grid table here -->
                         </div>
@@ -2962,6 +2985,9 @@
         ["1", "PROGRAMMING LAB", "S1 MCA", "07-01-2026", "4"],
         ["2", "WP LAB", "S1 MCA", "09-01-2026", "4"]
     ];
+    let excelMerges = []; // Array of merge objects: [{ r1, c1, r2, c2 }]
+    let excelCellAlignments = {}; // Map of "rIdx_cIdx" -> 'left'|'center'|'right'
+    let excelColAlignments = []; // Column default alignments
 
     function getColumnLetter(colIndex) {
         let letter = '';
@@ -2970,6 +2996,84 @@
             colIndex = Math.floor(colIndex / 26) - 1;
         }
         return letter;
+    }
+
+    function applyExcelAlign(align) {
+        const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
+        if (checkboxes.length > 0) {
+            checkboxes.forEach(cb => {
+                const rIdx = parseInt(cb.value);
+                excelHeaders.forEach((_, cIdx) => {
+                    excelCellAlignments[`${rIdx}_${cIdx}`] = align;
+                });
+            });
+        } else {
+            excelHeaders.forEach((_, cIdx) => {
+                excelColAlignments[cIdx] = align;
+            });
+        }
+        renderCalcGridTable();
+    }
+
+    function mergeExcelSelectedCols() {
+        const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
+        if (checkboxes.length === 0) {
+            alert("Please select at least one row using the checkboxes to merge its columns.");
+            return;
+        }
+        const numCols = excelHeaders.length;
+        if (numCols <= 1) return;
+        
+        checkboxes.forEach(cb => {
+            const rIdx = parseInt(cb.value);
+            excelMerges = excelMerges.filter(m => !(m.r1 <= rIdx && m.r2 >= rIdx));
+            excelMerges.push({ r1: rIdx, c1: 0, r2: rIdx, c2: numCols - 1 });
+        });
+        renderCalcGridTable();
+    }
+
+    function mergeExcelSelectedRows() {
+        const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
+        if (checkboxes.length < 2) {
+            alert("Please select 2 or more rows using the checkboxes to merge them vertically.");
+            return;
+        }
+        const rIndices = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a,b) => a - b);
+        const minR = rIndices[0];
+        const maxR = rIndices[rIndices.length - 1];
+        
+        excelHeaders.forEach((_, cIdx) => {
+            excelMerges.push({ r1: minR, c1: cIdx, r2: maxR, c2: cIdx });
+        });
+        renderCalcGridTable();
+    }
+
+    function unmergeExcelCells() {
+        excelMerges = [];
+        renderCalcGridTable();
+    }
+
+    function isCellCoveredByMerge(r, c) {
+        for (let m of excelMerges) {
+            if (r >= m.r1 && r <= m.r2 && c >= m.c1 && c <= m.c2) {
+                if (r === m.r1 && c === m.c1) {
+                    return { isTopLeft: true, colspan: (m.c2 - m.c1 + 1), rowspan: (m.r2 - m.r1 + 1) };
+                } else {
+                    return { isCovered: true };
+                }
+            }
+        }
+        return null;
+    }
+
+    function getCellAlignment(r, c) {
+        if (excelCellAlignments[`${r}_${c}`]) {
+            return excelCellAlignments[`${r}_${c}`];
+        }
+        if (excelColAlignments[c]) {
+            return excelColAlignments[c];
+        }
+        return 'left';
     }
 
     function handleExcelFileUpload(input) {
@@ -2996,6 +3100,8 @@
                 }
                 
                 excelRawData = rawGrid;
+                excelMerges = [];
+                excelCellAlignments = {};
                 processExcelRawData();
                 renderCalcGridTable();
             } catch (err) {
@@ -3046,9 +3152,10 @@
         
         excelHeaders.forEach((hdr, cIdx) => {
             const colLetter = getColumnLetter(cIdx);
+            const align = excelColAlignments[cIdx] || 'left';
             html += `<th class="calc-col-header">
                 <div style="font-size:0.75rem; color:#64748b; margin-bottom:2px;">${colLetter}</div>
-                <input type="text" class="calc-table-hdr-input" value="${escapeHtmlAttr(hdr)}" oninput="excelHeaders[${cIdx}]=this.value">
+                <input type="text" class="calc-table-hdr-input" style="text-align: ${align};" value="${escapeHtmlAttr(hdr)}" oninput="excelHeaders[${cIdx}]=this.value">
             </th>`;
         });
         html += '</tr></thead><tbody>';
@@ -3063,9 +3170,21 @@
             </td>`;
             
             excelHeaders.forEach((_, cIdx) => {
+                const mergeInfo = isCellCoveredByMerge(rIdx, cIdx);
+                if (mergeInfo && mergeInfo.isCovered) {
+                    return;
+                }
+                
+                const align = getCellAlignment(rIdx, cIdx);
                 const val = (row[cIdx] !== undefined) ? row[cIdx] : "";
-                html += `<td>
-                    <input type="text" class="calc-cell-input" value="${escapeHtmlAttr(val)}" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
+                let attrs = '';
+                if (mergeInfo && mergeInfo.isTopLeft) {
+                    if (mergeInfo.colspan > 1) attrs += ` colspan="${mergeInfo.colspan}"`;
+                    if (mergeInfo.rowspan > 1) attrs += ` rowspan="${mergeInfo.rowspan}"`;
+                }
+                
+                html += `<td${attrs} style="text-align: ${align};">
+                    <input type="text" class="calc-cell-input" style="text-align: ${align};" value="${escapeHtmlAttr(val)}" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
                 </td>`;
             });
             html += '</tr>';
@@ -3124,6 +3243,9 @@
         if (confirm("Are you sure you want to clear all spreadsheet data?")) {
             excelHeaders = ["Column 1", "Column 2", "Column 3"];
             excelRows = [["", "", ""], ["", "", ""]];
+            excelMerges = [];
+            excelCellAlignments = {};
+            excelColAlignments = [];
             renderCalcGridTable();
         }
     }
@@ -3143,16 +3265,27 @@
         }
         
         let tableHtml = '<table class="doc-table" style="width: 100%; border-collapse: collapse;" border="1"><tbody><tr>';
-        excelHeaders.forEach(th => {
-            tableHtml += `<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc;">${th}</th>`;
+        excelHeaders.forEach((th, cIdx) => {
+            const align = excelColAlignments[cIdx] || 'left';
+            tableHtml += `<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc; text-align: ${align};">${th}</th>`;
         });
         tableHtml += '</tr>';
         
-        excelRows.forEach(row => {
+        excelRows.forEach((row, rIdx) => {
             tableHtml += '<tr>';
             excelHeaders.forEach((_, cIdx) => {
+                const mergeInfo = isCellCoveredByMerge(rIdx, cIdx);
+                if (mergeInfo && mergeInfo.isCovered) return;
+                
+                const align = getCellAlignment(rIdx, cIdx);
                 const cellVal = row[cIdx] !== undefined ? row[cIdx] : "";
-                tableHtml += `<td style="border: 1px solid var(--border-color); padding: 6px 10px;">${cellVal}</td>`;
+                let attrs = '';
+                if (mergeInfo && mergeInfo.isTopLeft) {
+                    if (mergeInfo.colspan > 1) attrs += ` colspan="${mergeInfo.colspan}"`;
+                    if (mergeInfo.rowspan > 1) attrs += ` rowspan="${mergeInfo.rowspan}"`;
+                }
+                
+                tableHtml += `<td${attrs} style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: ${align};">${cellVal}</td>`;
             });
             tableHtml += '</tr>';
         });
@@ -3164,6 +3297,9 @@
             tableHtml: tableHtml,
             headers: [...excelHeaders],
             rows: excelRows.map(r => [...r]),
+            merges: [...excelMerges],
+            cellAlignments: { ...excelCellAlignments },
+            colAlignments: [...excelColAlignments],
             style: { bold: false, italic: false }
         });
         

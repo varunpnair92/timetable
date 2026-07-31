@@ -3503,11 +3503,19 @@ def download_custom_document_excel(request, doc_id):
         if btype == "table":
             headers = block.get("headers", [])
             rows = block.get("rows", [])
+            merges = block.get("merges", [])
+            cell_alignments = block.get("cellAlignments", {})
+            col_alignments = block.get("colAlignments", [])
+            
+            align_fmts = {
+                "left": workbook.add_format({"border": 1, "align": "left", "valign": "vcenter"}),
+                "center": workbook.add_format({"border": 1, "align": "center", "valign": "vcenter"}),
+                "right": workbook.add_format({"border": 1, "align": "right", "valign": "vcenter"}),
+            }
             
             # Set col widths dynamically for table if it fits
             for i, h in enumerate(headers):
                 if i < 7:
-                    # Give more width to 2nd col usually for "Event Name" or "Details"
                     if i == 1:
                         worksheet.set_column(i, i, 40)
                     else:
@@ -3515,14 +3523,29 @@ def download_custom_document_excel(request, doc_id):
                         
             for i, h in enumerate(headers):
                 if i <= 6:
-                    worksheet.write(row_num, i, h, table_header_fmt)
+                    c_align = col_alignments[i] if i < len(col_alignments) else "left"
+                    h_fmt = workbook.add_format({"bold": True, "border": 1, "bg_color": "#f8fafc", "align": c_align})
+                    worksheet.write(row_num, i, h, h_fmt)
             row_num += 1
             
-            for r in rows:
+            start_table_row = row_num
+            
+            for r_idx, r in enumerate(rows):
                 for i, cell in enumerate(r):
                     if i <= 6:
-                        worksheet.write(row_num, i, cell, table_cell_fmt)
+                        cell_align = cell_alignments.get(f"{r_idx}_{i}") or (col_alignments[i] if i < len(col_alignments) else "left")
+                        fmt = align_fmts.get(cell_align, table_cell_fmt)
+                        worksheet.write(row_num, i, cell, fmt)
                 row_num += 1
+                
+            for m in merges:
+                r1, c1, r2, c2 = m.get('r1', 0), m.get('c1', 0), m.get('r2', 0), m.get('c2', 0)
+                if r1 < len(rows) and c1 < len(headers):
+                    cell_val = rows[r1][c1] if c1 < len(rows[r1]) else ""
+                    cell_align = cell_alignments.get(f"{r1}_{c1}") or (col_alignments[c1] if c1 < len(col_alignments) else "left")
+                    fmt = align_fmts.get(cell_align, table_cell_fmt)
+                    worksheet.merge_range(start_table_row + r1, c1, start_table_row + r2, min(c2, 6), cell_val, fmt)
+                    
             row_num += 1
             
         elif btype == "h2":
