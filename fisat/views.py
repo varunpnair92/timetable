@@ -3127,6 +3127,7 @@ def generate_lab_report_view(request):
         report_heading = request.POST.get("report_heading", "").strip()
         heading_style = request.POST.get("heading_style", "new")
         orientation = request.POST.get("orientation", "landscape")
+        include_class_name = request.POST.get("include_class_name")  # 'on' if checked or None
         
         default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
         final_heading = report_heading if report_heading else default_heading
@@ -3157,7 +3158,10 @@ def generate_lab_report_view(request):
         rows = []
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
-            event_name = f"{allotment.subject_name} - {allotment.class_name}"
+            if include_class_name == "on" or include_class_name == "true":
+                event_name = f"{allotment.subject_name} - {allotment.class_name}" if allotment.class_name else allotment.subject_name
+            else:
+                event_name = allotment.subject_name
             # hours_allotted is comma separated, e.g. "1, 2, 3"
             hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
             hours_count = len(hours_list)
@@ -3202,7 +3206,8 @@ def generate_lab_report_view(request):
             "report_heading": report_heading,
             "final_heading": final_heading,
             "heading_style": heading_style,
-            "orientation": orientation
+            "orientation": orientation,
+            "include_class_name": include_class_name
         })
 
     # GET request
@@ -3212,7 +3217,8 @@ def generate_lab_report_view(request):
     return render(request, "lab_report_generator.html", {
         "categories": categories,
         "labs": labs,
-        "generated": False
+        "generated": False,
+        "include_class_name": "on"
     })
 
 
@@ -3241,6 +3247,7 @@ def download_lab_report_excel(request):
         report_heading = request.POST.get("report_heading", "").strip()
         heading_style = request.POST.get("heading_style", "new")
         orientation = request.POST.get("orientation", "landscape")
+        include_class_name = request.POST.get("include_class_name")
         
         default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
         final_heading = report_heading if report_heading else default_heading
@@ -3333,7 +3340,10 @@ def download_lab_report_excel(request):
         row_num = start_row + 1
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
-            event_name = f"{allotment.subject_name} - {allotment.class_name}"
+            if include_class_name == "on" or include_class_name == "true":
+                event_name = f"{allotment.subject_name} - {allotment.class_name}" if allotment.class_name else allotment.subject_name
+            else:
+                event_name = allotment.subject_name
             hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
             hours_count = len(hours_list)
             total_cumulative_hours += hours_count
