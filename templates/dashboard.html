@@ -2796,10 +2796,12 @@
             `;
         } else if (style === 'old') {
             header.innerHTML = `
-                <div style="text-align: center; width: 100%;">
-                    <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo" style="height: 55px; width: auto; margin-bottom: 6px; display: inline-block;">
-                    <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #000;">FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)</h2>
-                    <h4 style="margin: 4px 0 0 0; font-size: 13px; font-weight: normal; color: #000;">(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)</h4>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%;">
+                    <img src="{% static 'fisat_logo.png' %}" alt="FISAT Logo" class="letterhead-logo" style="height: 60px; width: auto; flex-shrink: 0;">
+                    <div style="text-align: center;">
+                        <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #000;">FEDERAL INSTITUTE OF SCIENCE AND TECHNOLOGY (FISAT)</h2>
+                        <h4 style="margin: 4px 0 0 0; font-size: 13px; font-weight: normal; color: #000;">(Hormis Nagar, Mookkannoor, Angamaly, Kerala – 683577)</h4>
+                    </div>
                 </div>
             `;
         }
