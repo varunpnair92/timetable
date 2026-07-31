@@ -80,7 +80,7 @@
             box-sizing: border-box;
             background: transparent;
         }
-        .calc-cell-input:focus {
+        .calc-cell-input:focus, .calc-cell-input.active-focused-cell {
             background: #eff6ff;
             box-shadow: inset 0 0 0 2px #2563eb;
         }
@@ -1566,7 +1566,7 @@
                         </div>
 
                         <!-- Cell Formatting & Merges Toolbar -->
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px 12px; border-radius: var(--radius-md);">
+                        <div id="excel-formatting-toolbar" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px 12px; border-radius: var(--radius-md);">
                             <div style="font-weight: 700; font-size: 0.85rem; color: #0369a1; display: flex; align-items: center; gap: 4px;">
                                 ⚡ Cell Formatting:
                             </div>
@@ -3096,10 +3096,23 @@
         return css;
     }
 
+    function setActiveExcelCell(r, c, inputEl) {
+        lastFocusedExcelCell = { r, c };
+        document.querySelectorAll('.calc-cell-input.active-focused-cell').forEach(el => el.classList.remove('active-focused-cell'));
+        if (inputEl) inputEl.classList.add('active-focused-cell');
+    }
+
+    document.addEventListener('click', function(e) {
+        const gridContainer = document.getElementById('calc-grid-container');
+        const toolbar = document.getElementById('excel-formatting-toolbar');
+        if (gridContainer && !gridContainer.contains(e.target) && toolbar && !toolbar.contains(e.target)) {
+            lastFocusedExcelCell = null;
+            document.querySelectorAll('.calc-cell-input.active-focused-cell').forEach(el => el.classList.remove('active-focused-cell'));
+        }
+    });
+
     function toggleExcelCellFormat(styleProp) {
         const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
-        const activeEl = document.activeElement;
-        const isCellInputActive = activeEl && activeEl.classList.contains('calc-cell-input') && lastFocusedExcelCell;
 
         if (checkboxes.length > 0) {
             // Apply only to checked rows
@@ -3111,7 +3124,7 @@
                     excelCellStyles[`${rIdx}_${cIdx}`][styleProp] = !current[styleProp];
                 });
             });
-        } else if (isCellInputActive) {
+        } else if (lastFocusedExcelCell) {
             // Apply only to active focused cell
             const { r, c } = lastFocusedExcelCell;
             const current = getCellComputedStyle(r, c);
@@ -3137,8 +3150,6 @@
     function applyExcelCellFormat(styleProp, value) {
         if (!value) return;
         const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
-        const activeEl = document.activeElement;
-        const isCellInputActive = activeEl && activeEl.classList.contains('calc-cell-input') && lastFocusedExcelCell;
 
         if (checkboxes.length > 0) {
             // Apply only to checked rows
@@ -3150,7 +3161,7 @@
                     if (styleProp === 'align') excelCellAlignments[`${rIdx}_${cIdx}`] = value;
                 });
             });
-        } else if (isCellInputActive) {
+        } else if (lastFocusedExcelCell) {
             // Apply only to active focused cell
             const { r, c } = lastFocusedExcelCell;
             if (!excelCellStyles[`${r}_${c}`]) excelCellStyles[`${r}_${c}`] = {};
@@ -3345,8 +3356,11 @@
                     if (mergeInfo.rowspan > 1) attrs += ` rowspan="${mergeInfo.rowspan}"`;
                 }
                 
+                const isSelectedCell = lastFocusedExcelCell && lastFocusedExcelCell.r === rIdx && lastFocusedExcelCell.c === cIdx;
+                const activeClass = isSelectedCell ? ' active-focused-cell' : '';
+
                 html += `<td${attrs} style="${cssStr}">
-                    <input type="text" class="calc-cell-input" style="${cssStr}" value="${escapeHtmlAttr(val)}" onfocus="lastFocusedExcelCell = { r: ${rIdx}, c: ${cIdx} }" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
+                    <input type="text" class="calc-cell-input${activeClass}" style="${cssStr}" value="${escapeHtmlAttr(val)}" onfocus="setActiveExcelCell(${rIdx}, ${cIdx}, this)" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
                 </td>`;
             });
             html += '</tr>';
