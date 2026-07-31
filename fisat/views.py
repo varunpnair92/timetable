@@ -3506,13 +3506,33 @@ def download_custom_document_excel(request, doc_id):
             merges = block.get("merges", [])
             cell_alignments = block.get("cellAlignments", {})
             col_alignments = block.get("colAlignments", [])
+            cell_styles = block.get("cellStyles", {})
+            col_styles = block.get("colStyles", [])
             
-            align_fmts = {
-                "left": workbook.add_format({"border": 1, "align": "left", "valign": "vcenter"}),
-                "center": workbook.add_format({"border": 1, "align": "center", "valign": "vcenter"}),
-                "right": workbook.add_format({"border": 1, "align": "right", "valign": "vcenter"}),
-            }
-            
+            def get_cell_format(r_idx, c_idx):
+                cS = cell_styles.get(f"{r_idx}_{c_idx}", {})
+                colS = col_styles[c_idx] if c_idx < len(col_styles) else {}
+                
+                b_val = cS.get("bold", colS.get("bold", False))
+                i_val = cS.get("italic", colS.get("italic", False))
+                u_val = cS.get("underline", colS.get("underline", False))
+                align_val = cell_alignments.get(f"{r_idx}_{c_idx}") or cS.get("align") or (col_alignments[c_idx] if c_idx < len(col_alignments) else colS.get("align", "left"))
+                color_val = cS.get("color", colS.get("color", ""))
+                size_str = cS.get("fontSize", colS.get("fontSize", ""))
+                
+                fmt_dict = {"border": 1, "valign": "vcenter"}
+                if b_val: fmt_dict["bold"] = True
+                if i_val: fmt_dict["italic"] = True
+                if u_val: fmt_dict["underline"] = True
+                if align_val: fmt_dict["align"] = align_val
+                if color_val: fmt_dict["font_color"] = color_val
+                if size_str:
+                    clean_sz = str(size_str).replace("px", "").strip()
+                    if clean_sz.isdigit():
+                        fmt_dict["font_size"] = int(clean_sz)
+                        
+                return workbook.add_format(fmt_dict)
+
             if headers:
                 for i, h in enumerate(headers):
                     if i < 7:
@@ -3533,17 +3553,15 @@ def download_custom_document_excel(request, doc_id):
             for r_idx, r in enumerate(rows):
                 for i, cell in enumerate(r):
                     if i <= 6:
-                        cell_align = cell_alignments.get(f"{r_idx}_{i}") or (col_alignments[i] if i < len(col_alignments) else "left")
-                        fmt = align_fmts.get(cell_align, table_cell_fmt)
+                        fmt = get_cell_format(r_idx, i)
                         worksheet.write(row_num, i, cell, fmt)
                 row_num += 1
                 
             for m in merges:
                 r1, c1, r2, c2 = m.get('r1', 0), m.get('c1', 0), m.get('r2', 0), m.get('c2', 0)
-                if r1 < len(rows) and c1 < len(headers):
+                if r1 < len(rows):
                     cell_val = rows[r1][c1] if c1 < len(rows[r1]) else ""
-                    cell_align = cell_alignments.get(f"{r1}_{c1}") or (col_alignments[c1] if c1 < len(col_alignments) else "left")
-                    fmt = align_fmts.get(cell_align, table_cell_fmt)
+                    fmt = get_cell_format(r1, c1)
                     worksheet.merge_range(start_table_row + r1, c1, start_table_row + r2, min(c2, 6), cell_val, fmt)
                     
             row_num += 1

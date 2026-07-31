@@ -1565,25 +1565,58 @@
                             </div>
                         </div>
 
-                        <!-- Cell Merge & Text Alignment Toolbar -->
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; background: #f8fafc; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                            <div style="font-weight: 700; font-size: 0.85rem; color: #334155; display: flex; align-items: center; gap: 4px;">
-                                🎨 Text Align & Merges:
+                        <!-- Cell Formatting & Merges Toolbar -->
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px 12px; border-radius: var(--radius-md);">
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #0369a1; display: flex; align-items: center; gap: 4px;">
+                                ⚡ Cell Formatting:
                             </div>
                             
-                            <!-- Alignment Buttons -->
+                            <!-- Bold, Italic, Underline -->
                             <div style="display: flex; gap: 4px; align-items: center;">
-                                <button type="button" class="table-ctrl-action-btn" onclick="applyExcelAlign('left')" title="Align text left" style="margin:0; padding: 4px 10px; background: white; color: #1e293b; border: 1px solid #cbd5e1;">⬅️ Left</button>
-                                <button type="button" class="table-ctrl-action-btn" onclick="applyExcelAlign('center')" title="Align text center" style="margin:0; padding: 4px 10px; background: white; color: #1e293b; border: 1px solid #cbd5e1;">↔️ Center</button>
-                                <button type="button" class="table-ctrl-action-btn" onclick="applyExcelAlign('right')" title="Align text right" style="margin:0; padding: 4px 10px; background: white; color: #1e293b; border: 1px solid #cbd5e1;">➡️ Right</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="toggleExcelCellFormat('bold')" title="Bold" style="background: #3b82f6; color: white; border: none; font-weight: 700; padding: 4px 10px; margin:0;">B</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="toggleExcelCellFormat('italic')" title="Italic" style="background: #10b981; color: white; border: none; font-style: italic; padding: 4px 10px; margin:0;">I</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="toggleExcelCellFormat('underline')" title="Underline" style="background: #8b5cf6; color: white; border: none; text-decoration: underline; padding: 4px 10px; margin:0;">U</button>
                             </div>
 
-                            <div style="height: 20px; width: 1px; background: #cbd5e1; margin: 0 4px;"></div>
+                            <!-- Alignment -->
+                            <select onchange="applyExcelCellFormat('align', this.value); this.value='';" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.82rem; font-weight: 600;">
+                                <option value="">Align</option>
+                                <option value="left">⬅️ Left</option>
+                                <option value="center">↔️ Center</option>
+                                <option value="right">➡️ Right</option>
+                                <option value="justify">↔️ Justify</option>
+                            </select>
+
+                            <!-- Font Size Input (Enter Key & Change) -->
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <label style="font-size: 0.78rem; font-weight: 600; color: #0369a1;">Size:</label>
+                                <input type="number" id="excel-font-size-input" min="8" max="100" placeholder="e.g. 14" title="Font Size (Enter to apply)" 
+                                    onchange="if(this.value){ applyExcelCellFormat('fontSize', this.value + 'px'); this.value=''; }" 
+                                    onkeydown="if(event.key === 'Enter') { event.preventDefault(); if(this.value){ applyExcelCellFormat('fontSize', this.value + 'px'); this.value=''; } }" 
+                                    style="width: 55px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.82rem;">
+                            </div>
+
+                            <!-- Font Family -->
+                            <select onchange="applyExcelCellFormat('fontFamily', this.value); this.value='';" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.82rem; font-weight: 600;">
+                                <option value="">Font</option>
+                                <option value="Arial, sans-serif">Arial</option>
+                                <option value="'Times New Roman', serif">Times New Roman</option>
+                                <option value="'Courier New', monospace">Courier</option>
+                                <option value="'Outfit', sans-serif">Outfit</option>
+                            </select>
+
+                            <!-- Color Picker -->
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <label style="font-size: 0.78rem; font-weight: 600; color: #0369a1;">Color:</label>
+                                <input type="color" onchange="applyExcelCellFormat('color', this.value);" title="Text Color" style="padding: 0; width: 26px; height: 26px; border: none; border-radius: 4px; cursor: pointer; background: none;">
+                            </div>
+
+                            <div style="height: 20px; width: 1px; background: #bae6fd; margin: 0 4px;"></div>
 
                             <!-- Merge Buttons -->
                             <div style="display: flex; gap: 6px; align-items: center;">
-                                <button type="button" class="table-ctrl-action-btn" onclick="mergeExcelSelectedCols()" title="Merge columns across selected rows" style="margin:0; background: #3b82f6; color: white; border: none;">🔲 Merge Selected Columns</button>
-                                <button type="button" class="table-ctrl-action-btn" onclick="mergeExcelSelectedRows()" title="Merge selected rows vertically" style="margin:0; background: #8b5cf6; color: white; border: none;">🔲 Merge Selected Rows</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="mergeExcelSelectedCols()" title="Merge columns across selected rows" style="margin:0; background: #0284c7; color: white; border: none;">🔲 Merge Columns</button>
+                                <button type="button" class="table-ctrl-action-btn" onclick="mergeExcelSelectedRows()" title="Merge selected rows vertically" style="margin:0; background: #6366f1; color: white; border: none;">🔲 Merge Rows</button>
                                 <button type="button" class="table-ctrl-action-btn" onclick="unmergeExcelCells()" title="Clear all cell merges" style="margin:0; background: #64748b; color: white; border: none;">🔓 Unmerge All</button>
                             </div>
                         </div>
@@ -3022,8 +3055,10 @@
         ["2", "WP LAB", "S1 MCA", "09-01-2026", "4"]
     ];
     let excelMerges = []; // Array of merge objects: [{ r1, c1, r2, c2 }]
-    let excelCellAlignments = {}; // Map of "rIdx_cIdx" -> 'left'|'center'|'right'
+    let excelCellAlignments = {}; // Map of "rIdx_cIdx" -> 'left'|'center'|'right'|'justify'
     let excelColAlignments = []; // Column default alignments
+    let excelCellStyles = {}; // Map of "rIdx_cIdx" -> { bold, italic, underline, align, fontSize, color, fontFamily }
+    let excelColStyles = []; // Column default style objects
 
     function getColumnLetter(colIndex) {
         let letter = '';
@@ -3034,21 +3069,76 @@
         return letter;
     }
 
-    function applyExcelAlign(align) {
+    function getCellComputedStyle(r, c) {
+        const cellS = excelCellStyles[`${r}_${c}`] || {};
+        const colS = excelColStyles[c] || {};
+        const align = excelCellAlignments[`${r}_${c}`] || cellS.align || excelColAlignments[c] || colS.align || 'left';
+        return {
+            bold: cellS.bold !== undefined ? cellS.bold : !!colS.bold,
+            italic: cellS.italic !== undefined ? cellS.italic : !!colS.italic,
+            underline: cellS.underline !== undefined ? cellS.underline : !!colS.underline,
+            align: align,
+            fontSize: cellS.fontSize || colS.fontSize || '',
+            color: cellS.color || colS.color || '',
+            fontFamily: cellS.fontFamily || colS.fontFamily || ''
+        };
+    }
+
+    function buildStyleCssString(styleObj) {
+        let css = `text-align: ${styleObj.align};`;
+        if (styleObj.bold) css += ' font-weight: bold;';
+        if (styleObj.italic) css += ' font-style: italic;';
+        if (styleObj.underline) css += ' text-decoration: underline;';
+        if (styleObj.fontSize) css += ` font-size: ${styleObj.fontSize};`;
+        if (styleObj.color) css += ` color: ${styleObj.color};`;
+        if (styleObj.fontFamily) css += ` font-family: ${styleObj.fontFamily};`;
+        return css;
+    }
+
+    function toggleExcelCellFormat(styleProp) {
         const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
         if (checkboxes.length > 0) {
             checkboxes.forEach(cb => {
                 const rIdx = parseInt(cb.value);
                 excelHeaders.forEach((_, cIdx) => {
-                    excelCellAlignments[`${rIdx}_${cIdx}`] = align;
+                    const current = getCellComputedStyle(rIdx, cIdx);
+                    if (!excelCellStyles[`${rIdx}_${cIdx}`]) excelCellStyles[`${rIdx}_${cIdx}`] = { ...current };
+                    excelCellStyles[`${rIdx}_${cIdx}`][styleProp] = !current[styleProp];
                 });
             });
         } else {
             excelHeaders.forEach((_, cIdx) => {
-                excelColAlignments[cIdx] = align;
+                if (!excelColStyles[cIdx]) excelColStyles[cIdx] = {};
+                excelColStyles[cIdx][styleProp] = !excelColStyles[cIdx][styleProp];
             });
         }
         renderCalcGridTable();
+    }
+
+    function applyExcelCellFormat(styleProp, value) {
+        if (!value) return;
+        const checkboxes = document.querySelectorAll('.excel-row-checkbox:checked');
+        if (checkboxes.length > 0) {
+            checkboxes.forEach(cb => {
+                const rIdx = parseInt(cb.value);
+                excelHeaders.forEach((_, cIdx) => {
+                    if (!excelCellStyles[`${rIdx}_${cIdx}`]) excelCellStyles[`${rIdx}_${cIdx}`] = {};
+                    excelCellStyles[`${rIdx}_${cIdx}`][styleProp] = value;
+                    if (styleProp === 'align') excelCellAlignments[`${rIdx}_${cIdx}`] = value;
+                });
+            });
+        } else {
+            excelHeaders.forEach((_, cIdx) => {
+                if (!excelColStyles[cIdx]) excelColStyles[cIdx] = {};
+                excelColStyles[cIdx][styleProp] = value;
+                if (styleProp === 'align') excelColAlignments[cIdx] = value;
+            });
+        }
+        renderCalcGridTable();
+    }
+
+    function applyExcelAlign(align) {
+        applyExcelCellFormat('align', align);
     }
 
     function mergeExcelSelectedCols() {
@@ -3103,13 +3193,7 @@
     }
 
     function getCellAlignment(r, c) {
-        if (excelCellAlignments[`${r}_${c}`]) {
-            return excelCellAlignments[`${r}_${c}`];
-        }
-        if (excelColAlignments[c]) {
-            return excelColAlignments[c];
-        }
-        return 'left';
+        return getCellComputedStyle(r, c).align;
     }
 
     function handleExcelFileUpload(input) {
@@ -3138,6 +3222,8 @@
                 excelRawData = rawGrid;
                 excelMerges = [];
                 excelCellAlignments = {};
+                excelCellStyles = {};
+                excelColStyles = [];
                 processExcelRawData();
                 renderCalcGridTable();
             } catch (err) {
@@ -3188,7 +3274,8 @@
         
         excelHeaders.forEach((hdr, cIdx) => {
             const colLetter = getColumnLetter(cIdx);
-            const align = excelColAlignments[cIdx] || 'left';
+            const colStyle = excelColStyles[cIdx] || {};
+            const align = colStyle.align || excelColAlignments[cIdx] || 'left';
             html += `<th class="calc-col-header">
                 <div style="font-size:0.75rem; color:#64748b; margin-bottom:2px;">${colLetter}</div>
                 <input type="text" class="calc-table-hdr-input" style="text-align: ${align};" value="${escapeHtmlAttr(hdr)}" oninput="excelHeaders[${cIdx}]=this.value">
@@ -3211,7 +3298,8 @@
                     return;
                 }
                 
-                const align = getCellAlignment(rIdx, cIdx);
+                const styleObj = getCellComputedStyle(rIdx, cIdx);
+                const cssStr = buildStyleCssString(styleObj);
                 const val = (row[cIdx] !== undefined) ? row[cIdx] : "";
                 let attrs = '';
                 if (mergeInfo && mergeInfo.isTopLeft) {
@@ -3219,8 +3307,8 @@
                     if (mergeInfo.rowspan > 1) attrs += ` rowspan="${mergeInfo.rowspan}"`;
                 }
                 
-                html += `<td${attrs} style="text-align: ${align};">
-                    <input type="text" class="calc-cell-input" style="text-align: ${align};" value="${escapeHtmlAttr(val)}" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
+                html += `<td${attrs} style="${cssStr}">
+                    <input type="text" class="calc-cell-input" style="${cssStr}" value="${escapeHtmlAttr(val)}" oninput="updateExcelCell(${rIdx}, ${cIdx}, this.value)">
                 </td>`;
             });
             html += '</tr>';
@@ -3282,6 +3370,8 @@
             excelMerges = [];
             excelCellAlignments = {};
             excelColAlignments = [];
+            excelCellStyles = {};
+            excelColStyles = [];
             renderCalcGridTable();
         }
     }
@@ -3305,7 +3395,8 @@
         if (hasHeader) {
             tableHtml += '<tr>';
             excelHeaders.forEach((th, cIdx) => {
-                const align = excelColAlignments[cIdx] || 'left';
+                const colStyle = excelColStyles[cIdx] || {};
+                const align = colStyle.align || excelColAlignments[cIdx] || 'left';
                 tableHtml += `<th style="border: 1px solid var(--border-color); padding: 6px 10px; background: #f8fafc; text-align: ${align};">${th}</th>`;
             });
             tableHtml += '</tr>';
@@ -3317,7 +3408,8 @@
                 const mergeInfo = isCellCoveredByMerge(rIdx, cIdx);
                 if (mergeInfo && mergeInfo.isCovered) return;
                 
-                const align = getCellAlignment(rIdx, cIdx);
+                const styleObj = getCellComputedStyle(rIdx, cIdx);
+                const cssStr = buildStyleCssString(styleObj);
                 const cellVal = row[cIdx] !== undefined ? row[cIdx] : "";
                 let attrs = '';
                 if (mergeInfo && mergeInfo.isTopLeft) {
@@ -3325,7 +3417,7 @@
                     if (mergeInfo.rowspan > 1) attrs += ` rowspan="${mergeInfo.rowspan}"`;
                 }
                 
-                tableHtml += `<td${attrs} style="border: 1px solid var(--border-color); padding: 6px 10px; text-align: ${align};">${cellVal}</td>`;
+                tableHtml += `<td${attrs} style="border: 1px solid var(--border-color); padding: 6px 10px; ${cssStr}">${cellVal}</td>`;
             });
             tableHtml += '</tr>';
         });
@@ -3340,6 +3432,8 @@
             merges: [...excelMerges],
             cellAlignments: { ...excelCellAlignments },
             colAlignments: [...excelColAlignments],
+            cellStyles: JSON.parse(JSON.stringify(excelCellStyles)),
+            colStyles: JSON.parse(JSON.stringify(excelColStyles)),
             style: { bold: false, italic: false }
         });
         
