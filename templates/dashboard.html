@@ -1611,6 +1611,15 @@
                                 <input type="color" onchange="applyExcelCellFormat('color', this.value);" title="Text Color" style="padding: 0; width: 26px; height: 26px; border: none; border-radius: 4px; cursor: pointer; background: none;">
                             </div>
 
+                            <!-- Cell Border Selector -->
+                            <select onchange="applyExcelCellFormat('border', this.value); this.value='';" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.82rem; font-weight: 600;">
+                                <option value="">Border</option>
+                                <option value="1px solid #1e293b">🔳 All Borders</option>
+                                <option value="2px solid #1e293b">⬛ Thick Border</option>
+                                <option value="1px dashed #64748b">---------------- Dashed</option>
+                                <option value="none">🚫 No Border</option>
+                            </select>
+
                             <div style="height: 20px; width: 1px; background: #bae6fd; margin: 0 4px;"></div>
 
                             <!-- Merge Buttons -->
@@ -3081,7 +3090,8 @@
             align: align,
             fontSize: cellS.fontSize || colS.fontSize || '',
             color: cellS.color || colS.color || '',
-            fontFamily: cellS.fontFamily || colS.fontFamily || ''
+            fontFamily: cellS.fontFamily || colS.fontFamily || '',
+            border: cellS.border !== undefined ? cellS.border : (colS.border !== undefined ? colS.border : '')
         };
     }
 
@@ -3093,6 +3103,7 @@
         if (styleObj.fontSize) css += ` font-size: ${styleObj.fontSize};`;
         if (styleObj.color) css += ` color: ${styleObj.color};`;
         if (styleObj.fontFamily) css += ` font-family: ${styleObj.fontFamily};`;
+        if (styleObj.border !== undefined && styleObj.border !== '') css += ` border: ${styleObj.border};`;
         return css;
     }
 

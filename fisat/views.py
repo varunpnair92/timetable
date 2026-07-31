@@ -3520,7 +3520,16 @@ def download_custom_document_excel(request, doc_id):
                 color_val = cS.get("color", colS.get("color", ""))
                 size_str = cS.get("fontSize", colS.get("fontSize", ""))
                 
+                border_val = cS.get("border", colS.get("border", "1px solid"))
+                
                 fmt_dict = {"border": 1, "valign": "vcenter"}
+                if border_val == "none":
+                    fmt_dict["border"] = 0
+                elif "2px" in str(border_val):
+                    fmt_dict["border"] = 2
+                elif "dashed" in str(border_val):
+                    fmt_dict["border"] = 3
+
                 if b_val: fmt_dict["bold"] = True
                 if i_val: fmt_dict["italic"] = True
                 if u_val: fmt_dict["underline"] = True
