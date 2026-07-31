@@ -2642,35 +2642,71 @@
         bodyContent.className = 'body-content-container';
         docBlocks.forEach(block => {
             if (block.type === 'table') {
-                const table = document.createElement('table');
-                table.className = 'preview-table';
-                
-                if (block.headers && block.headers.length) {
-                    const thead = document.createElement('thead');
-                    const tr = document.createElement('tr');
-                    block.headers.forEach(hdr => {
-                        const th = document.createElement('th');
-                        th.textContent = hdr;
-                        tr.appendChild(th);
-                    });
-                    thead.appendChild(tr);
-                    table.appendChild(thead);
-                }
-                
-                if (block.rows && block.rows.length) {
-                    const tbody = document.createElement('tbody');
-                    block.rows.forEach(rowArr => {
+                if (block.tableHtml) {
+                    const div = document.createElement('div');
+                    div.innerHTML = block.tableHtml;
+                    const table = div.querySelector('table');
+                    if (table) table.className = 'preview-table';
+                    bodyContent.appendChild(div.firstElementChild || div);
+                } else {
+                    const table = document.createElement('table');
+                    table.className = 'preview-table';
+                    
+                    const merges = block.merges || [];
+                    const cellAlignments = block.cellAlignments || {};
+                    const colAlignments = block.colAlignments || [];
+
+                    function isMergedCell(r, c) {
+                        for (let m of merges) {
+                            if (r >= m.r1 && r <= m.r2 && c >= m.c1 && c <= m.c2) {
+                                if (r === m.r1 && c === m.c1) {
+                                    return { isTopLeft: true, colspan: (m.c2 - m.c1 + 1), rowspan: (m.r2 - m.r1 + 1) };
+                                } else {
+                                    return { isCovered: true };
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                    
+                    if (block.headers && block.headers.length) {
+                        const thead = document.createElement('thead');
                         const tr = document.createElement('tr');
-                        rowArr.forEach(cell => {
-                            const td = document.createElement('td');
-                            td.textContent = cell;
-                            tr.appendChild(td);
+                        block.headers.forEach((hdr, cIdx) => {
+                            const th = document.createElement('th');
+                            th.textContent = hdr;
+                            if (colAlignments[cIdx]) th.style.textAlign = colAlignments[cIdx];
+                            tr.appendChild(th);
                         });
-                        tbody.appendChild(tr);
-                    });
-                    table.appendChild(tbody);
+                        thead.appendChild(tr);
+                        table.appendChild(thead);
+                    }
+                    
+                    if (block.rows && block.rows.length) {
+                        const tbody = document.createElement('tbody');
+                        block.rows.forEach((rowArr, rIdx) => {
+                            const tr = document.createElement('tr');
+                            rowArr.forEach((cell, cIdx) => {
+                                const mergeInfo = isMergedCell(rIdx, cIdx);
+                                if (mergeInfo && mergeInfo.isCovered) return;
+
+                                const td = document.createElement('td');
+                                td.textContent = cell;
+                                const align = cellAlignments[`${rIdx}_${cIdx}`] || colAlignments[cIdx] || 'left';
+                                td.style.textAlign = align;
+
+                                if (mergeInfo && mergeInfo.isTopLeft) {
+                                    if (mergeInfo.colspan > 1) td.colSpan = mergeInfo.colspan;
+                                    if (mergeInfo.rowspan > 1) td.rowSpan = mergeInfo.rowspan;
+                                }
+                                tr.appendChild(td);
+                            });
+                            tbody.appendChild(tr);
+                        });
+                        table.appendChild(tbody);
+                    }
+                    bodyContent.appendChild(table);
                 }
-                bodyContent.appendChild(table);
             } else {
                 const el = document.createElement(block.type === 'body' ? 'p' : (['h2','h3','h4','bullet','number'].includes(block.type) ? 'div' : block.type));
                 el.className = `preview-${block.type}`;
