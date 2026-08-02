@@ -1039,6 +1039,18 @@
                         {% endfor %}
                     </select>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="sheet_name">Auto Load Google Sheet</label>
+                    <select id="sheet_name" name="sheet_name" class="form-input" style="min-width: 150px;">
+                        <option value="">-- None --</option>
+                        {% for s in sheet_tabs %}
+                            <option value="{{ s }}" {% if sheet_name == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" name="action" value="prepare_from_sheet" class="btn-action" style="height: 41px; padding: 0 24px; background-color: var(--primary); color: white; border-color: transparent;">Prepare from Sheet</button>
+
                 <div class="form-group" style="margin-bottom: 0;">
                     <label for="start_date">Start Date (DD-MM-YYYY)</label>
                     <input type="text" id="start_date" name="start_date" class="form-input" value="{{ start_date|default:'' }}" placeholder="e.g. 01-12-2025">

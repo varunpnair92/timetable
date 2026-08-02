@@ -3206,6 +3206,7 @@ def generate_lab_report_view(request):
             "content_json": content_json,
             "categories": categories,
             "labs": labs,
+            "sheet_tabs": sheet_tabs,
             "generated": True,
             "lab_name": lab_name,
             "start_date": start_date,
@@ -3224,6 +3225,7 @@ def generate_lab_report_view(request):
     return render(request, "lab_report_generator.html", {
         "categories": categories,
         "labs": labs,
+        "sheet_tabs": sheet_tabs,
         "generated": False,
         "include_class_name": "on"
     })
