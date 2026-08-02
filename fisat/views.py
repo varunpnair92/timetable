@@ -3607,3 +3607,74 @@ def download_custom_document_excel(request, doc_id):
     response["Content-Disposition"] = f'attachment; filename="{safe_filename}.xlsx"'
     return response
 
+from .forms import LabAllotmentForm
+from .models import LabAllotment
+
+@login_required(login_url="/")
+def lab_allocation_view(request):
+    if request.method == "POST":
+        form = LabAllotmentForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Lab Allotment created successfully!")
+            return redirect("lab_allocation")
+    else:
+        form = LabAllotmentForm()
+        
+    allotments = LabAllotment.objects.all().order_by('-id')
+    return render(request, "lab_allocation.html", {"form": form, "allotments": allotments})
+
+@login_required(login_url="/")
+def sync_lab_allotment_view(request):
+    # Google Sheet details
+    sheet_id = "1yLTLndwwistnZyJ12VW7cAnFsBZeh8Jf9sFAvNHZokQ"
+    sheets = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'pglab', 'MP lab']
+    
+    synced_count = 0
+    for sheet_name in sheets:
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+        try:
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                reader = csv.reader(io.StringIO(r.text))
+                for row in reader:
+                    if len(row) >= 7:
+                        lab_name = row[0].strip()
+                        day_allotted = row[1].strip()
+                        hours_allotted = row[2].strip()
+                        subject_name = row[3].strip()
+                        class_name = row[4].strip()
+                        start_date = row[5].strip()
+                        end_date = row[6].strip()
+                        
+                        if lab_name and subject_name and class_name:
+                            # Avoid duplicates by checking if exists
+                            exists = LabAllotment.objects.filter(
+                                lab_name=lab_name,
+                                day_allotted=day_allotted,
+                                hours_allotted=hours_allotted,
+                                subject_name=subject_name,
+                                class_name=class_name,
+                                start_date=start_date,
+                                end_date=end_date
+                            ).exists()
+                            
+                            if not exists:
+                                LabAllotment.objects.create(
+                                    lab_name=lab_name,
+                                    day_allotted=day_allotted,
+                                    hours_allotted=hours_allotted,
+                                    subject_name=subject_name,
+                                    class_name=class_name,
+                                    start_date=start_date,
+                                    end_date=end_date,
+                                    external="google_sheet"
+                                )
+                                synced_count += 1
+        except Exception as e:
+            print(f"Error syncing {sheet_name}: {e}")
+            
+    messages.success(request, f"Successfully synced {synced_count} new lab allotments from Google Sheets.")
+    return redirect("lab_allocation")
+
+

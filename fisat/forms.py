@@ -1,5 +1,5 @@
 from django import forms
-from .models import Staff, SubjectEntry, TimetableEntry
+from .models import Staff, SubjectEntry, TimetableEntry, LabAllotment
 from django.conf import settings
 
 class SubjectEntryChoiceField(forms.ModelChoiceField):
@@ -124,3 +124,20 @@ class DeleteSubjectEntryForm(forms.Form):
     def delete_entry(self):
         subject = self.cleaned_data['subject_entry']
         subject.delete()
+
+class LabAllotmentForm(forms.ModelForm):
+    class Meta:
+        model = LabAllotment
+        fields = ['lab_name', 'day_allotted', 'hours_allotted', 'subject_name', 'class_name', 'start_date', 'end_date', 'external', 'skip_telegram']
+        widgets = {
+            'lab_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'day_allotted': forms.TextInput(attrs={'class': 'form-control'}),
+            'hours_allotted': forms.TextInput(attrs={'class': 'form-control'}),
+            'subject_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'class_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'start_date': forms.TextInput(attrs={'class': 'form-control'}),
+            'end_date': forms.TextInput(attrs={'class': 'form-control'}),
+            'external': forms.TextInput(attrs={'class': 'form-control'}),
+            'skip_telegram': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+

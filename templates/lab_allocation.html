@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Lab Allocation{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Lab Allocation Management</h2>
+        <a href="{% url 'sync_lab_allotment' %}" class="btn btn-success">
+            <i class="bi bi-cloud-download"></i> Sync from Google Sheet
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- Form Section -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Add New Allotment</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-primary w-100">Save Allotment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Section -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Existing Allotments</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px;">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Lab</th>
+                                    <th>Subject</th>
+                                    <th>Class</th>
+                                    <th>Day</th>
+                                    <th>Hours</th>
+                                    <th>Start Date</th>
+                                    <th>External</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for allotment in allotments %}
+                                <tr>
+                                    <td>{{ allotment.lab_name }}</td>
+                                    <td>{{ allotment.subject_name }}</td>
+                                    <td>{{ allotment.class_name }}</td>
+                                    <td>{{ allotment.day_allotted }}</td>
+                                    <td>{{ allotment.hours_allotted }}</td>
+                                    <td>{{ allotment.start_date }}</td>
+                                    <td>
+                                        {% if allotment.external == "google_sheet" %}
+                                            <span class="badge bg-success">Sheet</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Manual</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">No lab allotments found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
