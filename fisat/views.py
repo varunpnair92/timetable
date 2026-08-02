@@ -3105,6 +3105,7 @@ def create_category_view(request):
 
 @login_required
 def generate_lab_report_view(request):
+    sheet_tabs = ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "pglab", "MP lab"]
     from .models import DocumentCategory, LabAllotment
     from datetime import datetime
     
@@ -3121,6 +3122,8 @@ def generate_lab_report_view(request):
 
     if request.method == "POST":
         # Form submission to generate report
+        action = request.POST.get("action")
+        sheet_name = request.POST.get("sheet_name")
         lab_name = request.POST.get("lab_name")
         start_date = request.POST.get("start_date", "")
         end_date = request.POST.get("end_date", "")
@@ -3128,15 +3131,41 @@ def generate_lab_report_view(request):
         heading_style = request.POST.get("heading_style", "new")
         orientation = request.POST.get("orientation", "landscape")
         include_class_name = request.POST.get("include_class_name")  # 'on' if checked or None
+
+        class DummyAllotment:
+            pass
+
+        allotments = []
+        if action == "prepare_from_sheet" and sheet_name:
+            import requests, csv, io
+            url = f"https://docs.google.com/spreadsheets/d/1yLTLndwwistnZyJ12VW7cAnFsBZeh8Jf9sFAvNHZokQ/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+            try:
+                r = requests.get(url, timeout=10)
+                if r.status_code == 200:
+                    reader = csv.reader(io.StringIO(r.text))
+                    for row in reader:
+                        if len(row) >= 7:
+                            a = DummyAllotment()
+                            a.lab_name = row[0].strip()
+                            a.day_allotted = row[1].strip()
+                            a.hours_allotted = row[2].strip()
+                            a.subject_name = row[3].strip()
+                            a.class_name = row[4].strip()
+                            a.start_date = row[5].strip()
+                            a.end_date = row[6].strip()
+                            if a.lab_name and a.subject_name and a.class_name:
+                                allotments.append(a)
+            except Exception as e:
+                pass
+            default_heading = f"Lab Wise Allotment Report - {sheet_name} (From Sheet)"
+        else:
+            allotments_qs = LabAllotment.objects.all()
+            if lab_name:
+                allotments_qs = allotments_qs.filter(lab_name=lab_name)
+            allotments = list(allotments_qs)
+            default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
         
-        default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
         final_heading = report_heading if report_heading else default_heading
-        
-        allotments_qs = LabAllotment.objects.all()
-        if lab_name:
-            allotments_qs = allotments_qs.filter(lab_name=lab_name)
-            
-        allotments = list(allotments_qs)
         
         if start_date:
             sd = parse_date(start_date)
@@ -3250,6 +3279,8 @@ def download_lab_report_excel(request):
                 return datetime.min
 
     if request.method == "POST":
+        action = request.POST.get("action")
+        sheet_name = request.POST.get("sheet_name")
         lab_name = request.POST.get("lab_name")
         start_date = request.POST.get("start_date", "")
         end_date = request.POST.get("end_date", "")
@@ -3257,15 +3288,41 @@ def download_lab_report_excel(request):
         heading_style = request.POST.get("heading_style", "new")
         orientation = request.POST.get("orientation", "landscape")
         include_class_name = request.POST.get("include_class_name")
-        
-        default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
+
+        class DummyAllotment:
+            pass
+
+        allotments = []
+        if sheet_name:
+            import requests, csv, io
+            url = f"https://docs.google.com/spreadsheets/d/1yLTLndwwistnZyJ12VW7cAnFsBZeh8Jf9sFAvNHZokQ/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+            try:
+                r = requests.get(url, timeout=10)
+                if r.status_code == 200:
+                    reader = csv.reader(io.StringIO(r.text))
+                    for row in reader:
+                        if len(row) >= 7:
+                            a = DummyAllotment()
+                            a.lab_name = row[0].strip()
+                            a.day_allotted = row[1].strip()
+                            a.hours_allotted = row[2].strip()
+                            a.subject_name = row[3].strip()
+                            a.class_name = row[4].strip()
+                            a.start_date = row[5].strip()
+                            a.end_date = row[6].strip()
+                            if a.lab_name and a.subject_name and a.class_name:
+                                allotments.append(a)
+            except Exception as e:
+                pass
+            default_heading = f"Lab Wise Allotment Report - {sheet_name} (From Sheet)"
+        else:
+            allotments_qs = LabAllotment.objects.all()
+            if lab_name:
+                allotments_qs = allotments_qs.filter(lab_name=lab_name)
+            allotments = list(allotments_qs)
+            default_heading = f"Lab Wise Allotment Report - {lab_name or 'All Labs'}"
+
         final_heading = report_heading if report_heading else default_heading
-        
-        allotments_qs = LabAllotment.objects.all()
-        if lab_name:
-            allotments_qs = allotments_qs.filter(lab_name=lab_name)
-            
-        allotments = list(allotments_qs)
         
         if start_date:
             sd = parse_date(start_date)
