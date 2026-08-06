@@ -3222,7 +3222,9 @@ def generate_lab_report_view(request):
                             a.class_name = row[4].strip()
                             a.start_date = row[5].strip()
                             a.end_date = row[6].strip()
-                            if a.lab_name and a.subject_name and a.class_name:
+                            if a.lab_name.lower() in ['lab', 'lab name', 'lab_name']:
+                                continue
+                            if a.lab_name and a.subject_name:
                                 allotments.append(a)
             except Exception as e:
                 pass
@@ -3378,7 +3380,9 @@ def download_lab_report_excel(request):
                             a.class_name = row[4].strip()
                             a.start_date = row[5].strip()
                             a.end_date = row[6].strip()
-                            if a.lab_name and a.subject_name and a.class_name:
+                            if a.lab_name.lower() in ['lab', 'lab name', 'lab_name']:
+                                continue
+                            if a.lab_name and a.subject_name:
                                 allotments.append(a)
             except Exception as e:
                 pass
@@ -3773,7 +3777,9 @@ def sync_lab_allotment_view(request):
                         start_date = row[5].strip()
                         end_date = row[6].strip()
                         
-                        if lab_name and subject_name and class_name:
+                        if lab_name.lower() in ['lab', 'lab name', 'lab_name']:
+                            continue
+                        if lab_name and subject_name:
                             # Avoid duplicates by checking if exists
                             exists = LabAllotment.objects.filter(
                                 lab_name=lab_name,
