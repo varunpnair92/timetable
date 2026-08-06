@@ -278,11 +278,10 @@ def timetable(request):
                 })
             timetable_slots.append(row_slots)
 
-        # get staff timetable entries for this user + period
+        # get staff timetable entries for this period
         timetable_entries = TimetableEntry.objects.filter(
             staff=staff,
-            subject__period=dp,
-            user=request.user
+            subject__period=dp
         )
 
         workload = 0
@@ -374,8 +373,7 @@ def timetable(request):
     from collections import defaultdict
     allotment_map = defaultdict(list)
     entries = TimetableEntry.objects.filter(
-        subject__period=dp,
-        user=request.user
+        subject__period=dp
     ).select_related('staff')
     for entry in entries:
         allotment_map[entry.subject_id].append({
@@ -870,7 +868,7 @@ def timetableexcel(request):
             merged_cols = set()
 
             for sub in subs:
-                entries = TimetableEntry.objects.filter(subject=sub, user=request.user)
+                entries = TimetableEntry.objects.filter(subject=sub)
                 staff_names = ",".join(
                     staff_abbr.get(e.staff.name, e.staff.name) for e in entries
                 ) or "—"
@@ -1093,7 +1091,7 @@ def timetableexcel_combined(request):
                 for sub in subs:
 
                     # staff
-                    entries = TimetableEntry.objects.filter(subject=sub, user=request.user)
+                    entries = TimetableEntry.objects.filter(subject=sub)
                     staff_names = ",".join(staff_abbr.get(e.staff.name,e.staff.name)
                                            for e in entries) or "—"
 
