@@ -3207,7 +3207,7 @@ def generate_lab_report_view(request):
         allotments = []
         if action == "prepare_from_sheet" and sheet_name:
             import requests, csv, io
-            url = f"https://docs.google.com/spreadsheets/d/1yLTLndwwistnZyJ12VW7cAnFsBZeh8Jf9sFAvNHZokQ/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+            url = f"https://docs.google.com/spreadsheets/d/1yLTLndwwistnZyJ12VW7cAnFsBZeh8Jf9sFAvNHZokQ/export?format=csv&sheet={sheet_name}"
             try:
                 r = requests.get(url, timeout=10)
                 if r.status_code == 200:
@@ -3365,7 +3365,7 @@ def download_lab_report_excel(request):
         allotments = []
         if sheet_name:
             import requests, csv, io
-            url = f"https://docs.google.com/spreadsheets/d/1yLTLndwwistnZyJ12VW7cAnFsBZeh8Jf9sFAvNHZokQ/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+            url = f"https://docs.google.com/spreadsheets/d/1yLTLndwwistnZyJ12VW7cAnFsBZeh8Jf9sFAvNHZokQ/export?format=csv&sheet={sheet_name}"
             try:
                 r = requests.get(url, timeout=10)
                 if r.status_code == 200:
@@ -3762,7 +3762,7 @@ def sync_lab_allotment_view(request):
     
     synced_count = 0
     for sheet_name in sheets:
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&sheet={sheet_name}"
         try:
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
