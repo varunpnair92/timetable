@@ -12,8 +12,79 @@ from django.core.exceptions import ValidationError
 import csv
 import io
 import json
+import math
 import os
+import re
 import requests
+
+
+def calculate_hours_count(hours_str):
+    """
+    Calculates total hours from allotment hours string.
+    Supports formats:
+    - Time ranges: '8-1.30', '8-3.30', '8.00-1.30', '8:00-13:30', '8-1:30', '9.30-12.30', '8.30-1.30', '8-4', etc.
+    - Multiple ranges or comma separated entries: '8-1.30, 2-3.30'
+    - Discrete period lists: '1, 2, 3'
+    Formula for time ranges:
+      duration_in_minutes = end_time_mins - start_time_mins
+      hours = math.floor(duration_in_minutes / 50)  # 50 minutes = 1 lab hour, floor conversion
+    """
+    if not hours_str or not str(hours_str).strip():
+        return 0
+
+    hours_str = str(hours_str).strip()
+    items = [x.strip() for x in hours_str.split(',') if x.strip()]
+
+    def parse_time_point(t_str):
+        t_str = t_str.strip().lower()
+        is_pm = 'pm' in t_str
+        is_am = 'am' in t_str
+        t_str = t_str.replace('am', '').replace('pm', '').strip()
+
+        parts = re.split(r'[:\.]', t_str)
+        if not parts or not parts[0].isdigit():
+            return None
+
+        hour = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+        if len(parts) > 1 and parts[1].isdigit() and len(parts[1]) == 1:
+            minute = minute * 10
+
+        if is_pm and hour < 12:
+            hour += 12
+        elif is_am and hour == 12:
+            hour = 0
+        elif not is_pm and not is_am:
+            if hour < 7:
+                hour += 12
+
+        return hour * 60 + minute
+
+    total_minutes = 0
+    discrete_periods = 0
+    has_range = False
+
+    for item in items:
+        range_match = re.split(r'\s*(?:-|\bto\b|–)\s*', item, flags=re.IGNORECASE)
+        if len(range_match) == 2:
+            t1 = parse_time_point(range_match[0])
+            t2 = parse_time_point(range_match[1])
+            if t1 is not None and t2 is not None:
+                if t2 < t1:
+                    t2 += 12 * 60
+                if t2 > t1:
+                    total_minutes += (t2 - t1)
+                    has_range = True
+                    continue
+
+        discrete_periods += 1
+
+    if has_range:
+        total_mins_combined = total_minutes + (discrete_periods * 50)
+        return total_mins_combined // 50
+    else:
+        return discrete_periods
+
 
 from .forms import (
     AllocationForm,
@@ -3190,8 +3261,7 @@ def generate_lab_report_view(request):
         rows = []
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
-            hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
-            hours_count = len(hours_list)
+            hours_count = calculate_hours_count(allotment.hours_allotted)
             total_cumulative_hours += hours_count
             
             if show_class_col:
@@ -3417,8 +3487,7 @@ def download_lab_report_excel(request):
         row_num = start_row + 1
         total_cumulative_hours = 0
         for idx, allotment in enumerate(allotments, start=1):
-            hours_list = [h.strip() for h in allotment.hours_allotted.split(',') if h.strip()]
-            hours_count = len(hours_list)
+            hours_count = calculate_hours_count(allotment.hours_allotted)
             total_cumulative_hours += hours_count
             
             if show_class_col:
